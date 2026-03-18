@@ -34,6 +34,7 @@
 | Skill | 作用 | 适用场景（触发） |
 |------|------|------------------|
 | `code-doc-maker` | 维护并补齐仓库的 Markdown 文档：根目录 `README` 聚合目录；`hand-writing` 先“思路”再“代码链接”；`basic` 把要点改写成通顺的面试表达 | 当你要“补齐/完善/整理文档”、更新 README/目录、或把零散要点整理成可复述的笔记时 |
+| `fix-mermaid` | 修复 Mermaid 图表渲染报错（如 Mermaid 9.4.3 的 `Syntax error in graph`）：在 ` ```mermaid ` 块内做最小安全改写（统一加引号、修 `subgraph`、替换不支持的 `timeline` 等） | 当你的 Markdown 文章/文档里的 Mermaid 图无法渲染或报 `Syntax error in graph`，且希望只改图表源码、不动正文时 |
 
 ## 规范（Conventions）
 
