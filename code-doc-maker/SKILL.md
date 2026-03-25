@@ -85,5 +85,6 @@ When the user provides new doc rules, append them to the following list **withou
 
 ### Project-specific extra rules (append-only)
 
-- (none yet)
+- **hand-writing 文档生成**：每个文件夹（如 hand-writing/）只有一个 README.md，在其中按「思路 + 代码链接」格式列出所有题目
+- **增量处理**：使用 git diff --name-only 检测哪些文件是新增或修改的，只处理这些文件，避免全量遍历
 
