@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Excalidraw renderer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #ffffff; overflow: hidden; }
+    /* The SVG must be laid out on screen for svg_el.screenshot() to capture it. */
+    #root { display: inline-block; }
+    #root svg { display: block; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    // Load Excalidraw once, as a module. We expose a Promise that resolves only
+    // AFTER the dynamic import has completed, so the Python driver never calls
+    // renderDiagram before exportToSvg is actually available. This removes the
+    // race that the __moduleReady-flag approach has (a flag set by the module
+    // script running does not mean the import() inside it has finished).
+    //
+    // Version is pinned. A bundled single-file URL is REQUIRED: without it,
+    // CDNs serve Excalidraw as dozens of cascading module requests (react,
+    // radix-ui, ...) and the total load time blows past any timeout.
+    //
+    // Multi-CDN fallback: try each in order until one loads. esm.sh is primary
+    // (most reliable bundling); jsdelivr and skypack are fallbacks for when a
+    // CDN is down or blocked.
+    const EXCAL_VERSION = "0.18.0";
+    const CDN_URLS = [
+      `https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@${EXCAL_VERSION}/+esm`,
+      `https://esm.sh/@excalidraw/excalidraw@${EXCAL_VERSION}?bundle`,
+      `https://cdn.skypack.dev/@excalidraw/excalidraw@${EXCAL_VERSION}`,
+    ];
+
+    async function tryLoadCDNs() {
+      let lastErr;
+      for (const url of CDN_URLS) {
+        try {
+          const mod = await import(url);
+          if (typeof mod.exportToSvg === "function") return mod;
+          throw new Error("module loaded but has no exportToSvg");
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr;
+    }
+
+    window.__excalReady = tryLoadCDNs()
+      .then((mod) => {
+        window.__excal = mod;
+        window.__excalDone = true;
+      })
+      .catch((err) => {
+        window.__excalError = String(err && err.message ? err.message : err);
+        window.__excalDone = true;
+      });
+
+    /**
+     * Render an Excalidraw scene to an <svg> element appended to #root.
+     * Simple pipeline: restore → convertToExcalidrawElements → exportToSvg.
+     * No coordinate fixes needed — scene JSON must set text.x/text.y to
+     * the CENTER of the container (textAlign="center"/verticalAlign="middle"
+     * means x/y are the anchor points for the text).
+     */
+    window.renderDiagram = async function (scene) {
+      try {
+        await window.__excalReady;
+
+        const excal = window.__excal;
+        let normalized;
+        try {
+          normalized = excal.restore(scene, null);
+        } catch (e) {
+          normalized = { elements: scene.elements, appState: scene.appState, files: scene.files };
+        }
+
+        if (typeof excal.convertToExcalidrawElements === "function") {
+          try {
+            normalized.elements = excal.convertToExcalidrawElements(normalized.elements);
+          } catch (e) {}
+        }
+
+        const appState = Object.assign(
+          { exportBackground: true, exportWithDarkMode: false, viewBackgroundColor: "#ffffff" },
+          normalized.appState || {}
+        );
+        const svg = await excal.exportToSvg({
+          elements: normalized.elements,
+          appState: appState,
+          files: normalized.files || {},
+        });
+
+        if (!svg || svg.tagName.toLowerCase() !== "svg") {
+          throw new Error(
+            "exportToSvg did not return an <svg> element " +
+            "(got " + (svg ? svg.tagName : "null") + ")."
+          );
+        }
+
+        const root = document.getElementById("root");
+        root.innerHTML = "";
+        root.appendChild(svg);
+        window.__lastSvg = new XMLSerializer().serializeToString(svg);
+
+        return { success: true, width: svg.getAttribute("width"), height: svg.getAttribute("height") };
+      } catch (err) {
+        return { success: false, error: String(err && err.message ? err.message : err) };
+      }
+    };
+  </script>
+</body>
+</html>

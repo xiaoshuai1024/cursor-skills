@@ -1,0 +1,30 @@
+{
+  "name": "xiaoshuai-skills",
+  "version": "0.1.0",
+  "description": "个人 Agent Skills 集合 —— 面向架构师 + 内容输出两条 track 的可复用 skill。支持 npx skills add xiaoshuai1024/skills 安装。",
+  "license": "MIT",
+  "author": {
+    "name": "xiaoshuai",
+    "url": "https://github.com/xiaoshuai1024"
+  },
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "cursor",
+    "opencode",
+    "codex",
+    "gemini-cli",
+    "skills-sh",
+    "architect",
+    "content",
+    "excalidraw",
+    "blog-writing",
+    "video-generation"
+  ],
+  "files": [
+    "skills/",
+    "skills.sh.json",
+    "README.md",
+    "LICENSE"
+  ]
+}
