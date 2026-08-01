@@ -15,7 +15,6 @@
 | Skill | 作用 | 触发场景 |
 |------|------|----------|
 | [`code-doc-maker`](./skills/code-doc-maker) | 维护并补齐仓库 Markdown 文档：根 README 聚合目录、笔记按规范改写 | 要「补齐/完善/整理文档」、更新 README/目录、把零散要点整理成可复述笔记 |
-| [`fix-mermaid`](./skills/fix-mermaid) | 修复 Mermaid 图渲染报错（如 9.4.3 的 `Syntax error in graph`），只改图源不动正文 | 文章/文档里的 Mermaid 图无法渲染或报语法错 |
 
 ### 内容输出 / Content
 
@@ -26,6 +25,7 @@
 | [`excalidraw`](./skills/excalidraw) | 用真实 Excalidraw 引擎渲染手绘风格图（流程图/架构图/ER/时序/线框），导出 SVG+PNG | 要画「diagram / flowchart / 架构图」，或把系统/流程可视化，且希望手绘风、矢量、可回拖到 excalidraw.com |
 | [`blog-writing`](./skills/blog-writing) | 博客写作全流程：选题自检→定类型→搭骨架→起标题→写正文→配图→润色→验证 | 写新文章或大改现有文章（扩写、去 AI 味、改标题）前调用 |
 | [`video-generation`](./skills/video-generation) | 把一篇文章/主题生成为横屏 16:9 讲解视频，courseware / graph / remotion 三种程序化模式 | 把文章转成知识/培训讲解视频（B站知识区、YouTube、在线课程风格） |
+| [`wechat-publishing`](./skills/wechat-publishing) | 博客文章同步到微信公众号草稿箱：mp 后台 API 直推（Playwright+msedge 登录态，跳过风控），含封面自动化、代码高亮、原文链接注入 | 写完文章构建后，同步到公众号草稿箱时调用 |
 
 ## 安装
 
@@ -78,8 +78,6 @@ skills/
     ├── code-doc-maker/      # 架构师
     │   ├── SKILL.md
     │   └── reference.md
-    ├── fix-mermaid/         # 架构师
-    │   └── SKILL.md
     ├── excalidraw/          # 内容输出
     │   ├── SKILL.md
     │   ├── references/
@@ -87,9 +85,11 @@ skills/
     ├── blog-writing/        # 内容输出
     │   ├── SKILL.md
     │   └── references/
-    └── video-generation/    # 内容输出
-        ├── SKILL.md
-        └── scripts/
+    ├── video-generation/    # 内容输出
+    │   ├── SKILL.md
+    │   └── scripts/
+    └── wechat-publishing/   # 内容输出
+        └── SKILL.md
 ```
 
 ## 约定
@@ -111,9 +111,9 @@ skills/
 
 本集合整合自此前几个独立仓库，统一收敛到这里维护：
 
-- `code-doc-maker`、`fix-mermaid` —— 原 `cursor-skills`（本仓库前身）
+- `code-doc-maker` —— 原 `cursor-skills`（本仓库前身）
 - `excalidraw` —— 原 `excalidraw-skill`
-- `blog-writing`、`video-generation` —— 沉淀自博客工作流
+- `blog-writing`、`video-generation`、`wechat-publishing` —— 沉淀自博客工作流
 
 ## License
 

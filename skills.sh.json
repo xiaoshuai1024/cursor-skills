@@ -4,13 +4,13 @@
   "groupings": [
     {
       "title": "架构师 / Architect",
-      "description": "架构设计与工程方法论 skill：仓库文档治理、图表渲染修复。日常做系统设计、写技术文档、画架构图时使用。",
-      "skills": ["code-doc-maker", "fix-mermaid"]
+      "description": "架构设计与工程方法论 skill：仓库文档治理。日常做系统设计、写技术文档、画架构图时使用。",
+      "skills": ["code-doc-maker"]
     },
     {
       "title": "内容输出 / Content",
-      "description": "技术内容生产 skill：手绘风格画图、博客写作、横屏视频生成。把架构师的思考沉淀成可发布的图文与视频。",
-      "skills": ["excalidraw", "blog-writing", "video-generation"]
+      "description": "技术内容生产 skill：手绘风格画图、博客写作、横屏视频生成、公众号同步发布。把架构师的思考沉淀成可发布的图文与视频。",
+      "skills": ["excalidraw", "blog-writing", "video-generation", "wechat-publishing"]
     }
   ]
 }
