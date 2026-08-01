@@ -1,6 +1,6 @@
 ---
 name: code-doc-maker
-description: Maintains and expands Markdown documentation for this interview/practice repository. Use when the user asks to补齐/完善/整理 Markdown 文档、更新 README/目录、或新增面试笔记结构。Enforces: root README aggregates all content; hand-writing docs are "思路 → 代码链接"; basic notes are rewritten into fluent sentences without losing technical accuracy.
+description: 'Maintains and expands Markdown documentation for a repository. Use when the user asks to 补齐/完善/整理 Markdown 文档、更新 README/目录、或新增面试笔记结构。Enforces — root README aggregates all content; hand-writing docs are 思路 then 代码链接; basic notes are rewritten into fluent sentences without losing technical accuracy.'
 ---
 
 # Code Doc Maker
