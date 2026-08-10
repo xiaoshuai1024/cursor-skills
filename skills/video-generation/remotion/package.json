@@ -1,0 +1,28 @@
+{
+  "name": "video-remotion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "video-generation skill 的 Remotion 数据可视化管线(React + Three.js)",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "tsx scripts/render.ts",
+    "render:draft": "remotion render src/index.ts llm-thinking ../../../../.video-generation/out/llm-thinking-draft.mp4 --every-nth-frame=2 --scale=0.5",
+    "build": "remotion bundle src/index.ts"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.6.1",
+    "@remotion/cli": "4.0.8",
+    "@remotion/three": "4.0.8",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "remotion": "4.0.8",
+    "three": "^0.168.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.168.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.5.0"
+  }
+}

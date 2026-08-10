@@ -37,8 +37,11 @@ DEFAULT_MAX_UNIT = 24   # 意群单元字数上限（接近字幕单行容量，
 
 import re as _re
 
-_UNIT_SPLIT_RE = _re.compile(r"[，。、：；]")
-_TOKEN_RE = _re.compile(r"[A-Za-z0-9.+-]+(?:\s+[A-Za-z0-9.+-]+)*|.")
+# 断句标点：中文句逗顿冒分 + 问叹号。问句必须单独成意群——
+# 否则「又被封了？不换号」连一起超 24 字被硬切到「不换号」，字幕出现"又问句又半截"。
+_UNIT_SPLIT_RE = _re.compile(r"[，。、：；？！]")
+# 硬切 token：英文/数字词块（含内部空格）整体切 + 中文数字连续段整体切（保护"零点零二八"不被切成"约零/点零二八"）+ 其余逐字。
+_TOKEN_RE = _re.compile(r"[A-Za-z0-9.+-]+(?:\s+[A-Za-z0-9.+-]+)*|[零一二三四五六七八九十百千万亿点]+|.")
 
 
 def split_units(sentences: list[str], max_unit: int = DEFAULT_MAX_UNIT) -> list[str]:
@@ -62,7 +65,7 @@ def split_units(sentences: list[str], max_unit: int = DEFAULT_MAX_UNIT) -> list[
             if len(part) <= max_unit:
                 units.append(part)
                 continue
-            # 超长：按英文词块 + 中文逐字切
+            # 超长：按英文词块 + 中文数字段 + 中文逐字切
             tokens = _TOKEN_RE.findall(part)
             chunks: list[str] = []
             cur = ""
@@ -74,6 +77,8 @@ def split_units(sentences: list[str], max_unit: int = DEFAULT_MAX_UNIT) -> list[
                     cur += tok
             if cur:
                 chunks.append(cur)
+            # 去块首尾空格（英文词块整体切可能把尾部空格带进块）
+            chunks = [c.strip() for c in chunks]
             # 尾部短词回并（避免"正式版"单独成句）
             if len(chunks) >= 2 and len(chunks[-1]) < 6:
                 chunks[-2] = chunks[-2] + chunks[-1]

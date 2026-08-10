@@ -1,0 +1,41 @@
+{
+  "_comment": "tech-topic 多源配置。enabled=是否拉取；weight=跨源合分权重（源内归一后再乘）；infoq_topic_map=InfoQ topic 名称→博客方向；dedup_token_threshold=跨平台去重的标题 token 交集阈值。方向名与 category_map.json 一致：前端/后端/人工智能。",
+  "sources": {
+    "juejin": {
+      "enabled": true,
+      "weight": 1.0
+    },
+    "csdn": {
+      "enabled": true,
+      "weight": 1.0
+    },
+    "infoq": {
+      "enabled": true,
+      "weight": 1.2
+    },
+    "zhihu": {
+      "enabled": true,
+      "weight": 1.0,
+      "filter": "keyword"
+    }
+  },
+  "infoq_topic_map": {
+    "AI&大模型": "人工智能",
+    "AI&LLM": "人工智能",
+    "人工智能": "人工智能",
+    "大模型": "人工智能",
+    "大前端": "前端",
+    "Web": "前端",
+    "前端": "前端",
+    "语言 & 开发": "后端",
+    "编程语言": "后端",
+    "微服务": "后端",
+    "后端": "后端",
+    "云原生": "后端",
+    "容器": "后端",
+    "大数据": "后端",
+    "架构": "后端"
+  },
+  "dedup_token_threshold": 0.6,
+  "per_source_top": 10
+}

@@ -1,0 +1,6 @@
+{
+  "_comment": "方向关键词表（可编辑）。key=方向，value=关键词列表；title/tags 命中即归入 🎯垂直视角。围绕「前端→全栈→AI 开发」主线。",
+  "前端": ["前端", "JavaScript", "TypeScript", "JS", "TS", "React", "Vue", "CSS", "HTML", "浏览器", "Web", "Webpack", "Vite", "性能"],
+  "后端": ["后端", "Node", "Go", "Java", "Rust", "Python", "数据库", "MySQL", "Redis", "API", "微服务", "Docker", "Kubernetes", "K8s", "运维"],
+  "人工智能": ["人工智能", "AI", "大模型", "LLM", "Claude", "GPT", "Cursor", "Copilot", "Agent", "RAG", "提示词", "prompt", "AIGC", "MCP", "function calling", "向量"]
+}

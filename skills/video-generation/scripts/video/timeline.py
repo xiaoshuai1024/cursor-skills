@@ -167,14 +167,14 @@ if __name__ == "__main__":
         pass
 
     # 直接运行脚本时 sys.path[0] = scripts/video，可直接 import 同级模块
-    from config import NARRATIONS_DIR, ROOT, build_dir
+    from config import NARRATIONS_DIR, OUTPUT_ROOT, build_dir
     from tts import synth_with_boundaries
 
     SLUG = "ai-dev-claude-code-power-user"
 
     with open(NARRATIONS_DIR / f"{SLUG}.json", encoding="utf-8") as f:
         narr = json.load(f)
-    with open(ROOT / ".douyin-build" / SLUG / "deck.json", encoding="utf-8") as f:
+    with open(OUTPUT_ROOT / "deck" / SLUG / "deck.json", encoding="utf-8") as f:
         deck = json.load(f)
 
     voice = narr["voice"]

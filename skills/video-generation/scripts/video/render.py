@@ -94,28 +94,45 @@ def concat_with_transitions(segments: list[Path], out: Path, transition_dur: flo
             concat(segments, out)
             return
 
+    n = len(segments)
+
     # 构建输入参数
     inputs = []
     for seg in segments:
         inputs.extend(["-i", str(seg)])
 
-    # 构建 xfade 滤镜链
+    # 构建 xfade 滤镜链（视频）
     filter_parts = []
     offset = 0.0
     prev_label = "[0:v]"
 
-    for i in range(len(segments) - 1):
+    for i in range(n - 1):
         transition = transitions[i % len(transitions)]
         seg_dur = durations[i]
         # offset 是当前输出视频的截止时间点（减去转场重叠）
         xfade_offset = offset + seg_dur - transition_dur
-        out_label = f"[v{i}]" if i < len(segments) - 2 else "[vout]"
+        out_label = f"[v{i}]" if i < n - 2 else "[vout]"
 
         filter_parts.append(
             f"{prev_label}[{i+1}:v]xfade=transition={transition}:duration={transition_dur}:offset={xfade_offset:.3f}{out_label}"
         )
 
         offset = xfade_offset
+        prev_label = out_label
+
+    # 音频 acrossfade：与视频 xfade 严格对齐（段 i 尾 与 段 i+1 头 交叉 transition_dur），
+    # 总时长 = sum(dur) - (n-1)*d，与视频一致。之前只 -map 0:a 导致只有第一段有声音，
+    # 后半段静音——本次修复为完整跨段合并。
+    for i in range(n):
+        filter_parts.append(
+            f"[{i}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a{i}f]"
+        )
+    prev_label = "[a0f]"
+    for i in range(1, n):
+        out_label = f"[a{i-1}o]" if i < n - 1 else "[aout]"
+        filter_parts.append(
+            f"{prev_label}[a{i}f]acrossfade=d={transition_dur}:c1=tri:c2=tri{out_label}"
+        )
         prev_label = out_label
 
     filter_complex = ";".join(filter_parts)
@@ -125,7 +142,8 @@ def concat_with_transitions(segments: list[Path], out: Path, transition_dur: flo
         *inputs,
         "-filter_complex", filter_complex,
         "-map", "[vout]",
-        "-map", "0:a",  # 使用第一段的音频（xfade 不处理音频，后续用 amix 合并）
+        "-map", "[aout]",
+        "-shortest",
         *VIDEO_KWARGS, *AUDIO_KWARGS,
         str(out),
     ]

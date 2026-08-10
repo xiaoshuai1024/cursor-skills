@@ -11,10 +11,14 @@
 """
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from . import config as C
 from . import render, tts
+
+# ASS 字幕字体: Windows 微软雅黑, macOS 苹方(libass 找不到雅黑会渲染豆腐块)
+_ASS_FONT = "Microsoft YaHei" if sys.platform == "win32" else "PingFang SC"
 
 _PUNCTS = "，。！？、：；"
 
@@ -77,7 +81,7 @@ def build_ass(meta: list[tuple[float, float]], cards_text: list[str], out) -> No
         "[V4+ Styles]\n"
         "Format: Name, Fontname, Fontsize, PrimaryColour, BackColour, Bold, Italic, "
         "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
-        "Style: Default,Microsoft YaHei,54,&H00FFFFFF,&H00000000,-1,0,1,3,1,2,90,90,160,1\n\n"
+        f"Style: Default,{_ASS_FONT},54,&H00FFFFFF,&H00000000,-1,0,1,3,1,2,90,90,160,1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
@@ -95,6 +99,21 @@ def normalize_card(raw: dict) -> dict:
     - insight：label→副标题，title + points + sub_points + footer
     """
     ctype = raw.get("type", "insight")
+    if ctype == "tool":
+        # 屏录感工具窗口卡片：保留 tool 类型 + 窗口标题（subtitle），steps 放 points。
+        # 透传全部字段（big/mats/cta/items/req/code/resp/repo/ver 等），screencast
+        # 的 tool builder 按需读取——不剥字段，否则新视频 deck 的自定义内容会全落默认值。
+        card = dict(raw)
+        card.update({
+            "type": "tool",
+            "tool": raw.get("tool", ""),
+            "title": raw.get("title", ""),
+            "subtitle": raw.get("subtitle", raw.get("label", "")),
+            "points": list(raw.get("points", [])),
+            "footer": raw.get("footer", ""),
+            "is_cover": False,
+        })
+        return card
     if ctype == "cover":
         title = (raw.get("hook", "") or raw.get("subtitle", "")).replace("\n", " ")
         return {"title": title, "subtitle": raw.get("subtitle", ""),
@@ -123,7 +142,7 @@ def build_courseware(slug: str, voice: str, rate: str) -> None:
     narr = load_narrations(slug)
     cards_text: list[str] = narr["cards"]
     outline: list[str] = narr.get("outline", [])
-    deck_path = C.ROOT / ".douyin-build" / slug / "deck.json"
+    deck_path = C.OUTPUT_ROOT / "deck" / slug / "deck.json"
     if not deck_path.exists():
         raise SystemExit(f"❌ 课件模式需要 {deck_path}（标题/要点来源）")
     with open(deck_path, encoding="utf-8") as f:
@@ -193,7 +212,7 @@ def build_graph(slug: str, voice: str, rate: str, theme: str = "dark") -> None:
 
     narr = load_narrations(slug)
     cards_text: list[str] = narr["cards"]
-    deck_path = C.ROOT / ".douyin-build" / slug / "deck-graph.json"
+    deck_path = C.OUTPUT_ROOT / "deck" / slug / "deck-graph.json"
     if not deck_path.exists():
         raise SystemExit(f"❌ 节点图模式需要 {deck_path}")
     with open(deck_path, encoding="utf-8") as f:

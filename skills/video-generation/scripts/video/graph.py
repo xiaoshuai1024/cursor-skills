@@ -435,7 +435,8 @@ if __name__ == "__main__":
     }
 
     root = Path(__file__).resolve().parents[2]
-    out_dir = root / ".video-build" / "_graph_theme_test"
+    from config import OUTPUT_ROOT
+    out_dir = OUTPUT_ROOT / "build" / "_graph_theme_test"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 生成暗色 + 亮色对比

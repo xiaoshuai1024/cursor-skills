@@ -1,10 +1,22 @@
 """视频生成管线配置。和 scripts/xiaohongshu、scripts/douyin 的风格保持一致。"""
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[5]          # blog-src 根（skill 内 scripts/video 下 5 层）
+ROOT = Path(__file__).resolve().parents[2]          # skill 根（scripts/video 下 2 层）
 SCRIPT_DIR = Path(__file__).resolve().parent
-NARRATIONS_DIR = SCRIPT_DIR / "narrations"
-ASSETS_DIR = SCRIPT_DIR / "assets"
+
+
+def _find_project_root() -> Path:
+    """从 skill 根向上找项目根（hugo.toml 或 .git 标记）。"""
+    for p in [ROOT, *ROOT.parents]:
+        if (p / "hugo.toml").exists() or (p / ".git").is_dir():
+            return p
+    return ROOT.parent.parent  # fallback
+
+
+PROJECT_ROOT = _find_project_root()
+OUTPUT_ROOT = PROJECT_ROOT / "video-generation"        # 全部产物/配置/内容落这里（不带 .，macOS Finder 可直接查看）
+NARRATIONS_DIR = OUTPUT_ROOT / "narrations"          # 口播文案 json
+ASSETS_DIR = SCRIPT_DIR / "assets"                   # bgm.mp3 等可复用素材（留在 skill 内）
 
 # 输出规格：竖屏短视频（抖音/视频号/小红书通用）
 FPS = 30
@@ -34,11 +46,11 @@ BGM_VOLUME = 0.12   # BGM 音量，配音为主
 
 
 def deck_root(slug: str) -> Path:
-    """定位卡片源目录：优先抖音高清版，回退小红书版。"""
-    for cand in (ROOT / ".douyin-build" / slug, ROOT / "image-text" / slug):
+    """定位卡片源目录（legacy 静态卡片模式）：.video-generation/deck/<slug>/cards/。"""
+    for cand in (OUTPUT_ROOT / "deck" / slug,):
         if (cand / "cards").is_dir():
             return cand
-    raise FileNotFoundError(f"找不到 {slug} 的卡片目录（.douyin-build 或 image-text）")
+    raise FileNotFoundError(f"找不到 {slug} 的卡片目录（.video-generation/deck）")
 
 
 def cards_paths(slug: str) -> list[Path]:
@@ -46,7 +58,8 @@ def cards_paths(slug: str) -> list[Path]:
 
 
 def build_dir(slug: str) -> Path:
-    d = ROOT / ".video-build" / slug
+    """构建中间产物 + 成片：.video-generation/build/<slug>/"""
+    d = OUTPUT_ROOT / "build" / slug
     (d / "segments").mkdir(parents=True, exist_ok=True)
     (d / "audio").mkdir(parents=True, exist_ok=True)
     return d

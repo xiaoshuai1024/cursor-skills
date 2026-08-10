@@ -1,0 +1,20 @@
+{
+  "_comment": "抖音选题方向关键词表(可编辑)。主线: 前端→全栈→AI 开发。两系列用途: 热度系列=热榜∩关键词; 涨粉系列=C源逐词搜索方向内话题。加词直接改这里,无需改代码。",
+  "hot_list_match": [
+    "AI", "程序员", "大模型", "GPT", "OpenAI", "DeepSeek", "Claude", "Cursor",
+    "Codex", "代码", "编程", "AIGC", "提示词", "智能体", "Agent", "模型",
+    "数字员工", "降本增效", "自动化", "全栈", "低代码", "开发者", "GitHub",
+    "开源", "技术", "前端", "后端"
+  ],
+  "challenge_search": [
+    "AI编程", "Claude Code", "AI Agent", "AI 工具", "大模型", "提示词",
+    "程序员", "低代码", "全栈开发", "自动化办公", "数字员工", "AIGC",
+    "开源", "GitHub Copilot", "Cursor", "编程", "技术栈"
+  ],
+  "categories": {
+    "AI 编程": ["AI编程", "Claude Code", "Cursor", "Codex", "GitHub Copilot", "AI Agent", "智能体", "提示词", "Prompt"],
+    "大模型": ["大模型", "GPT", "OpenAI", "DeepSeek", "Claude", "AIGC", "多模态", "AI 工具"],
+    "研发工程": ["程序员", "代码", "低代码", "全栈", "自动化", "DevOps", "CI/CD", "单元测试", "开源", "GitHub"],
+    "趋势职场": ["降本增效", "数字员工", "AI 替代", "效率提升", "开发者", "技术"]
+  }
+}

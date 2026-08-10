@@ -111,7 +111,13 @@ def render_frame(card: dict, state: dict, width: int = 1920, height: int = 1080)
     card:  {"title", "subtitle"(副标题), "points":[], "sub_points":[], "footer",
             "is_cover", "outline":[str](仅封面：论点列表)}
     state: {"active_idx", "subtitle"(字幕,已去标点), "progress"}
+
+    type=="tool" 的卡片分发到 screencast 模块（屏录感工具窗口渲染）。
     """
+    if card.get("type") == "tool":
+        from . import screencast
+
+        return screencast.render_frame(card, state, width, height)
     title = card.get("title", "") or ""
     card_sub = card.get("subtitle", "") or ""
     points_raw = card.get("points") or []
@@ -245,8 +251,9 @@ if __name__ == "__main__":
     from playwright.sync_api import sync_playwright
 
     root = Path(__file__).resolve().parents[2]
-    deck = json.load(open(root / ".douyin-build" / "ai-dev-claude-code-power-user" / "deck.json", encoding="utf-8"))
-    out_dir = root / ".video-build"; out_dir.mkdir(parents=True, exist_ok=True)
+    from config import OUTPUT_ROOT
+    deck = json.load(open(OUTPUT_ROOT / "deck" / "ai-dev-claude-code-power-user" / "deck.json", encoding="utf-8"))
+    out_dir = OUTPUT_ROOT / "build"; out_dir.mkdir(parents=True, exist_ok=True)
     cov = deck["cards"][0]
     cover_card = {"title": cov.get("hook", "").replace("\n", " "), "subtitle": cov.get("subtitle", ""),
                   "points": [], "sub_points": [], "footer": "", "is_cover": True,

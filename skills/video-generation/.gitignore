@@ -1,0 +1,5 @@
+# skill 独立维护 + GitHub 发布：依赖一律不提交
+# 产物/内容配置已迁至项目根 .video-generation/（由根 .gitignore 排除）
+node_modules/
+__pycache__/
+*.pyc

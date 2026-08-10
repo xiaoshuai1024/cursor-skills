@@ -13,22 +13,29 @@ import edge_tts
 # 设计权衡：逐字母读得准但慢（每个字母停顿 ~197ms，不自然）。
 # 只保留会被读成"无法识别的中文错音"的词（如 DOM→"多姆"）。
 # 其他缩写（API/GLM/GPT/CSS 等）让 TTS 当单词读，自然流畅，可识别。
+#
+# AI 实测（WordBoundary 探针，男声 YunxiNeural）：
+#   原始 "AI" → 拆成单词 ['AI'] → 读成拼音音"爱/哀"（不自然）
+#   "A I"    → 拆成 ['A', 'I'] → 逐字母读（技术圈标准读法）
+# 故 AI 进白名单。旧注释"AI 自动逐字母、保持原样"被实测推翻。
+# ⚠️ 不要用中文谐音替换（如 "AI"→"诶爱"）：实测反而切成两个独立词（SKILL.md 发音章节已记录）。
 _LETTER_BY_LETTER_ABBREV = {
     "DOM",
+    "AI",
 }
 
 
 def normalize_for_tts(text: str) -> str:
     """TTS 文本预处理。
 
-    1. 技术缩写逐字母化：DOM → "D O M"。
-       中文语音会把全大写缩写读成单词音（DOM 读成"多姆"），需手动拆字母。
+    1. 技术缩写逐字母化：DOM → "D O M"、AI → "A I"。
+       中文语音会把全大写缩写读成单词音（DOM 读成"多姆"、AI 读成"爱/哀"），需手动拆字母。
        只处理白名单内的缩写，避免误伤正常英文单词。
        用前后非字母断言（不用 \\b），确保中文夹着的 DOM 也能命中。
 
-    注意：edge-tts 中文语音读 "AI" 会逐字母（A-I），且不支持 SSML 音素控制。
-    经用户试听确认：女声（zh-CN-XiaoxiaoNeural）读原始 "AI" 效果最自然，
-    故 AI 保持原样不替换（不在白名单内）。
+    注意：AI 经 WordBoundary 实测须逐字母（见模块头注释与白名单 {"DOM","AI"}），
+    否则男声 YunxiNeural 会读成"爱/哀"。edge-tts 不支持 SSML 音素控制，
+    只能靠文本改写（AI → "A I"）来修正读音。
     """
 
     def _expand(match: re.Match[str]) -> str:
@@ -100,6 +107,7 @@ def synth_with_boundaries(
     import time
 
     from edge_tts.exceptions import NoAudioReceived
+    from aiohttp.client_exceptions import WSServerHandshakeError
 
     last_exc: Exception | None = None
     for attempt in range(1, max_retries + 1):
@@ -107,11 +115,11 @@ def synth_with_boundaries(
             return asyncio.run(
                 _synth_with_boundaries(text, Path(out_path), voice, rate)
             )
-        except NoAudioReceived as exc:
+        except (NoAudioReceived, WSServerHandshakeError, ConnectionError) as exc:
             last_exc = exc
             if attempt < max_retries:
                 wait = min(2 ** attempt, 60)   # 指数退避 2/4/8/16/32/60，跨越长失败窗口
-                print(f"  [tts] NoAudioReceived，{wait}s 后重试 {attempt}/{max_retries}…")
+                print(f"  [tts] {type(exc).__name__}，{wait}s 后重试 {attempt}/{max_retries}…")
                 time.sleep(wait)
     assert last_exc is not None
     raise last_exc

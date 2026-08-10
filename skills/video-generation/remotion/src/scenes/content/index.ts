@@ -1,0 +1,18 @@
+// 导入所有内容场景,触发它们的 registerScene 副作用
+import "./DataReveal";
+import "./SkillStage";
+import "./Cover";
+import "./LeaderboardChart";
+import "./GrowthChart";
+import "./PixelDiff";
+import "./VisionAuditCrossCheck";
+import "./CodeAuditScan";
+import "./ConclusionFocus";
+import "./ParallelPipeline";
+import "./AntiPatternWall";
+import "./ComparisonTable3D";
+import "./PluginCard3D";
+import "./SelectionPrinciples";
+import "./NewsNotice";
+import "./PriceTimeline";
+import "./PricePrediction";

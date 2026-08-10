@@ -5,8 +5,6 @@ description: 博客文章同步到微信公众号草稿箱。mp 后台 API 直�
 
 # 公众号发布
 
-> **打包范围**：本 skill 只打包 SKILL.md（mp 后台 API 直推的流程文档 + 踩坑沉淀）。实际发布脚本（`scripts/wechat/prepare.py` / `publish_mp.py` / `config.py`）、Makefile 目标、`wechat-profile/` 登录态、`link-map.json` 属于使用方博客项目（如 blog-src），不在本 skill 内——按各自项目结构准备。核心可复用的是 mp 直推方案与踩坑位。
-
 ## 何时用
 
 写完文章并通过 Hugo 构建（`hugo --gc --minify`）后，同步到公众号草稿箱时调用。
@@ -48,21 +46,35 @@ make wechat-prepare slug=<slug>
 
 产物在 `.wechat-build/<slug>/`（gitignore）。
 
-### Step 3: 推送到草稿箱
+### ⚠️ 发布前检查（防重复发布，2026-08-06 定规）
+
+**任何发布动作（建草稿/定时/群发）前必须先过防重复检查**——同一篇文章不能已上线还重发，也不能同渠道发两次：
+
+1. **link-map.json**：slug 是否已有 `published_url`，或 `publish_status` 为 `published` / `scheduled` / `published_free_no_push`？有 → 已发布过，**拒绝重发**。
+2. **公众号发表记录**：home「近期发表」/「全部发表记录」搜标题——文章已在主页（免费发布或群发都算已上线）？在 → **拒绝重发**。
+3. **草稿箱**：避免对同一 slug 反复 `sub=create` 堆草稿（清理见「草稿箱清理」节）。
+
+> 2026-08-05 事故：ai-dev-openspec-superpowers-workflow 被 schedule_ui_v2「今天」静默免费发布上主页（无推送），后又误排 08-10 定时，用户手动取消。**教训：发前必查，已上线不重发。**
+
+### Step 3: 推送到草稿箱 + 自动发布
 ```bash
-make wechat-publish-mp slug=<slug>
+make wechat-publish-mp slug=<slug>       # 存草稿 + 自动群发通知
+make wechat-draft-only slug=<slug>       # 只存草稿不发布(逃生舱,旧行为)
 ```
 
-Makefile 自动：`wechat-prepare`（刷新内容）→ `publish_mp.py`（全局 Python311）。`publish_mp.py` 流程：
+Makefile 自动：`wechat-prepare`（刷新内容）→ `publish_mp.py`（全局 Python311）。**默认 headless 无窗口**（复用 `wechat-profile/` 会话，token/ticket 从首页 HTML 抠）；登录态失效或首次使用时才弹可见窗口扫码。`--no-headless` 可强制弹窗。`publish_mp.py` 流程：
 1. 开 msedge，复用 `wechat-profile/` 登录态，GET mp 首页提取 `token`/`ticket`/`user_name`/`svr_time`（token 正则限定 `[A-Za-z0-9_-]`，避免误匹配未登录页的 `https://`）
 2. 读 `wechat-ready-weixin.html`，把正文本地图片上传到微信图床（`cdn_url` 替换 img src）
 3. **上传 `cover.png` 做封面**（见下节）
-4. POST `cgi-bin/operate_appmsg?sub=create&type=77` 创建草稿 → 返回 `appMsgId`
-5. 回填 `link-map.json` 的 `draft_appmsgid`
+4. POST `cgi-bin/operate_appmsg?sub=create&type=77` 创建草稿（表单带 `author0=[YOUR_BLOG_NAME]` + `copyright_type0=1` 文字原创）→ 返回 `appMsgId`
+5. **自动群发通知**：`POST /cgi-bin/masssend`（立即群发）；今日无通知次数 → `action=time_send` 逐日顺延定时，最长 7 天，全无则失败（草稿保留）
+6. 回填 `link-map.json` 的 `draft_appmsgid` + 发布状态（`published` / `pending` / `failed`）
 
-### Step 4: 手机端预览 + 发布
+### Step 4: 发布后核对
 
-**必须手机端预览**（公众号后台编辑器预览不过滤样式，会骗人；手机端才是真实渲染）。核对封面 + 代码块背景 + 排版无误后点「发布」。发布后把永久链接手动填入 `link-map.json` 的 `published_url`。
+**自动发布 = 粉丝收到推送，不可撤销。** 建议发布前在手机端预览核对（公众号后台编辑器预览不过滤样式，会骗人；手机端才是真实渲染）。核对封面 + 代码块背景 + 排版无误后再跑 `make wechat-publish-mp`。发布后把永久链接填入 `link-map.json` 的 `published_url`。
+
+> 想保留「先看草稿再人工发布」旧流程：用 `make wechat-draft-only slug=<slug>`，只存草稿不发布。
 
 ## 封面自动化（2026-08-01 起，已验证）
 
@@ -115,14 +127,98 @@ Hugo 用 chroma 以 class-based 方式生成高亮（`noClasses = false`）。�
 
 > Hugo 产物的属性无引号（`<span class=k>`），正则兼容无引号和双引号。
 
-## 后台手动设置的两项（API 推送也绕不开）
+## 作者与原创声明（API 直推已支持，2026-08-01 实测）
 
-| 项 | 原因 | 操作 |
-|---|---|---|
-| 作者「1024工程笔记」 | mp API `author0` 字段对个人订阅号无效 | 草稿编辑页手填 |
-| 原创声明 | `copyright_type0` 需手动勾选 | 发布时勾选 |
+曾误判「mp API 对个人订阅号无效、需后台手填」，实测两者都可直推：
+
+- **作者**：`create_draft` 表单 `author0` 直接生效（`config.DEFAULT_AUTHOR="[YOUR_BLOG_NAME]"`），编辑页 `#author` 即显示该值。
+- **原创声明**：`copyright_type0="1"`（`config.COPYRIGHT_TYPE`）直接生效，草稿落库即为「文字原创」——编辑页已声明区 `#js_original_open` 显示 `display:flex`、未声明区 `display:none`。账号需 `can_use_copyright=1`（本账号已实测为 1）。
+
+验证手段：打开草稿编辑页，看 `#author` 值 + `#js_original_open` 的 display（`flex`=已声明 / `none`=未声明）。
 
 原文链接：`prepare.py` 文末自动注入完整段落（mp API 的 `sourceurl0` 不稳定）。
+
+## 合集挂载（2026-08-03 实证：create 时直接注入）
+
+**合集是文章普通字段 `appmsg_album_info`**（编辑器/详情返回里叫 `appmsg_album_info`，create 表单字段名是 `appmsg_album_info0`）。发布管线 `publish_mp.py` 已内置：`make wechat-publish-mp slug=<slug>` **默认挂 AI 合集**，用 `album=前端技术` / `album=碎碎念` / `album=none` 覆盖（`config.ALBUMS`）。
+
+**关键坑：字段格式必须是富结构，简单格式会被静默忽略。**
+
+```python
+# ✅ 富结构(实测生效,create 后回读 app_msg_info 确认合集已写入)
+{"id": "[ALBUM_ID]", "title": "AI", "album_id": [ALBUM_ID],
+ "appmsg_album_infos": [{"id": "[ALBUM_ID]", "title": "AI",
+                          "album_id": [ALBUM_ID],
+                          "appmsg_album_infos": [], "tagSource": 0}]}
+
+# ❌ 简单格式(字段名对了也白搭,服务端忽略)
+{"appmsg_album_infos": [{"id": "[ALBUM_ID]", "title": "AI"}]}
+```
+
+`publish_mp.py` 的 `build_album_field()` 生成富结构。调试时踩过的字段名全无效：`appmsg_album_info`（无下标）、`audio_info` / `audio_info0`（前端用它承载过合集，但 create 直传不生效）。
+
+**合集 ID**（`appmsgalbummgr?action=list` 实测）：AI=`[ALBUM_ID]`、前端技术=`[ALBUM_ID]`、碎碎念=`[ALBUM_ID]`。
+
+**验证方式**：读草稿详情 `appmsg?t=media/appmsg_edit&action=edit&type=77&appMsgId=<id>&f=json` → `app_msg_info`（JSON 字符串）→ `item[0].multi_item[0].appmsg_album_info.appmsg_album_infos` 看是否含目标 id。
+
+> 已存在的草稿补合集，仍只有两条路：① 人工在 mp 后台编辑器选（headless 保存无法持久化，6 种方式全失败）；② 重新走 `sub=create` 复制（需先取消原排期再重排）。见 memory `wechat-album-set-mechanism`。
+
+## 自动发布与顺延（2026-08-01 实测）
+
+`publish_mp.py` 存草稿后自动群发通知。接口（从 JS bundle 实证）：
+
+| 动作 | 接口 | payload 要点 |
+|---|---|---|
+| 立即群发 | `POST /cgi-bin/masssend?t=ajax-response` | `{msgid: <appMsgId>, sync_version: 1}` |
+| 定时群发 | `POST /cgi-bin/masssend?action=time_send` | 全字符串表单编码，含 `fingerprint`/`random`/`token`/`operation_seq`/`req_id`/`req_time`/`direct_send=1`/`isFreePublish=false`。见下方「time_send 直连」 |
+| 取消定时 | `POST /cgi-bin/masssendpage?action=cancel_time_send` | 表单：`id=<数字>` + `fingerprint` + `token` + `lang=zh_CN` + `f=json` + `ajax=1`。**注意：`{id:"..."}` JSON 包会被拒(ret:1)** |
+| 状态回查 | `GET /cgi-bin/check_publish_status` | `{msgid, publish_type:1}` |
+
+### time_send 直连（schedule_api.py，2026-08-03 修复 67011/-1 根因）
+
+`publish_mp.py` 的 mass_send() 只带 `{msgid, sync_version}`，**不适用于 time_send**——定时发表必须完整复刻前端 masssend 弹窗的请求，缺字段直接 67011/-1：
+
+- **必带 `fingerprint`**：masssend 系 API（time_send / check_ad / check_hot_time）账号级稳定值，**仅在打开群发弹窗时由前端生成，无法从页面加载/全局对象/cookie/HTML 提取**（曾误抓资源 hash `06fcd5b9...` 当 fingerprint → ret -1）。值在 `config.MASS_SEND_FINGERPRINT`（2026-08-03 两次 UI 运行 + 0807 日志均一致）。若 API 再报 67011/-1 → 微信轮换了 fingerprint → 跑 `schedule_ui_v2 --capture-only` 从日志抓新值。
+- **必须全字符串表单编码**（Playwright `form=`，`Content-Type: application/x-www-form-urlencoded`）；布尔/数字混用会被拒（`data=` 发 JSON 是 67011 的另一个根因）。
+- `direct_send=1` 缺失直接 67011；`isFreePublish` 必须小写字符串 `"false"`（布尔 False 序列化成 `"False"` 服务端不认）。
+- `operation_seq` 从 `masssendpage?f=json&preview_appmsgid=<id>` 拿（每次会话变）；`req_id` 32 位随机字母数字；`req_time` 毫秒+`client_time_diff`。
+- 直连前**必须先查配额**（`quota_detail_list`，`quota:0` = 已被排期占用，`original_quota`=上限），无配额日期 time_send 会被拒。`schedule_api.py` 内置此检查，`--dry-run` 只打印 payload 不提交。
+
+### UI 定时发表会创建发布副本（schedule_ui_v2.py，2026-08-03 实证）
+
+`schedule_ui_v2.py`（`python -m scripts.wechat.schedule_ui_v2 <appid> <日期文案> <HH:MM>`）走 UI：编辑器→发表→定时发表开关→日期/时间→发表→继续发表确认循环。成功率高，但机制有坑：
+
+- **每次定时都 `sub=create` 一个新「发布副本」，原稿留草稿箱、副本离箱排期**（100001177→100001246、100001271→100001273 实证）。副本不可在后台手动编辑合集。
+- **取消定时 = 副本回草稿箱**：`cancel_time_send` 后副本回到草稿箱（100001159、100001248 实证），可再删或重新排。校验副本身份勿信面板文案，用草稿箱盘点核对。
+- **headless 定时面板部分 li 隐藏**：`page.hover()`/`link.click()` 报 "element is not visible"，用 `page.evaluate` JS click（`link.click()` / `btn.click()`）触发 Vue handler。点击取消后页面会跳转，销毁 execution context——校验状态需重新加载页面再查。
+- **合集继承**：`sub=create` 副本从原稿继承 `appmsg_album_info`——原稿带合集则副本带（DeepSeek），原稿不带则副本不带（CcSwitch 100001199→100001248 无合集）。给已排副本补合集的唯一可靠方式：「原稿先挂合集（人工或 create 注入）→ 取消旧排期 → 重新定时」。
+- **删除原稿/副本不影响已排期副本**：cleanup 删 100001271 后，其副本 100001273 的排期仍有效（实证）。
+- **⚠️ 禁止定时「今天」（2026-08-05 事故）**：前端 dayChange 对「今天」降级为 `isFreePublish=true` 免费发布——文章**静默上主页、无粉丝推送**，走即时 masssend 不走 time_send，脚本 time_send 检测永远不触发 → 空响应「假失败真发布」（草稿 100001282 被免费发布上主页，挂太久无法撤回）。`schedule_ui_v2.py` 已加硬守卫 `is_today_label` 拒绝「今天/今日/当天日期」，**只允许定时未来配额日**（isFreePublish=false 群发通知）。真今天发需即时群发（暂不可靠）。教训：**空响应 ≠ 失败**，发布后查 home「近期发表」核对真实结果。
+
+**顺延语义**：个人订阅号每日群发 1 次（通知次数）。立即群发失败（无通知次数/可顺延错误）→ 逐日尝试 `send_time=明天/后天/…`，最长 `PUBLISH_RETRY_DAYS=7` 天，全无则抛「7 天内均无通知次数」，草稿保留。
+
+**不可顺延错误**（内容违规 10806 / 非法外链 412 / 素材不可群发 64006 等）：直接失败，不白试 7 次。见 `NON_RETRYABLE_RET`。
+
+**扫码**：群发/定时设置若触发风险操作保护，会报「需要扫码」。到后台「设置与开发→安全中心→风险操作保护→群发消息」关闭可免扫码。
+
+**测试草稿可回滚**：`operate_appmsg sub=create` 建草稿 → `sub=del` 删（`{AppMsgId}`），实测全链路可逆，不影响生产。
+
+## 草稿箱清理（测试草稿一律删除）
+
+**规则（用户 2026-08-03 明确）：调试/测试创建的草稿用后必须删除，不留堆积。** 草稿箱曾堆到 53 条（38 条 DeepSeek 副本 + OpenSpec/CcSwitch 副本），全部是反复调试 `sub=create` 的产物。
+
+清理工作流（安全优先，删前必盘点）：
+
+```bash
+python -m scripts.wechat.list_drafts              # 1. 盘点全部草稿 → .wechat-build/draft-inventory.json
+python -m scripts.wechat.cleanup_drafts           # 2. dry-run,打印将删除清单
+python -m scripts.wechat.cleanup_drafts --delete  # 3. 真正删除
+```
+
+- **`list_drafts.py`**：草稿箱列表页 DOM 枚举（滚动触发加载全部）。**反例：`appmsg?action=list_card` 等接口 ctx.request 直调会被风控静默返回空**，必须走页面。草稿箱 URL = 首页「草稿箱」菜单项（`cgi-bin/appmsg?action=list_card&type=77&begin=0&count=10`），卡片 `.weui-desktop-card[data-appid]`。
+- **`cleanup_drafts.py`**：保留集 = `link-map.json` 全部 `weixin.draft_appmsgid`/`scheduled_appmsgid`（正式文章/排期稿）+ 显式补的 4 个排期原稿（100001177/100001182/100001191/100001199）。其余一律删。删除用 `operate_appmsg?sub=del`（最小 payload：`{AppMsgId, count}` 即可，实测 ret=0）。
+- **删除前必须确认排期**：定时发表的稿件有的会离开草稿箱（100001246/100001248 不在箱内）、有的仍在箱内（100001182/100001191 在箱内且排期有效）。删前先看首页「定时发表」面板，确认没有排期指向待删 ID。
+- **排期副本与箱内原稿是两回事**：副本离箱排期，删除箱内原稿（或另一副本）不影响已排期副本（cleanup 删 100001271 后 100001273 排期仍有效，实证）。取消定时后副本回箱，此时删掉才安全。
 
 ## 已知坑位
 
@@ -130,16 +226,20 @@ Hugo 用 chroma 以 class-based 方式生成高亮（`noClasses = false`）。�
 - **msedge channel**：见前置条件，Chrome 损坏，禁用 chrome/内置 chromium。
 - **背景白**：见「代码块背景」，任何 `background:` 简写都会被过滤。
 - **公众号 2 万字上限**：`config.py` `WECHAT_MAX_CHARS = 20000`，prepare 超限 warn。
-- **草稿堆积**：`publish_mp.py` 每次 `sub=create` 新建草稿（不覆盖旧草稿）。反复调试会产生多个废弃草稿，需到后台手动删；`link-map.json` 只保留最后一次的 `draft_appmsgid`。
+- **草稿堆积（应主动清理，勿留）**：`publish_mp.py` 每次 `sub=create` 新建草稿（不覆盖旧草稿）。反复调试会产生多个废弃草稿——**按「草稿箱清理」节处理，测试草稿当场删**；`link-map.json` 只保留最后一次的 `draft_appmsgid`。
 
 ## 文件结构速查
 
 | 文件 | 作用 |
 |---|---|
-| `scripts/wechat/config.py` | 路径、inline 样式常量（一律 `background-color`）、封面尺寸、超时 |
+| `scripts/wechat/config.py` | 路径、inline 样式常量（一律 `background-color`）、封面尺寸、超时、`ALBUMS` 合集映射 |
 | `scripts/wechat/prepare.py` | 内容准备（清洗/样式/SVG→PNG/cover.png/代码高亮/原文链接） |
-| `scripts/wechat/publish_mp.py` | **mp API 直推**（登录态/上传图+封面/创建草稿/回填 link-map） |
-| `Makefile` | `wechat-prepare` / `wechat-publish-mp` |
+| `scripts/wechat/publish_mp.py` | **mp API 直推**（登录态/上传图+封面/创建草稿+合集/回填 link-map） |
+| `scripts/wechat/schedule_api.py` | 直连 `time_send` 定时发表（全字符串表单 + fingerprint，`--dry-run` 预览；先查配额） |
+| `scripts/wechat/schedule_ui_v2.py` | UI 定时发表（创建发布副本；headless 面板用 JS-click；`--capture-only` 停确认弹窗抓 fingerprint） |
+| `scripts/wechat/list_drafts.py` | 草稿箱 DOM 盘点（`.wechat-build/draft-inventory.json`） |
+| `scripts/wechat/cleanup_drafts.py` | 批量删除测试草稿（dry-run 默认，`--delete` 执行） |
+| `Makefile` | `wechat-prepare` / `wechat-publish-mp`（传 `album=`） |
 | `content/link-map.json` | slug → 平台草稿 ID / 永久链接 映射表 |
 | `wechat-profile/` | Playwright 持久登录态（gitignore） |
 | `.wechat-build/` | 构建产物（gitignore） |
