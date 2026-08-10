@@ -22,7 +22,16 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-ROOT = Path(__file__).resolve().parents[4]  # 仓库根(.agents/skills/de-ai-smell/scripts/.. 四级)
+def _find_root():
+    """从脚本向上找项目根（hugo.toml/.git/content 任一存在），适配任意安装深度。"""
+    p = Path(__file__).resolve().parent
+    while p != p.parent:
+        if any((p / m).exists() for m in ("hugo.toml", ".git", "content")):
+            return p
+        p = p.parent
+    return Path.cwd()  # fallback
+
+ROOT = _find_root()
 
 # 命中即提示人工判断。误报三来源(front matter tags、反讽/引用语境、业务术语合理用法)
 # 脚本跳过 front matter;反讽/术语靠人工裁,不为去味破坏内容。

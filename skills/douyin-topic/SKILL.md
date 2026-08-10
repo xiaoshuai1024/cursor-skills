@@ -91,7 +91,7 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 ## 目录结构
 
 ```
-.agents/skills/douyin-topic/
+本 skill 目录（见 SKILL.md「产物与目录」）
 ├── SKILL.md
 ├── topic_keywords.json        方向关键词表（可编辑）
 ├── scripts/

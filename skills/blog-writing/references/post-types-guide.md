@@ -451,7 +451,7 @@
 
 ## 八、跨类型配图统一规范(本仓库强约束)
 
-> 详见 `.agents/skills/drawio/SKILL.md`,这里只做摘要。**画图前必须先调用 drawio skill。**
+> 详见 `drawio skill 的画图规范`,这里只做摘要。**画图前必须先调用 drawio skill。**
 
 ### 工具选择
 

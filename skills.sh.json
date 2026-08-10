@@ -3,14 +3,34 @@
   "notGrouped": "bottom",
   "groupings": [
     {
-      "title": "架构师 / Architect",
-      "description": "架构设计与工程方法论 skill：仓库文档治理。日常做系统设计、写技术文档、画架构图时使用。",
-      "skills": ["code-doc-maker"]
+      "title": "选题 / Discovery",
+      "description": "技术选题发现：多源拉取技术社区热文（掘金/CSDN/InfoQ/知乎）、抖音选题拆解，按方向过滤+热度排序。",
+      "skills": ["tech-topic", "douyin-topic"]
     },
     {
-      "title": "内容输出 / Content",
-      "description": "技术内容生产 skill：手绘风格画图、博客写作、横屏视频生成、公众号同步发布。把架构师的思考沉淀成可发布的图文与视频。",
-      "skills": ["excalidraw", "blog-writing", "video-generation", "wechat-publishing"]
+      "title": "写作 / Writing",
+      "description": "内容生产：博客写作全流程、去 AI 味、图文卡片设计。",
+      "skills": ["blog-writing", "de-ai-smell", "image-text-cards"]
+    },
+    {
+      "title": "发布 / Publishing",
+      "description": "公众号 mp 后台 API 直推（草稿+定时群发+封面+代码高亮）。",
+      "skills": ["wechat-publishing"]
+    },
+    {
+      "title": "视频 / Video",
+      "description": "技术博客→横屏视频（remotion 数据可视化/课件/知识图谱）。",
+      "skills": ["video-generation"]
+    },
+    {
+      "title": "配图 / Visuals",
+      "description": "技术图绘制：draw.io 架构图、Excalidraw 手绘概念图、桌面应用窗口截图+OCR。",
+      "skills": ["drawio", "excalidraw", "app-screenshot"]
+    },
+    {
+      "title": "工具 / Tools",
+      "description": "爬虫反检测最佳实践、仓库文档治理。",
+      "skills": ["crawl", "code-doc-maker"]
     }
   ]
 }

@@ -1,3 +1,8 @@
+---
+name: app-screenshot
+description: 桌面应用界面截图配图——本地应用窗口截图（跨平台 macOS Quartz / Windows WinRT）+ OCR 识别 + Playwright 复刻兜底。教程/踩坑型文章需要应用界面截图时调用。
+---
+
 # 桌面应用界面截图配图（app-screenshot）
 
 ## 何时用

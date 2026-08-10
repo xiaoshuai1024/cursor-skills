@@ -96,16 +96,16 @@ description: 写博客文章或改文章时的统一入口。覆盖选题自检�
 
 **去 AI 味配色硬规则**:白底为主、最多 1 个主色(`#2563eb` 蓝 或 `#0f766e` 青绿)+ 深灰文字 `#1e293b`、字号 14/12 两级、箭头统一 `edgeStyle=orthogonalEdgeStyle`、标签说人话不要对仗短语、坐标手画不要等距对齐。
 
-**应用窗口截图(教程/踩坑型常用)**:教程型文章需要应用界面截图时,用 `scripts/screenshot_app.py` **只截应用窗口、不截全屏**(跨平台:macOS Quartz / Windows 调 .ps1;按进程名+窗口标题模糊匹配窗口):
+**应用窗口截图(教程/踩坑型常用)**:教程型文章需要应用界面截图时,用 `app-screenshot skill（screenshot_app.py）` **只截应用窗口、不截全屏**(跨平台:macOS Quartz / Windows 调 .ps1;按进程名+窗口标题模糊匹配窗口):
 
 ```bash
-python scripts/screenshot_app.py --process "ChatGPT" --title "ChatGPT" --output static/images/<slug>/01.png
+python app-screenshot skill（screenshot_app.py） --process "ChatGPT" --title "ChatGPT" --output static/images/<slug>/01.png
 ```
 
 - macOS 依赖 `requirements-macos.txt`(pyobjc);Windows 自动调原 `screenshot-app.ps1`(Win32 GetWindowRect)
 - 产物存 `static/images/<slug>/`,正文用 `<img src="/images/<slug>/01.png">` 引用
-- 截图后如无法目视验证(模型不支持看图),用 `scripts/ocr.py`(跨平台:macOS Vision / Windows WinRT)核对窗口文字,或 PIL 结构分析确认内容
-- **真实截图拿不到时的兜底 = Playwright 复刻**(2026-08-07 实测):当 UI 自动化不可行(输入框不可达/线程拉不出)、屏幕会话锁定、或真实窗口内容贴边被判「被裁剪」时,调用 `app-screenshot` skill(`.agents/skills/app-screenshot/`)——从真实会话 rollout jsonl **逐字取内容**,采样真实截图配色,填 `templates/conv.html`,用 `scripts/shoot.py`(Playwright msedge headless,不依赖屏幕会话)截图,再 OCR 核验完整性。复刻是**忠实渲染,不编造内容**;配图左侧私人信息(侧栏/项目名)一律不进图。
+- 截图后如无法目视验证(模型不支持看图),用 `app-screenshot skill（ocr.py）`(跨平台:macOS Vision / Windows WinRT)核对窗口文字,或 PIL 结构分析确认内容
+- **真实截图拿不到时的兜底 = Playwright 复刻**(2026-08-07 实测):当 UI 自动化不可行(输入框不可达/线程拉不出)、屏幕会话锁定、或真实窗口内容贴边被判「被裁剪」时,调用 `app-screenshot` skill(`app-screenshot skill `)——从真实会话 rollout jsonl **逐字取内容**,采样真实截图配色,填 `templates/conv.html`,用 `app-screenshot skill（shoot.py）`(Playwright msedge headless,不依赖屏幕会话)截图,再 OCR 核验完整性。复刻是**忠实渲染,不编造内容**;配图左侧私人信息(侧栏/项目名)一律不进图。
 
 ### 第 6 步:收尾(结论式,反 AI 味最关键的一环)
 
