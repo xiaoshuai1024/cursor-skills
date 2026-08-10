@@ -6,8 +6,9 @@ import { TimedLayer } from "../../primitives/TimedLayer";
 import { Stamp } from "../../primitives/Annotation";
 
 /**
- * AntiPatternWall - 5 反模式（每个配真实小例子）。
- * 卡片逐个从下方弹出,每张配一个迷你示意图 + ✗ 戳记。
+ * AntiPatternWall - 反模式墙（每个配真实小例子）。
+ * **全部卡片常显**，当前卡高亮放大、已过卡弱化——高亮随口播移动，
+ * 观众一眼看到全貌与进度（2026-08-10 用户定规：一次展示全部 + 高亮跟随）。
  */
 
 interface Props {
@@ -95,18 +96,20 @@ const AntiPatternWall: React.FC<Props> = ({ patterns, header, examples }) => {
           {patterns.map((text, i) => {
             const popFrame = 20 + i * popInterval;
             const popped = frame >= popFrame;
-            const progress = popped ? Math.min(1, (frame - popFrame) / 18) : 0;
-            const eased = 1 - Math.pow(1 - progress, 3);
+            // 全量常显：未来卡暗淡可见、当前卡高亮、已过卡弱化（2026-08-10 用户定规）
+            const nextFrame = 20 + (i + 1) * popInterval;
+            const isCurrent = popped && frame < nextFrame;
+            const opacity = isCurrent ? 1 : popped ? 0.55 : 0.35;
             return (
               <div key={i} style={{
                 width: 215, height: 280,
                 backgroundColor: `${theme.colors.error}10`,
-                border: `2px solid ${theme.colors.error}50`,
+                border: `2px solid ${theme.colors.error}${isCurrent ? "cc" : "50"}`,
                 borderRadius: 12,
                 padding: 18,
-                opacity: 0.3 + eased * 0.7,
-                transform: `translateY(${(1 - eased) * 60}px)`,
-                boxShadow: popped ? `0 0 20px ${theme.colors.error}30` : "none",
+                opacity,
+                transform: `scale(${isCurrent ? 1.06 : 1})`,
+                boxShadow: isCurrent ? `0 0 26px ${theme.colors.error}50` : "none",
                 position: "relative",
                 display: "flex", flexDirection: "column",
               }}>
@@ -116,7 +119,7 @@ const AntiPatternWall: React.FC<Props> = ({ patterns, header, examples }) => {
                   <span style={{ color: theme.colors.error, fontSize: 24, fontWeight: 900 }}>✗</span>
                 </div>
                 {/* 反模式标题（取第一行） */}
-                <div style={{ color: theme.colors.text, fontSize: 16, fontFamily: theme.fonts.chinese, fontWeight: 700, lineHeight: 1.3, whiteSpace: "pre-line" }}>
+                <div style={{ color: isCurrent ? theme.colors.error : theme.colors.text, fontSize: 16, fontFamily: theme.fonts.chinese, fontWeight: 700, lineHeight: 1.3, whiteSpace: "pre-line" }}>
                   {text}
                 </div>
                 {/* 迷你例子 */}

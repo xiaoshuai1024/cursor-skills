@@ -1,0 +1,46 @@
+{
+  "fetched_at": 1786338091,
+  "source": "zhihu",
+  "articles": [
+    {
+      "article_id": "zhihu-2063944037544023265",
+      "title": "为什么程序员大多都拥抱AI，而音乐人却抗拒并隔离AI音乐池？",
+      "url": "https://api.zhihu.com/questions/2063944037544023265",
+      "brief": "程序员行业中，无论是AI写的代码还是自己手动写的程序，最终都会完成开发目标，而完成后，这个项目并不会被打上类似“AI辅助开发”的标签。但音乐行业却不同，各大音乐发行商都区分了正式音乐人和AI音乐人，AI音乐却会被打上“AI辅助生成”的区别对",
+      "digg_count": 421,
+      "view_count": 0,
+      "collect_count": 0,
+      "comment_count": 0,
+      "hot_rank": 421,
+      "ctime": 0,
+      "rtime": 0,
+      "is_original": 0,
+      "author": "",
+      "tags": [
+        "AI"
+      ],
+      "direction": "人工智能",
+      "source": "zhihu"
+    },
+    {
+      "article_id": "zhihu-2069770698055050765",
+      "title": "67岁农户听信AI喷农药致150亩地一夜枯萎，老人听AI翻车的事层出不穷，有啥办法能帮助他们辨别吗？",
+      "url": "https://api.zhihu.com/questions/2069770698055050765",
+      "brief": "近日，安徽滁州67岁农户吴大伯根据AI生成的除草除虫办法喷洒农药，没想到150亩芝麻苗一夜之间全部枯萎。 吴大伯告诉记者，他是一年多前接触到了AI软件，“我什么都问AI，比方什么时候用农药，什么时候施肥，之前给的答复都比较完善。”吴大伯说，",
+      "digg_count": 248,
+      "view_count": 0,
+      "collect_count": 0,
+      "comment_count": 0,
+      "hot_rank": 248,
+      "ctime": 0,
+      "rtime": 0,
+      "is_original": 0,
+      "author": "",
+      "tags": [
+        "AI"
+      ],
+      "direction": "人工智能",
+      "source": "zhihu"
+    }
+  ]
+}

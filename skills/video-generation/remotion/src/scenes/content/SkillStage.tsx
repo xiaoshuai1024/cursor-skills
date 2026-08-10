@@ -7,23 +7,20 @@ import { getCurrentTheme } from "../../core/theme";
  * SkillStage - 研发生命周期某一阶段的 skill 卡片组（内容驱动设计）。
  *
  * 用于「清单 + 流程」型文章：把某阶段的一组 skill 逐张展开，
- * 每张卡 = skill 名 + 一句话「它管什么」。卡片按场景进度逐张浮现：
- * 当前卡高亮发光、已过卡弱化为已读态，形成「阶段递进 + 逐条讲清」的跟随感。
+ * 每张卡 = skill 名 + 一句话「它管什么」。**全部卡片常显**：未来卡暗淡、
+ * 当前卡高亮发光、已过卡弱化——观众一眼看到全貌与进度，高亮随口播移动，
+ * 而不是看空画布等卡片逐张浮现（2026-08-10 用户定规：一次展示全部 + 高亮跟随）。
  *
  * Props:
  * - stageLabel: 阶段徽章文字（如 "A · 方向对齐"）
  * - stageNote: 阶段一句话（可选，阶段头下方小字）
  * - skills: 该阶段 skill 卡片 { name, desc }
- * - cardGapMs / firstDelayMs: 逐张浮现节奏（单位：帧）
+ * - cardsOnFrames: 各卡激活的绝对帧（场景内），对齐口播单元时间戳
  */
 interface SkillStageProps {
   stageLabel: string;
   stageNote?: string;
   skills: Array<{ name: string; desc: string }>;
-  /** 每张卡浮现的间隔（帧），默认 22 */
-  cardInterval?: number;
-  /** 第一张卡延迟浮现（帧），默认 12 */
-  firstDelay?: number;
   /** 逐张浮现的绝对帧（场景内），对齐口播单元时间戳；提供后优先于 cardInterval/firstDelay */
   cardsOnFrames?: number[];
 }
@@ -58,6 +55,12 @@ const SkillStage: React.FC<SkillStageProps> = ({
     return { appearAt, isCurrent: frame >= appearAt && frame < nextAt, isPast: frame >= nextAt + 4 };
   };
 
+  // 全量常显：场景开头整体淡入一次（15 帧），之后卡片不再逐个浮现。
+  // 未来卡 opacity 0.35 暗淡可见，当前卡 1.0 高亮，已过卡 0.55 弱化。
+  const containerOpacity = fadeAt(0, 15);
+  const cardOpacity = (isCurrent: boolean, isPast: boolean) =>
+    isCurrent ? 1 : isPast ? 0.55 : 0.35;
+
   return (
     <AbsoluteFill style={{
       backgroundColor: "transparent",
@@ -65,9 +68,10 @@ const SkillStage: React.FC<SkillStageProps> = ({
       justifyContent: "center",
       alignItems: "center",
       paddingBottom: 60,   // 让出字幕安全带
+      opacity: containerOpacity,
     }}>
       {/* 阶段标题头 */}
-      <div style={{ opacity: fadeAt(0, 20), textAlign: "center", marginBottom: 34 }}>
+      <div style={{ textAlign: "center", marginBottom: 34 }}>
         <div style={{
           display: "inline-block",
           padding: "8px 26px",
@@ -97,7 +101,7 @@ const SkillStage: React.FC<SkillStageProps> = ({
         )}
       </div>
 
-      {/* skill 卡片列表 */}
+      {/* skill 卡片列表（全量常显，高亮跟随） */}
       <div style={{
         display: "flex",
         flexDirection: "column",
@@ -105,8 +109,8 @@ const SkillStage: React.FC<SkillStageProps> = ({
         width: 1560,
       }}>
         {skills.map((sk, i) => {
-          const { appearAt, isCurrent, isPast } = stageOf(i);
-          const opacity = fadeAt(appearAt, 16);
+          const { isCurrent, isPast } = stageOf(i);
+          const opacity = cardOpacity(isCurrent, isPast);
           const pulse = isCurrent ? 1 + Math.sin(frame * 0.08) * 0.08 : 1;
 
           return (

@@ -66,7 +66,7 @@ Makefile 自动：`wechat-prepare`（刷新内容）→ `publish_mp.py`（全局
 1. 开 msedge，复用 `wechat-profile/` 登录态，GET mp 首页提取 `token`/`ticket`/`user_name`/`svr_time`（token 正则限定 `[A-Za-z0-9_-]`，避免误匹配未登录页的 `https://`）
 2. 读 `wechat-ready-weixin.html`，把正文本地图片上传到微信图床（`cdn_url` 替换 img src）
 3. **上传 `cover.png` 做封面**（见下节）
-4. POST `cgi-bin/operate_appmsg?sub=create&type=77` 创建草稿（表单带 `author0=[YOUR_BLOG_NAME]` + `copyright_type0=1` 文字原创）→ 返回 `appMsgId`
+4. POST `cgi-bin/operate_appmsg?sub=create&type=77` 创建草稿（表单带 `author0=${WECHAT_AUTHOR}` + `copyright_type0=1` 文字原创）→ 返回 `appMsgId`
 5. **自动群发通知**：`POST /cgi-bin/masssend`（立即群发）；今日无通知次数 → `action=time_send` 逐日顺延定时，最长 7 天，全无则失败（草稿保留）
 6. 回填 `link-map.json` 的 `draft_appmsgid` + 发布状态（`published` / `pending` / `failed`）
 
@@ -131,7 +131,7 @@ Hugo 用 chroma 以 class-based 方式生成高亮（`noClasses = false`）。�
 
 曾误判「mp API 对个人订阅号无效、需后台手填」，实测两者都可直推：
 
-- **作者**：`create_draft` 表单 `author0` 直接生效（`config.DEFAULT_AUTHOR="[YOUR_BLOG_NAME]"`），编辑页 `#author` 即显示该值。
+- **作者**：`create_draft` 表单 `author0` 直接生效（`config.DEFAULT_AUTHOR="${WECHAT_AUTHOR}"`），编辑页 `#author` 即显示该值。
 - **原创声明**：`copyright_type0="1"`（`config.COPYRIGHT_TYPE`）直接生效，草稿落库即为「文字原创」——编辑页已声明区 `#js_original_open` 显示 `display:flex`、未声明区 `display:none`。账号需 `can_use_copyright=1`（本账号已实测为 1）。
 
 验证手段：打开草稿编辑页，看 `#author` 值 + `#js_original_open` 的 display（`flex`=已声明 / `none`=未声明）。

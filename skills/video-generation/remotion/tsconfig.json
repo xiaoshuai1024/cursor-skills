@@ -16,7 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@skill-src/*": ["./src/*"],
-      "@videos/*": ["../../../../.video-generation/remotion-videos/*"]
+      "@videos/*": ["../../../../video-generation/remotion-videos/*"]
     }
   },
   "include": ["src/**/*"],

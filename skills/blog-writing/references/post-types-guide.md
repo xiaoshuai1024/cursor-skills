@@ -1,6 +1,6 @@
 # 博客文章类型写作指南 v2
 
-> 本文件是博客「[YOUR_BLOG_NAME]」的**分类型写作规范**,与 `style-guide.md`(通用风格)配套使用。
+> 本文件是博客「你的博客」的**分类型写作规范**,与 `style-guide.md`(通用风格)配套使用。
 > `style-guide.md` 管「怎么写」(语气 / 段落 / 排版),本文件管「写什么样」(每种文章的结构 / 篇幅 / 配图)。
 > **所有新写 / 修订文章,先确定类型,再按对应章节执行**。
 > 本文件是 `blog-writing` skill 的 reference,由 SKILL.md 在「定类型」步骤按需加载。
@@ -707,7 +707,6 @@ rsvg-convert -w 1600 static/svg/<slug>.svg -o /tmp/<slug>.png
 - [Drawing Good Architecture Diagrams — UK NCSC](https://www.ncsc.gov.uk/blog-post/drawing-good-architecture-diagrams) — 架构图最佳实践
 - [技术写作最佳实践与策略指南 — 博客园](https://www.cnblogs.com/xiaowange/p/17914679.html)
 - [微信工程师:如何写好一篇技术文章 — 腾讯云](https://cloud.tencent.com/developer/article/2245566)
-- [技术类写作的一些经验和感悟 — Medium](https://medium.com/@[YOUR_USERNAME]/技术类写作的一些经验和感悟-128d83a601b6) — 五种文章类型分类来源
 - [项目复盘型技术博客的 6 个模块 — OSCHINA](https://my.oschina.net/u/3109727/blog/19710345) — 踩坑型 6 段式结构来源
 - [技术写作的工程化 — 腾讯云](https://cloud.tencent.com/developer/article/2701468)
 - [A Deep Dive into Static Code Analysis Tools — Codacy](https://blog.codacy.com/static-code-analysis-tools) — 深度型结构参考

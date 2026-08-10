@@ -20,6 +20,17 @@ function findProjectRoot(start: string): string {
   let dir = start;
   while (path.dirname(dir) !== dir) {
     if (fs.existsSync(path.join(dir, "hugo.toml")) || fs.existsSync(path.join(dir, ".git"))) {
+      // 命中 .git 但无 hugo.toml 的可能是 skill 源仓库自身（bind mount 场景：
+      // cwd 物理路径在 codes/skills 下，向上找不到 blog-src 的 hugo.toml）。
+      // 此时回退到同级目录里找含 hugo.toml 的项目。
+      if (!fs.existsSync(path.join(dir, "hugo.toml"))) {
+        const parent = path.dirname(dir);
+        for (const name of fs.readdirSync(parent)) {
+          if (name === "blog-src" && fs.existsSync(path.join(parent, name, "hugo.toml"))) {
+            return path.join(parent, name);
+          }
+        }
+      }
       return dir;
     }
     dir = path.dirname(dir);
@@ -42,8 +53,11 @@ async function main() {
 
   try {
     fs.mkdirSync(outputDir, { recursive: true });
+    // 本机 GL 环境不稳（EGL/CVDisplayLink 报错）导致渲染器随机卡死：
+    // --gl=angle（Metal 加速）+ 单并发可稳定跑完；swiftshader 软件渲染是兜底
+    // （2026-08-10 实测：并发 >1 在 angle/swiftshader 下都会卡首帧）。
     execSync(
-      `remotion render ${entryPoint} ${videoId} ${outputPath}`,
+      `remotion render ${entryPoint} ${videoId} ${outputPath} --concurrency=1 --gl=angle --timeout=120000`,
       {
         stdio: "inherit",
         cwd: process.cwd(),

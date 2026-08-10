@@ -16,6 +16,17 @@ function findProjectRoot(start: string): string {
   let dir = start;
   while (path.dirname(dir) !== dir) {
     if (fs.existsSync(path.join(dir, "hugo.toml")) || fs.existsSync(path.join(dir, ".git"))) {
+      // 命中 .git 但无 hugo.toml 的可能是 skill 源仓库自身（bind mount 场景：
+      // cwd 物理路径在 codes/skills 下，向上找不到 blog-src 的 hugo.toml）。
+      // 此时回退到同级目录里找含 hugo.toml 的项目。
+      if (!fs.existsSync(path.join(dir, "hugo.toml"))) {
+        const parent = path.dirname(dir);
+        for (const name of fs.readdirSync(parent)) {
+          if (name === "blog-src" && fs.existsSync(path.join(parent, name, "hugo.toml"))) {
+            return path.join(parent, name);
+          }
+        }
+      }
       return dir;
     }
     dir = path.dirname(dir);

@@ -54,7 +54,7 @@ def test_replace_links_fallback_when_no_map_entry():
     content = _content_with_links()
     prepare.replace_internal_links(content, "juejin", LINK_MAP, "ai-dev-test")
     html_str = str(content)
-    assert "https://[YOUR_SITE_URL]/posts/not-in-map-article/" in html_str
+    assert "https://example.com/posts/not-in-map-article/" in html_str
 
 
 def test_replace_links_weixin_draft_only_falls_back():
@@ -63,7 +63,7 @@ def test_replace_links_weixin_draft_only_falls_back():
     prepare.replace_internal_links(content, "weixin", LINK_MAP, "ai-dev-test")
     html_str = str(content)
     # draft-only-article 微信只有 draft_appmsgid,published_url=null
-    assert "https://[YOUR_SITE_URL]/posts/draft-only-article/" in html_str
+    assert "https://example.com/posts/draft-only-article/" in html_str
     # 不应使用草稿 appmsgid 做链接
     assert "100000888" not in html_str
 
@@ -78,8 +78,8 @@ def test_replace_links_weixin_published_used():
 
 def test_extract_meta_title():
     meta = prepare.extract_meta(FIXTURE_HTML)
-    assert meta["title"] == "测试文章标题"  # 去掉 " - [YOUR_BLOG_NAME]"
-    assert "[YOUR_BLOG_NAME]" not in meta["title"]
+    assert meta["title"] == "测试文章标题"  # 去掉 " - Test Author"
+    assert "Test Author" not in meta["title"]
 
 
 def test_extract_meta_digest():
@@ -89,7 +89,7 @@ def test_extract_meta_digest():
 
 def test_extract_meta_author_default():
     meta = prepare.extract_meta(FIXTURE_HTML)
-    assert meta["author"] == "[YOUR_BLOG_NAME]"
+    assert meta["author"] == "Test Author"
 
 
 # ============ clean_and_style ============
@@ -215,7 +215,7 @@ def test_prepare_e2e_produces_content_package(tmp_path, monkeypatch):
     with open(result["meta_json"], encoding="utf-8") as f:
         meta = json.load(f)
     assert meta["title"] == "测试文章标题"
-    assert meta["author"] == "[YOUR_BLOG_NAME]"
+    assert meta["author"] == "Test Author"
 
 
 def test_prepare_raises_when_html_missing(tmp_path, monkeypatch):

@@ -80,7 +80,7 @@ make wechat-draft-only slug=<slug>    # 只存草稿不发布(逃生舱,旧行�
 - 发布后把永久链接填入 `link-map.json` 的 `published_url`。
 - 若触发风险操作保护(需扫码):到后台「设置与开发→安全中心→风险操作保护→群发消息」关闭可免扫码。
 
-> 作者与原创声明已由 API 直推(`author0`=[YOUR_BLOG_NAME],`copyright_type0`=1 文字原创),无需后台手填/手勾(2026-08-01 实测)。
+> 作者与原创声明已由 API 直推(`author0`=${WECHAT_AUTHOR},`copyright_type0`=1 文字原创),无需后台手填/手勾(2026-08-01 实测)。
 
 ## 内链处理
 

@@ -1,6 +1,6 @@
 # 博客写作风格指南 v3
 
-> 本文件是博客「[YOUR_BLOG_NAME]」的统一写作与修订规范，基于个人技术博客排版范例研究 + 博主定位 + 行业方法论综述（掘金 / 知乎 / freeCodeCamp / 腾讯 ruoyu / Phodal）。
+> 本文件是博客「你的博客」的统一写作与修订规范，基于个人技术博客排版范例研究 + 博主定位 + 行业方法论综述（掘金 / 知乎 / freeCodeCamp / 腾讯 ruoyu / Phodal）。
 > **所有文章(新写 / 修订)都以本文件为准**。
 > 本文件是 `blog-writing` skill 的 reference，由 SKILL.md 在「起标题 / 写正文 / 修订」步骤按需加载。
 
