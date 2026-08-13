@@ -17,11 +17,14 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const REMOTION_ROOT = path.resolve(__dirname, "..");
 const OUT_FILE = path.join(REMOTION_ROOT, "src", "videos", "content-videos.ts");
 
 function findProjectRoot(start: string): string {
+  // 最高优先 VIDEO_PROJECT_ROOT（blog-src Makefile 显式传入）；未传再走向上探测
+  if (process.env.VIDEO_PROJECT_ROOT) return process.env.VIDEO_PROJECT_ROOT;
   let dir = start;
   while (path.dirname(dir) !== dir) {
     if (fs.existsSync(path.join(dir, "hugo.toml")) || fs.existsSync(path.join(dir, ".git"))) {
@@ -148,7 +151,8 @@ export async function syncContentVideos(): Promise<number> {
   for (const id of ids) {
     const configPath = path.join(contentDir, id, "config.ts");
     try {
-      const mod = (await import(configPath)) as Record<string, unknown>;
+      // Windows 绝对路径需转 file:// URL，否则 ESM loader 报 Received protocol 'd:'
+      const mod = (await import(pathToFileURL(configPath).href)) as Record<string, unknown>;
       const cfg = pickVideoConfig(mod);
       if (!cfg) {
         console.warn(`[sync-content-videos] 跳过 ${id}: 未找到 VideoConfig 导出`);

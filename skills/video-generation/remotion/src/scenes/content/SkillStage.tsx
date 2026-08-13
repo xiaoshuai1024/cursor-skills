@@ -137,7 +137,7 @@ const SkillStage: React.FC<SkillStageProps> = ({
                 width: 380,
                 flexShrink: 0,
                 color: isCurrent ? c : isPast ? theme.colors.textMuted : theme.colors.text,
-                fontSize: 34,
+                fontSize: sk.name.length > 24 ? 20 : sk.name.length > 18 ? 24 : 34,
                 fontFamily: theme.fonts.mono,
                 fontWeight: 700,
                 letterSpacing: 1,

@@ -15,8 +15,10 @@ import { syncContentVideos } from "./sync-content-videos";
 const videoId = process.env.VIDEO_ID || "llm-thinking";
 const entryPoint = "src/index.ts";
 
-/** 从 cwd 向上找项目根，定位 .video-generation/build/。 */
+/** 从 cwd 向上找项目根，定位 video-generation/build/。
+ * 最高优先 VIDEO_PROJECT_ROOT（blog-src Makefile 显式传入）；未传再走向上探测 + 同级 blog-src 兜底。 */
 function findProjectRoot(start: string): string {
+  if (process.env.VIDEO_PROJECT_ROOT) return process.env.VIDEO_PROJECT_ROOT;
   let dir = start;
   while (path.dirname(dir) !== dir) {
     if (fs.existsSync(path.join(dir, "hugo.toml")) || fs.existsSync(path.join(dir, ".git"))) {

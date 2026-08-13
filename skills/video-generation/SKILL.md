@@ -274,6 +274,10 @@ video-generation/
 
 **运行**：`make video-remotion slug=<id>`（自动执行渲染 + 封面）。手工：`cd remotion && pnpm install && python ../scripts/narrate_<video>.py && VIDEO_ID=<id> pnpm render`。narration.ts 由 narrate 脚本生成到 `video-generation/remotion-videos/<id>/`，mp3 自动进 `video-generation/narration/`。
 
+> **项目根注入**：技能库外置为独立仓 + `.agents/skills` 是 junction/symlink 时，向上探测会落到 skills 仓自身。项目根一律优先读 `VIDEO_PROJECT_ROOT` 环境变量（blog-src 的 Makefile 已传 `$(CURDIR)`），TS（render/sync/remotion.config）与 Python（config.py）同规则；未传时才走向上探测 + 同级 blog-src 兜底。手动跑渲染前先 `export VIDEO_PROJECT_ROOT=<项目根>`。
+>
+> **依赖版本**：remotion 固定 **4.0.502**（Node 24 下浏览器可正常 spawn；4.0.8 会报 `spawn UNKNOWN`），勿升。
+
 ## 性能
 
 graph 模式约 1-2 分钟渲染（5 段 ~1800 帧），courseware 约 10-12 分钟，screencast（courseware 子模式）9 段约 10-15 分钟。Remotion 管线 50-100s 视频约 1-3 分钟。若频繁迭代，可降帧率到 30fps 或用 `--scale=0.5` 草稿模式。

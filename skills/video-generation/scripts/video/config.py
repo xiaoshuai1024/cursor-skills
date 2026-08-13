@@ -1,4 +1,5 @@
 """视频生成管线配置。和 scripts/xiaohongshu、scripts/douyin 的风格保持一致。"""
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]          # skill 根（scripts/video 下 2 层）
@@ -6,7 +7,11 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def _find_project_root() -> Path:
-    """从 skill 根向上找项目根（hugo.toml 或 .git 标记）。"""
+    """项目根：最高优先 VIDEO_PROJECT_ROOT 环境变量（blog-src Makefile 显式传入，
+    技能库外置为独立仓 + .agents/skills 是 junction/symlink 时，文件层级和向上探测
+    都会落到 skills 仓自身）；未传时从 skill 根向上找（hugo.toml 或 .git 标记）。"""
+    if os.environ.get("VIDEO_PROJECT_ROOT"):
+        return Path(os.environ["VIDEO_PROJECT_ROOT"])
     for p in [ROOT, *ROOT.parents]:
         if (p / "hugo.toml").exists() or (p / ".git").is_dir():
             return p
