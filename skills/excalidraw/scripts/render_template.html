@@ -21,15 +21,12 @@
     // race that the __moduleReady-flag approach has (a flag set by the module
     // script running does not mean the import() inside it has finished).
     //
-    // Version is pinned. A bundled single-file URL is REQUIRED: without it,
-    // CDNs serve Excalidraw as dozens of cascading module requests (react,
-    // radix-ui, ...) and the total load time blows past any timeout.
-    //
-    // Multi-CDN fallback: try each in order until one loads. esm.sh is primary
-    // (most reliable bundling); jsdelivr and skypack are fallbacks for when a
-    // CDN is down or blocked.
+    // Version is pinned. Load order: local vendored bundle first (self-
+    // contained, no network needed — render.py serves the skill dir over
+    // localhost), then CDN fallbacks for when the vendor file is missing.
     const EXCAL_VERSION = "0.18.0";
     const CDN_URLS = [
+      "./vendor/excalidraw.bundle.js",
       `https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@${EXCAL_VERSION}/+esm`,
       `https://esm.sh/@excalidraw/excalidraw@${EXCAL_VERSION}?bundle`,
       `https://cdn.skypack.dev/@excalidraw/excalidraw@${EXCAL_VERSION}`,
@@ -61,14 +58,26 @@
 
     /**
      * Render an Excalidraw scene to an <svg> element appended to #root.
-     * Simple pipeline: restore → convertToExcalidrawElements → exportToSvg.
-     * No coordinate fixes needed — scene JSON must set text.x/text.y to
-     * the CENTER of the container (textAlign="center"/verticalAlign="middle"
-     * means x/y are the anchor points for the text).
+     * Pipeline: restore → convertToExcalidrawElements → exportToSvg.
+     *
+     * WHY fonts.ready FIRST: convertToExcalidrawElements() re-measures every
+     * text element to reposition container-bound text (bound text x/y means
+     * container CENTER in the official data model). If the embedded Virgil
+     * @font-face has not finished loading at that moment, measurement uses a
+     * fallback font and every label lands offset from its container center by
+     * (actual - measured) / 2. Awaiting document.fonts.ready guarantees
+     * measurement matches rendering. This is the #1 alignment fix.
+     *
+     * Coordinate contract for scene JSON (see SKILL.md ALIGNMENT HARD RULE):
+     *   - container-bound text (containerId != null): x/y = container CENTER
+     *   - free text (containerId null): x/y = top-left corner
      */
     window.renderDiagram = async function (scene) {
       try {
         await window.__excalReady;
+
+        // CRITICAL: measure text only after the embedded fonts are ready.
+        try { await document.fonts.ready; } catch (e) {}
 
         const excal = window.__excal;
         let normalized;
@@ -78,11 +87,40 @@
           normalized = { elements: scene.elements, appState: scene.appState, files: scene.files };
         }
 
+        // Record container geometry BEFORE convert: convertToExcalidrawElements
+        // regenerates element ids but keeps containerId pointing at the OLD id,
+        // so post-convert id lookup fails. Key the map by old ids.
+        const cGeo = new Map();
+        for (const el of normalized.elements) {
+          if (el && el.type !== "text" && el.id) {
+            cGeo.set(el.id, { x: el.x, y: el.y, w: el.width, h: el.height });
+          }
+        }
+
         if (typeof excal.convertToExcalidrawElements === "function") {
           try {
             normalized.elements = excal.convertToExcalidrawElements(normalized.elements);
-          } catch (e) {}
+          } catch (e) {
+          }
         }
+
+        // ALIGNMENT FIX (authoritative): exportToSvg renders each bound-text
+        // group with translate = element.x/y and its center at
+        // translate + (width/2, height/2), where width/height are the
+        // convert-measured text sizes. convertToExcalidrawElements does NOT
+        // reliably pre-compensate (single-line vs multi-line differ), so we
+        // force the group's top-left to (container center - measured/2).
+        // This makes every label center exactly on its container center,
+        // regardless of convert's internal positioning behavior.
+        try {
+          for (const el of normalized.elements) {
+            if (el && el.type === "text" && el.containerId && cGeo.has(el.containerId)) {
+              const c = cGeo.get(el.containerId);
+              el.x = c.x + c.w / 2 - el.width / 2;
+              el.y = c.y + c.h / 2 - el.height / 2;
+            }
+          }
+        } catch (e) {}
 
         const appState = Object.assign(
           { exportBackground: true, exportWithDarkMode: false, viewBackgroundColor: "#ffffff" },

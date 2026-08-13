@@ -7,15 +7,23 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def _find_project_root() -> Path:
-    """项目根：最高优先 VIDEO_PROJECT_ROOT 环境变量（blog-src Makefile 显式传入，
-    技能库外置为独立仓 + .agents/skills 是 junction/symlink 时，文件层级和向上探测
-    都会落到 skills 仓自身）；未传时从 skill 根向上找（hugo.toml 或 .git 标记）。"""
-    if os.environ.get("VIDEO_PROJECT_ROOT"):
-        return Path(os.environ["VIDEO_PROJECT_ROOT"])
+    """定位项目根（有 hugo.toml 的目录）。
+
+    优先读 VIDEO_PROJECT_ROOT 环境变量（Makefile 传入），其次 cwd。不能
+    用 .git 判断（skills 仓库本身是 git 仓库），也不能只依赖 __file__——
+    .agents/skills 是指向外部 skills 仓库的 symlink，__file__ 解析后的真实
+    路径向上走不到项目根。
+    """
+    env_root = os.environ.get("VIDEO_PROJECT_ROOT")
+    if env_root and (Path(env_root) / "hugo.toml").exists():
+        return Path(env_root)
+    cwd = Path.cwd()
+    if (cwd / "hugo.toml").exists():
+        return cwd
     for p in [ROOT, *ROOT.parents]:
-        if (p / "hugo.toml").exists() or (p / ".git").is_dir():
+        if (p / "hugo.toml").exists():
             return p
-    return ROOT.parent.parent  # fallback
+    return cwd  # fallback: 让后续步骤报可读的错误
 
 
 PROJECT_ROOT = _find_project_root()

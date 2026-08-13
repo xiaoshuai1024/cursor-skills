@@ -22,9 +22,13 @@ Setup (first time only):
 from __future__ import annotations
 
 import argparse
+import functools
+import http.server
 import json
 import random
+import socket
 import sys
+import threading
 from pathlib import Path
 
 # This script lives in skills/excalidraw/scripts/. The template is a sibling.
@@ -110,6 +114,20 @@ def compute_viewport(elements: list, max_width: int = 1920) -> dict:
     return {"width": width, "height": height}
 
 
+def _serve_skill_dir() -> tuple[object, str]:
+    """Serve the skill root over localhost so the template can import the
+    vendored Excalidraw bundle (file:// pages cannot import local modules
+    due to CORS). Returns (httpd, base_url)."""
+    root = Path(__file__).resolve().parent.parent  # skill root (contains scripts/)
+    class _Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):  # silence request logs
+            pass
+    handler = functools.partial(_Quiet, directory=str(root))
+    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, f"http://127.0.0.1:{httpd.server_address[1]}"
+
+
 def render(
     data: dict,
     output_stem: Path,
@@ -127,7 +145,10 @@ def render(
         )
 
     viewport = compute_viewport(data["elements"])
-    template_url = TEMPLATE_PATH.as_uri()
+    # Serve skill dir locally: the template loads the vendored Excalidraw
+    # bundle from localhost (no CDN dependency, no file:// CORS issue).
+    httpd, base_url = _serve_skill_dir()
+    template_url = base_url + "/scripts/render_template.html"
 
     written = []
     with sync_playwright() as p:
@@ -213,6 +234,10 @@ def render(
                 written.append(str(png_path))
         finally:
             browser.close()
+            try:
+                httpd.shutdown()
+            except Exception:
+                pass
 
     return written
 

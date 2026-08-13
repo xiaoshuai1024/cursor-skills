@@ -126,10 +126,15 @@ Same as arrow but `type: "line"` and no `startArrowhead`/`endArrowhead`.
 
 Centered label bound to a shape via `containerId`.
 
+> ⚠️ **对齐硬规则（渲染偏移的头号原因）**：`containerId` 非 null 的文本，其 `x`/`y` 必须是**容器的中心点**，不是左上角。因为 `textAlign="center"` + `verticalAlign="middle"` 时，Excalidraw 把 x/y 当作文本的**锚点（中心）**使用。写错坐标 = 文本整体偏移出容器。
+>
+> 计算方式：`text.x = container.x + container.width / 2`，`text.y = container.y + container.height / 2`。
+> 自由文本（`containerId: null`）不受此规则影响，x/y 仍是左上角。
+
 ```json
 {
   "type": "text", "id": "t1",
-  "x": 140, "y": 130, "width": 100, "height": 25, "angle": 0,
+  "x": 190, "y": 140, "width": 100, "height": 25, "angle": 0,
   "strokeColor": "#1e1e1e", "backgroundColor": "transparent",
   "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid",
   "roughness": 1, "opacity": 100, "groupIds": [],
@@ -145,9 +150,11 @@ Centered label bound to a shape via `containerId`.
 }
 ```
 
+- 上例容器 `r1` 为 `x=100, y=100, width=180, height=80`，中心 = (190, 140)，即文本的 x/y。
 - `fontFamily`: 1 = hand (Virgil), 2 = normal, 3 = mono, 4 = Sri Lanka.
 - `containerId` = id of the shape this label sits in. The shape's
   `boundElements` must list `{"id":"t1","type":"text"}`.
+- 渲染器会按 `fontSize` 与文本内容重算文本尺寸并居中于锚点，因此 `width`/`height` 给估算值即可。
 
 ## Free-floating text (title, section header)
 

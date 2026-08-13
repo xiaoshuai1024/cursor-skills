@@ -56,14 +56,36 @@ on render).
    arrow, text). Start from `references/examples/flowchart.excalidraw` as a
    working skeleton.
 
-3. **Leave `seed` as `null`.** Do not hardcode seed values. The render script
+3. **ALIGNMENT HARD RULE (do not skip):** For any text with a non-null
+   `containerId`, set `x`/`y` to the **CENTER of the container**
+   (`container.x + container.width/2`, `container.y + container.height/2`),
+   NOT the top-left corner. Excalidraw treats x/y as the text anchor when
+   `textAlign="center"`/`verticalAlign="middle"`. Wrong coordinates = text
+   rendered outside the box. Free-floating text (`containerId: null`) keeps
+   top-left x/y. Two verification gates:
+
+   ```
+   # Gate 1 — before rendering: anchors equal container centers
+   python3 scripts/check_alignment.py <file.excalidraw>
+
+   # Gate 2 — after rendering: text centers equal container centers
+   # (--scene filters out free-floating texts; omit it to check everything)
+   python3 scripts/render.py <file.excalidraw> --format svg
+   python3 scripts/verify_svg_alignment.py <file>.svg --scene <file.excalidraw>
+   ```
+
+   Gate 2 is the authoritative check: exportToSvg renders each bound-text
+   group's visual center at translate + (rx, ry), so the renderer template
+   repositions labels to (container center - measured/2) before export.
+
+4. **Leave `seed` as `null`.** Do not hardcode seed values. The render script
    injects a random seed per element so identical shapes wobble differently —
    that variation IS the hand-drawn look. Hardcoded seeds make the diagram
    look stamped and dead.
 
-4. **Write the file** with the `.excalidraw` extension, e.g. `login-flow.excalidraw`.
+5. **Write the file** with the `.excalidraw` extension, e.g. `login-flow.excalidraw`.
 
-5. **Render it:**
+6. **Render it:**
 
    ```
    python3 scripts/render.py login-flow.excalidraw
@@ -76,7 +98,7 @@ on render).
    - `--scale 3` for higher-resolution PNG (SVG is always vector)
    - `--keep-seed` to reproduce a previous render exactly
 
-6. **Open the result** (the SVG is preferred — crisp, editable). If you want
+7. **Open the result** (the SVG is preferred — crisp, editable). If you want
    to revise, edit the `.excalidraw` JSON and re-render. You can also drag the
    SVG back into excalidraw.com to edit interactively.
 

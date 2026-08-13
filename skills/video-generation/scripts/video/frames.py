@@ -7,6 +7,7 @@ Playwright 截图 → FFmpeg 把帧序列 + 配音合成 seg.mp4。
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from . import config as C
@@ -61,14 +62,23 @@ def render_card_segment(
     total_ms = total_dur * 1000.0
     seg_start_ms = seg_progress_start * 1000.0
 
+    last_html = None
     for fi in range(n_frames):
         t_s = fi / FPS
         audio_t_ms = max(0.0, (t_s - HEAD_PAD) * 1000.0)
         progress = min(max((seg_start_ms + t_s * 1000.0) / total_ms, 0.0), 1.0)
+        # 进度条量化到 0.25%（4px 一档）：相邻帧 HTML 完全相同，直接复用上一帧 PNG，
+        # 避免每帧都走 Playwright 截图（课件画面静态，截图是渲染耗时大头）。
+        progress = round(progress * 400.0) / 400.0
         state = state_at(audio_t_ms, timeline, progress)
         html = render_frame(card, state, C.COURSEWARE_W, C.COURSEWARE_H)
-        page.set_content(html)
-        page.screenshot(path=str(frames_dir / f"frame_{fi:05d}.png"))
+        frame_png = frames_dir / f"frame_{fi:05d}.png"
+        if last_html is not None and html == last_html:
+            shutil.copyfile(frames_dir / f"frame_{fi-1:05d}.png", frame_png)
+        else:
+            page.set_content(html)
+            page.screenshot(path=str(frame_png))
+        last_html = html
 
     print(f"    渲染 {n_frames} 帧 → 合成段")
 

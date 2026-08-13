@@ -2,6 +2,7 @@
 
 所有路径、域名、样式、选择器集中在此,微信改版时改一处即可。
 """
+import json
 import os
 import sys
 
@@ -12,13 +13,25 @@ BROWSER_CHANNEL = os.environ.get("BROWSER_CHANNEL", "msedge" if sys.platform == 
 
 # ============ 路径 ============
 def _find_project_root():
-    """从 __file__ 向上找 hugo.toml 或 .git，适配任意 skill 目录深度（开源后路径不定）。"""
+    """定位项目根（有 hugo.toml 的目录）。
+
+    优先读 WECHAT_PROJECT_ROOT（Makefile 传入，最可靠）；其次 cwd；
+    最后从 __file__ 向上找。不能用 .git 判断（skills 仓库本身是 git
+    仓库），也不能只依赖 __file__——.agents/skills 是指向外部 skills
+    仓库的 symlink，__file__ 会被解析成真实路径走不到项目根。
+    """
+    env_root = os.environ.get("WECHAT_PROJECT_ROOT")
+    if env_root and os.path.exists(os.path.join(env_root, "hugo.toml")):
+        return env_root
+    cwd = os.getcwd()
+    if os.path.exists(os.path.join(cwd, "hugo.toml")):
+        return cwd
     p = os.path.dirname(os.path.abspath(__file__))
     while p != os.path.dirname(p):
-        if os.path.exists(os.path.join(p, "hugo.toml")) or os.path.exists(os.path.join(p, ".git")):
+        if os.path.exists(os.path.join(p, "hugo.toml")):
             return p
         p = os.path.dirname(p)
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # fallback
+    return cwd  # fallback: 让后续步骤报可读的错误
 
 PROJECT_ROOT = _find_project_root()
 PUBLIC_DIR = os.path.join(PROJECT_ROOT, "public")

@@ -462,7 +462,7 @@ def main() -> None:
     ap.add_argument("--theme", default="dark", choices=["dark", "light"],
                     help="dark=科幻青蓝(默认)；light=亮色中性(深蓝主色)")
     ap.add_argument("--voice", default=None, help="覆盖 TTS 声音，如 zh-CN-XiaoxiaoNeural")
-    ap.add_argument("--rate", default=None, help="覆盖语速，如 +10%")
+    ap.add_argument("--rate", default=None, help="覆盖语速，如 +10%%")
     args = ap.parse_args()
 
     narr = load_narrations(args.slug)

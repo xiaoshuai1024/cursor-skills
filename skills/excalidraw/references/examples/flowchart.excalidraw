@@ -24,7 +24,12 @@
       "version": 1,
       "versionNonce": null,
       "isDeleted": false,
-      "boundElements": [{ "id": "a1", "type": "arrow" }],
+      "boundElements": [
+        {
+          "id": "a1",
+          "type": "arrow"
+        }
+      ],
       "updated": 1,
       "link": null,
       "locked": false
@@ -32,8 +37,8 @@
     {
       "type": "text",
       "id": "start-label",
-      "x": 165,
-      "y": 65,
+      "x": 200.0,
+      "y": 75.0,
       "width": 70,
       "height": 25,
       "angle": 0,
@@ -79,14 +84,22 @@
       "roughness": 1,
       "opacity": 100,
       "groupIds": [],
-      "roundness": { "type": 3 },
+      "roundness": {
+        "type": 3
+      },
       "seed": null,
       "version": 1,
       "versionNonce": null,
       "isDeleted": false,
       "boundElements": [
-        { "id": "a1", "type": "arrow" },
-        { "id": "a2", "type": "arrow" }
+        {
+          "id": "a1",
+          "type": "arrow"
+        },
+        {
+          "id": "a2",
+          "type": "arrow"
+        }
       ],
       "updated": 1,
       "link": null,
@@ -95,8 +108,8 @@
     {
       "type": "text",
       "id": "process-label",
-      "x": 140,
-      "y": 205,
+      "x": 200.0,
+      "y": 215.0,
       "width": 120,
       "height": 25,
       "angle": 0,
@@ -148,9 +161,18 @@
       "versionNonce": null,
       "isDeleted": false,
       "boundElements": [
-        { "id": "a2", "type": "arrow" },
-        { "id": "a-yes", "type": "arrow" },
-        { "id": "a-no", "type": "arrow" }
+        {
+          "id": "a2",
+          "type": "arrow"
+        },
+        {
+          "id": "a-yes",
+          "type": "arrow"
+        },
+        {
+          "id": "a-no",
+          "type": "arrow"
+        }
       ],
       "updated": 1,
       "link": null,
@@ -159,8 +181,8 @@
     {
       "type": "text",
       "id": "decision-label",
-      "x": 170,
-      "y": 360,
+      "x": 200.0,
+      "y": 370.0,
       "width": 60,
       "height": 25,
       "angle": 0,
@@ -206,12 +228,19 @@
       "roughness": 1,
       "opacity": 100,
       "groupIds": [],
-      "roundness": { "type": 3 },
+      "roundness": {
+        "type": 3
+      },
       "seed": null,
       "version": 1,
       "versionNonce": null,
       "isDeleted": false,
-      "boundElements": [{ "id": "a-yes", "type": "arrow" }],
+      "boundElements": [
+        {
+          "id": "a-yes",
+          "type": "arrow"
+        }
+      ],
       "updated": 1,
       "link": null,
       "locked": false
@@ -219,8 +248,8 @@
     {
       "type": "text",
       "id": "end-label",
-      "x": 165,
-      "y": 505,
+      "x": 200.0,
+      "y": 515.0,
       "width": 70,
       "height": 25,
       "angle": 0,
@@ -266,7 +295,9 @@
       "roughness": 1,
       "opacity": 100,
       "groupIds": [],
-      "roundness": { "type": 2 },
+      "roundness": {
+        "type": 2
+      },
       "seed": null,
       "version": 1,
       "versionNonce": null,
@@ -275,12 +306,29 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "startBinding": { "elementId": "start", "focus": 0, "gap": 1 },
-      "endBinding": { "elementId": "process", "focus": 0, "gap": 1 },
+      "startBinding": {
+        "elementId": "start",
+        "focus": 0,
+        "gap": 1
+      },
+      "endBinding": {
+        "elementId": "process",
+        "focus": 0,
+        "gap": 1
+      },
       "lastCommittedPoint": null,
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "points": [[0, 0], [0, 70]]
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          70
+        ]
+      ]
     },
     {
       "type": "arrow",
@@ -298,7 +346,9 @@
       "roughness": 1,
       "opacity": 100,
       "groupIds": [],
-      "roundness": { "type": 2 },
+      "roundness": {
+        "type": 2
+      },
       "seed": null,
       "version": 1,
       "versionNonce": null,
@@ -307,12 +357,29 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "startBinding": { "elementId": "process", "focus": 0, "gap": 1 },
-      "endBinding": { "elementId": "decision", "focus": 0, "gap": 1 },
+      "startBinding": {
+        "elementId": "process",
+        "focus": 0,
+        "gap": 1
+      },
+      "endBinding": {
+        "elementId": "decision",
+        "focus": 0,
+        "gap": 1
+      },
       "lastCommittedPoint": null,
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "points": [[0, 0], [0, 70]]
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          70
+        ]
+      ]
     },
     {
       "type": "arrow",
@@ -330,7 +397,9 @@
       "roughness": 1,
       "opacity": 100,
       "groupIds": [],
-      "roundness": { "type": 2 },
+      "roundness": {
+        "type": 2
+      },
       "seed": null,
       "version": 1,
       "versionNonce": null,
@@ -339,12 +408,29 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "startBinding": { "elementId": "decision", "focus": 0, "gap": 1 },
-      "endBinding": { "elementId": "end", "focus": 0, "gap": 1 },
+      "startBinding": {
+        "elementId": "decision",
+        "focus": 0,
+        "gap": 1
+      },
+      "endBinding": {
+        "elementId": "end",
+        "focus": 0,
+        "gap": 1
+      },
       "lastCommittedPoint": null,
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "points": [[0, 0], [0, 60]]
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          60
+        ]
+      ]
     }
   ],
   "appState": {
