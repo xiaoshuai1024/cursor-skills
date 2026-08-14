@@ -16,8 +16,8 @@
   句11 结论（ConclusionFocus：模型负责聪明 · 环境负责刹车）
   句12 Outro（中性价值钩子，无诱导关注 CTA）
 每句分句 ≤24 字、尽量 ≥7 字（目标 ~95 单元 ≈ 4.4 分钟）。
-平台合规（douyin-compliance）：口播全程规避广告法极限词、诱导引流词与权威冒用词（词库见
-douyin-compliance/references/word-list.md）；Outro 不用诱导 CTA，用中性价值钩子；发布时勾选 AI 生成声明。
+平台合规（platform-compliance）：口播全程规避广告法极限词、诱导引流词与权威冒用词（词库见
+platform-compliance/references/word-list.md）；Outro 不用诱导 CTA，用中性价值钩子；发布时勾选 AI 生成声明。
 用法：VIDEO_PROJECT_ROOT=<博客根> python scripts/narrate_ecc_agent_os.py
 """
 import json
