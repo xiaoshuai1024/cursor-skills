@@ -619,7 +619,7 @@ def main() -> None:
             ctx.request,
             mp,
             title=meta["title"],
-            digest=meta.get("digest", ""),
+            digest=(meta.get("digest") or "")[:120],
             content=html,
             cover=cover,
             author=config.DEFAULT_AUTHOR,

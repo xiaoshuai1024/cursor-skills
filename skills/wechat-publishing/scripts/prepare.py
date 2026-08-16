@@ -262,7 +262,7 @@ def convert_images(content, svg_dir: str, out_dir: str, src_mode: str = "placeho
     for img in content.find_all("img"):
         src = img.get("src", "")
         # 解析 /svg/xxx.svg → 文件名
-        m = re.match(r"/svg/(.+\.svg)$", src)
+        m = re.match(r"/svg/(.+\.svg)(?:\?.*)?$", src)
         if not m:
             continue
         svg_name = m.group(1)

@@ -18,6 +18,7 @@
 """
 from __future__ import annotations
 
+import os
 import sys
 import time
 
@@ -38,6 +39,17 @@ def close_stray(page) -> bool:
             x = page.get_by_text(kw, exact=True).first
             if x.is_visible():
                 x.click(timeout=1200)
+                time.sleep(1)
+                return True
+        except Exception:
+            pass
+    # 兜底:education-dialog 等提示弹窗拦截点击但按钮文本带空白,文本匹配不上
+    for sel in (".weui-desktop-dialog__wrp.education-dialog button",
+                ".weui-desktop-dialog__wrp:visible button.weui-desktop-btn_primary"):
+        try:
+            btn = page.locator(sel).first
+            if btn.count() and btn.is_visible():
+                btn.click(timeout=1200)
                 time.sleep(1)
                 return True
         except Exception:
@@ -108,7 +120,7 @@ def main() -> None:
         ctx = p.chromium.launch_persistent_context(
             config.WECHAT_PROFILE_DIR,
             channel=config.BROWSER_CHANNEL,
-            headless=True,
+            headless=os.environ.get("DSH_UI_HEADLESS", "1") != "0",
             args=["--disable-blink-features=AutomationControlled"],
             viewport={"width": 1600, "height": 1000},
         )
@@ -153,9 +165,17 @@ def main() -> None:
                 opened = True
                 print(f">> 主弹窗已打开 (attempt {attempt})")
                 break
+            # 「发表」不可见多半是「我知道了」等提示弹窗挡着,先关再重试
             if close_stray(page):
                 continue
             if not clicked:
+                # 再给一次机会:关弹窗后按钮通常下一轮才渲染
+                try:
+                    el = page.get_by_text("发表", exact=True).first
+                    if el.is_visible():
+                        continue
+                except Exception:
+                    pass
                 print("!! 无可见「发表」")
                 break
         if not opened:
@@ -182,17 +202,29 @@ def main() -> None:
             ctx.close()
             sys.exit("!! 定时开关无法打开")
 
-        # 3. 选日期
+        # 3. 选日期(遍历所有可见 dt,别只点 .first —— day≥2 用 curTime2,首个可能是隐藏元素)
         try:
-            dt = page.locator(".mass-send__timer .weui-desktop-form__dropdown__dt").first
-            dt.click(timeout=4000)
+            dt = page.locator(".mass-send__timer .weui-desktop-form__dropdown__dt:visible").first
+            if not dt.count():
+                dt = page.locator(".mass-send__timer .weui-desktop-form__dropdown__dt").first
+            dt.click(timeout=8000)
             time.sleep(2)
-            opt = page.locator(".weui-desktop-dropdown__list-ele", has_text=date_label).first
-            if opt.count():
+            # 只点可见下拉项:页面里还有隐藏的国家/性别下拉,.first 会匹配到隐藏元素导致超时
+            opt = None
+            for cand in page.locator(".weui-desktop-dropdown__list-ele",
+                                     has_text=date_label).all():
+                try:
+                    if cand.is_visible():
+                        opt = cand
+                        break
+                except Exception:
+                    continue
+            if opt:
                 opt.click(timeout=4000)
                 print(f">> 已选日期 {date_label}")
             else:
-                opts = page.locator(".weui-desktop-dropdown__list-ele").all_inner_texts()
+                opts = [t.strip() for t in page.locator(
+                    ".weui-desktop-dropdown__list-ele").all_inner_texts() if len(t.strip()) < 12]
                 print("!! 下拉无目标日,现有:", opts)
                 ctx.close()
                 sys.exit(1)
