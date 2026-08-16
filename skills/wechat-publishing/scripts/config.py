@@ -45,7 +45,9 @@ SUPPORTED_PLATFORMS = ["weixin", "juejin"]
 
 # ============ 站点（从环境变量读，见 .env.local.example）============
 BASE_URL = os.environ.get("SITE_BASE_URL", "")
-SITE_NAME_SUFFIX = os.environ.get("SITE_NAME_SUFFIX", "")  # 如 " - 你的博客名"
+# 站点名后缀:html <title> 里 Hugo 会拼上,公众号标题必须去掉。
+# env 未传时曾经为空 → 标题残留「 - 1024 工程笔记」发到公众号,故内置默认值兜底。
+SITE_NAME_SUFFIX = os.environ.get("SITE_NAME_SUFFIX", " - 1024 工程笔记")
 DEFAULT_AUTHOR = os.environ.get("WECHAT_AUTHOR", "")
 COPYRIGHT_TYPE = "1"  # 0=不声明 1=文字原创 2=漫画原创
 

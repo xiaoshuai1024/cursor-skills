@@ -194,6 +194,9 @@ Hugo 用 chroma 以 class-based 方式生成高亮（`noClasses = false`）。�
 - **合集继承**：`sub=create` 副本从原稿继承 `appmsg_album_info`——原稿带合集则副本带（DeepSeek），原稿不带则副本不带（CcSwitch 100001199→100001248 无合集）。给已排副本补合集的唯一可靠方式：「原稿先挂合集（人工或 create 注入）→ 取消旧排期 → 重新定时」。
 - **删除原稿/副本不影响已排期副本**：cleanup 删 100001271 后，其副本 100001273 的排期仍有效（实证）。
 - **⚠️ 禁止定时「今天」（2026-08-05 事故）**：前端 dayChange 对「今天」降级为 `isFreePublish=true` 免费发布——文章**静默上主页、无粉丝推送**，走即时 masssend 不走 time_send，脚本 time_send 检测永远不触发 → 空响应「假失败真发布」（草稿 100001282 被免费发布上主页，挂太久无法撤回）。`schedule_ui_v2.py` 已加硬守卫 `is_today_label` 拒绝「今天/今日/当天日期」，**只允许定时未来配额日**（isFreePublish=false 群发通知）。真今天发需即时群发（暂不可靠）。教训：**空响应 ≠ 失败**，发布后查 home「近期发表」核对真实结果。
+- **⚠️ 「继续发表」即使选了未来日期也可能走免费发布（2026-08-16 事故）**：double_check 弹窗确认时，mp 在部分状态下（弹窗链路切到发布页变体）会把请求发成 `masssend?t=ajax-response&is_release_publish_page=1` + `isFreePublish=true`——即使表单里带着未来 `send_time`。后果是**同一篇文章一次群发通知、一次免费发布，重复上线**，且界面像失败（响应为空）。**已修**：`schedule_ui_v2.py` 现用 `page.route` 熔断，凡 `masssend` 且 body 含 `isFreePublish=true` 一律 abort，脚本走到「未检测到 time_send」报错退出、草稿保留可安全重跑。**铁律：定时成功的唯一判据是抓到 `action=time_send` 且 `isFreePublish=false`、ret:0**；跑完必查「发表记录」页有无意外新条目。
+- **编辑器每次点「发表」都会自动另存一个新 appMsgId（2026-08-16 实证）**：进编辑器点「发表」即 `sub=create` 副本（428→448/470、404→459、411→464…），**失败重跑 N 次就堆 N 个副本**。本轮 5 篇排期在草稿箱堆了 18+ 条废稿。流程纪律：批量定时后**必须** `list_drafts` → 更新 link-map keep-set（成功排期的新 id 记入 `scheduled_appmsgid`）→ `cleanup_drafts --delete`；失败重试前先盘点，别盲目重跑。
+- **登录态短效（<1 天）**：mp 会话隔夜即踢（页面 `t:""`/`ticket:""` 即失效）。批量长流程跑前先 `get_token` 校验；失效需弹窗重扫码，一次扫码窗口给足 15 分钟并在终端明确提示。
 
 **顺延语义**：个人订阅号每日群发 1 次（通知次数）。立即群发失败（无通知次数/可顺延错误）→ 逐日尝试 `send_time=明天/后天/…`，最长 `PUBLISH_RETRY_DAYS=7` 天，全无则抛「7 天内均无通知次数」，草稿保留。
 
@@ -226,6 +229,7 @@ python -m scripts.wechat.cleanup_drafts --delete  # 3. 真正删除
 - **msedge channel**：见前置条件，Chrome 损坏，禁用 chrome/内置 chromium。
 - **背景白**：见「代码块背景」，任何 `background:` 简写都会被过滤。
 - **公众号 2 万字上限**：`config.py` `WECHAT_MAX_CHARS = 20000`，prepare 超限 warn。
+- **标题残留站名后缀（2026-08-16 事故）**：`prepare.py` 靠 `SITE_NAME_SUFFIX` 去掉 `<title>` 里的「 - 1024 工程笔记」，但该值靠 env 传入、Makefile 没传 → 正则为空，**标题带着站名发到公众号**。已修：`config.py` 内置默认 `" - 1024 工程笔记"`，`prepare.py` 再加写法变体兜底正则（`1024\s*工程笔记`）。换站名时记得同步改这两处。
 - **草稿堆积（应主动清理，勿留）**：`publish_mp.py` 每次 `sub=create` 新建草稿（不覆盖旧草稿）。反复调试会产生多个废弃草稿——**按「草稿箱清理」节处理，测试草稿当场删**；`link-map.json` 只保留最后一次的 `draft_appmsgid`。
 
 ## 文件结构速查

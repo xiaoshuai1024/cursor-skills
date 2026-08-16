@@ -42,9 +42,10 @@ def extract_meta(html_path: str) -> dict:
     with open(html_path, encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
 
-    # 标题:去站点名后缀
+    # 标题:去站点名后缀(先精确匹配 env 后缀,再兜底匹配「1024 工程笔记」写法变体)
     raw_title = soup.find("title").get_text() if soup.find("title") else ""
     title = re.sub(re.escape(config.SITE_NAME_SUFFIX) + r"\s*$", "", raw_title).strip()
+    title = re.sub(r"\s*[-–—:：]?\s*1024\s*工程笔记\s*$", "", title).strip()
 
     # 摘要:取 meta description
     desc_tag = soup.find("meta", attrs={"name": "description"})

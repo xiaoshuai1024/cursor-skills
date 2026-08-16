@@ -126,6 +126,20 @@ def main() -> None:
         )
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         page.on("response", on_response)
+        # 熔断:拦截一切 isFreePublish=true 的 masssend 请求,直接 abort。
+        # 背景:double_check 弹窗点「继续发表」时,mp 在部分状态下会把请求发成
+        # is_release_publish_page=1 + isFreePublish=true(免费发布:静默上主页、
+        # 无粉丝推送,界面上像失败,实际已发布 → 假失败真发布事故)。
+        # 拦下后脚本会走到「未检测到 time_send」报错退出,草稿保留,可安全重跑。
+        def block_free_publish(route):
+            body = route.request.post_data or ""
+            if "masssend" in route.request.url and "isFreePublish=true" in body:
+                print("🛑 已拦截免费发布请求(isFreePublish=true),abort")
+                route.abort()
+            else:
+                route.continue_()
+        page.route("**/cgi-bin/appmsgpublish*", lambda r: r.continue_())
+        page.route("**/cgi-bin/masssend*", block_free_publish)
         page.goto(config.WECHAT_MP_URL, wait_until="domcontentloaded")
         mp = None
         deadline = time.time() + config.HEADLESS_LOGIN_WAIT
