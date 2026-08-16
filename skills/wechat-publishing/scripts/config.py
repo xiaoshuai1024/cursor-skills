@@ -13,19 +13,6 @@ BROWSER_CHANNEL = os.environ.get("BROWSER_CHANNEL", "msedge" if sys.platform == 
 
 # ============ 路径 ============
 def _find_project_root():
-    """定位项目根（有 hugo.toml 的目录）。
-
-    优先读 WECHAT_PROJECT_ROOT（Makefile 传入，最可靠）；其次 cwd；
-    最后从 __file__ 向上找。不能用 .git 判断（skills 仓库本身是 git
-    仓库），也不能只依赖 __file__——.agents/skills 是指向外部 skills
-    仓库的 symlink，__file__ 会被解析成真实路径走不到项目根。
-    """
-    env_root = os.environ.get("WECHAT_PROJECT_ROOT")
-    if env_root and os.path.exists(os.path.join(env_root, "hugo.toml")):
-        return env_root
-    cwd = os.getcwd()
-    if os.path.exists(os.path.join(cwd, "hugo.toml")):
-        return cwd
     p = os.path.dirname(os.path.abspath(__file__))
     while p != os.path.dirname(p):
         if os.path.exists(os.path.join(p, "hugo.toml")):

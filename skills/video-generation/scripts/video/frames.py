@@ -71,6 +71,7 @@ def render_card_segment(
         # 避免每帧都走 Playwright 截图（课件画面静态，截图是渲染耗时大头）。
         progress = round(progress * 400.0) / 400.0
         state = state_at(audio_t_ms, timeline, progress)
+        state["frame"] = fi          # 帧号（模板内帧驱动动效用：呼吸/浮入等）
         html = render_frame(card, state, C.COURSEWARE_W, C.COURSEWARE_H)
         frame_png = frames_dir / f"frame_{fi:05d}.png"
         if last_html is not None and html == last_html:

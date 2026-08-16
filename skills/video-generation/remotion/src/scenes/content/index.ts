@@ -15,4 +15,7 @@ import "./PluginCard3D";
 import "./SelectionPrinciples";
 import "./NewsNotice";
 import "./PriceTimeline";
-import "./PricePrediction";
+import "./PricePrediction";import "./ScatterFrontier";
+import "./TokenBarRace";
+import "./OrbitCapabilities";
+import "./VsShowdown";

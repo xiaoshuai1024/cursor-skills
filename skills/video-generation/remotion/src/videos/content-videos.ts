@@ -25,9 +25,35 @@ const toConfig = (m: Record<string, unknown>): VideoConfig => {
 
 export const contentVideos: ContentVideoEntry[] = [
   {
+    id: "ai-agent-engineering-evolution",
+    title: "Harness 工程：AI 编程从命令体系到自治体系的演进",
+    durationInFrames: 19509,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/ai-agent-engineering-evolution/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "ai-buzzwords-one-line",
+    title: "别再背 AI 黑话了：一条主线串起大模型、Agent、Skill、MCP",
+    durationInFrames: 16803,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/ai-buzzwords-one-line/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
     id: "ai-dev-stop-discipline",
-    title: "TypeScript 教父开源 21 万 Star 的 25 个 Skill：把工程师自律焊进 AI 流程",
-    durationInFrames: 23331,
+    title: "21 万 Star 的 25 个 Skill 把工程师自律焊进 AI 流程",
+    durationInFrames: 19196,
     fps: 60,
     width: 1920,
     height: 1080,
@@ -38,26 +64,39 @@ export const contentVideos: ContentVideoEntry[] = [
     }),
   },
   {
-    id: "deepseek-cheap-power",
-    title: "DeepSeek 有多便宜？V4 Flash 能力世界第二，涨价却要来了",
-    durationInFrames: 9317,
+    id: "deepseek-harness-first-look",
+    title: "DeepSeek 开源自研 Harness：模型、工具、Agent Loop 一切皆插件",
+    durationInFrames: 21925,
     fps: 60,
     width: 1920,
     height: 1080,
-    lazyComponent: () => import("@videos/deepseek-cheap-power/config").then((m) => {
+    lazyComponent: () => import("@videos/deepseek-harness-first-look/config").then((m) => {
       const cfg = toConfig(m);
       const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
       return { default: Comp };
     }),
   },
   {
-    id: "mini-test",
-    title: "Mini Test",
-    durationInFrames: 60,
+    id: "ecc-agent-os",
+    title: "黑客松冠军开源 24 万星的 ECC：把 agent 工程做成了操作系统",
+    durationInFrames: 16467,
     fps: 60,
     width: 1920,
     height: 1080,
-    lazyComponent: () => import("@videos/mini-test/config").then((m) => {
+    lazyComponent: () => import("@videos/ecc-agent-os/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "pi-agent-beats-claude-code",
+    title: "Pi Agent 凭什么打赢 Claude Code：极简内核与扩展系统的胜负手",
+    durationInFrames: 15416,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/pi-agent-beats-claude-code/config").then((m) => {
       const cfg = toConfig(m);
       const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
       return { default: Comp };

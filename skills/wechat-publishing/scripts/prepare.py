@@ -50,6 +50,7 @@ def extract_meta(html_path: str) -> dict:
     # 摘要:取 meta description
     desc_tag = soup.find("meta", attrs={"name": "description"})
     digest = desc_tag.get("content", "").strip() if desc_tag else ""
+    digest = digest[:120]  # mp 草稿 digest0 上限 120 字（ret 64703）
 
     return {
         "title": title,

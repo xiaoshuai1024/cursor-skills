@@ -112,12 +112,17 @@ def render_frame(card: dict, state: dict, width: int = 1920, height: int = 1080)
             "is_cover", "outline":[str](仅封面：论点列表)}
     state: {"active_idx", "subtitle"(字幕,已去标点), "progress"}
 
-    type=="tool" 的卡片分发到 screencast 模块（屏录感工具窗口渲染）。
+    type=="tool" 的卡片分发到 screencast 模块（屏录感工具窗口渲染）；
+    type=="tutorial" 分发到 tutorial 模块（亮色教程模板：全量展示 + active 高亮）。
     """
     if card.get("type") == "tool":
         from . import screencast
 
         return screencast.render_frame(card, state, width, height)
+    if card.get("type") == "tutorial":
+        from . import tutorial
+
+        return tutorial.render_frame(card, state, width, height)
     title = card.get("title", "") or ""
     card_sub = card.get("subtitle", "") or ""
     points_raw = card.get("points") or []

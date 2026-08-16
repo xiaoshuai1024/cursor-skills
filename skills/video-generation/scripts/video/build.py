@@ -114,6 +114,20 @@ def normalize_card(raw: dict) -> dict:
             "is_cover": False,
         })
         return card
+    if ctype == "tutorial":
+        # 教程模板卡（亮色全量展示 + active 高亮）：全透传，
+        # tutorial.py 按 kind（intro/step/end）渲染 steps/shot/lines/hotspots。
+        card = dict(raw)
+        card.update({
+            "type": "tutorial",
+            "kind": raw.get("kind", "step"),
+            "title": raw.get("title", ""),
+            "subtitle": raw.get("subtitle", ""),
+            "points": list(raw.get("points", [])),
+            "footer": raw.get("footer", ""),
+            "is_cover": False,
+        })
+        return card
     if ctype == "cover":
         title = (raw.get("hook", "") or raw.get("subtitle", "")).replace("\n", " ")
         return {"title": title, "subtitle": raw.get("subtitle", ""),

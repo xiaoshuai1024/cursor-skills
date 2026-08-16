@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -83,6 +84,15 @@ class Shot:
 
 
 SHOTS: list[Shot] = [
+    # 0. DeepSeek Harness repo 首屏：star 计数 + 仓库名/描述（deepseek-harness-first-look 教程版）
+    Shot(
+        key="dsh-repo",
+        url="https://github.com/deepseek-ai/deepseek-harness",
+        hotspots=[
+            {"sel": "#repo-stars-counter-star", "label": "3 万 Star"},
+        ],
+        settle_ms=2200,
+    ),
     # 1. VSCode 官网下载页：第一视口 = hero + 平台下载表；热点 = Windows 下载行
     Shot(
         key="vscode-download",
@@ -145,7 +155,12 @@ def capture(shots: list[Shot], out_dir: Path) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as pw:
-        b = pw.chromium.launch()
+        # 本机代理（如 Clash 7897）：访问 GitHub 等境外站必须走代理，否则
+        # chromium DNS/连接超时（curl/git 走系统代理能通，chromium 默认不走）。
+        proxy = os.environ.get("PLAYWRIGHT_PROXY", "").strip()
+        b = pw.chromium.launch(
+            proxy={"server": proxy} if proxy else None,
+        )
         ctx = b.new_context(viewport={"width": VIEW_W, "height": VIEW_H}, user_agent=UA)
         pg = ctx.new_page()
 

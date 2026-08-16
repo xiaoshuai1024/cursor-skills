@@ -54,12 +54,17 @@ def _ocr_windows(image_path: str) -> list[str]:
     result = subprocess.run(
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
          "-File", str(ps1), "-ImagePath", image_path],
-        capture_output=True, text=True, encoding="utf-8",
+        capture_output=True,
     )
     if result.returncode != 0:
         print(f"❌ ocr.ps1 失败: {result.stderr[:300]}", file=sys.stderr)
         return []
-    return [ln for ln in result.stdout.splitlines() if ln.strip()]
+    # 中文 Windows 的 PowerShell 输出是 GBK，不是 UTF-8（0xd3 这类 GBK 首字节会炸 utf-8 解码）
+    try:
+        out_text = result.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        out_text = result.stdout.decode("gbk", errors="replace")
+    return [ln for ln in out_text.splitlines() if ln.strip()]
 
 
 def main() -> int:
