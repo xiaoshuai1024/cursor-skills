@@ -84,6 +84,14 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - 第一句口播 ≤ 20 字、含具体钩子（数字/痛点/反常识），写完稿自查：把第一句单独拿出来，问自己「刷到这条会不会停下」。
 - 封面/标题同理：标题文案优先用痛点问句或结果承诺，不用平铺直叙的主题名。
 
+### 抖音审核红线（2026-08-17 事故沉淀，强制）
+
+- **「评论区」三字是硬违规**：口播、字幕、封面、简介、metadata 全部禁止出现「评论区 + 指令动词（报/扣/发/搜）」结构——top10 视频因此被判「不适宜公开」。引导互动改用**选择题/站队句**（「你站哪边」「聊聊你的组合」），无指令动词。
+- **引导句可「有声无字幕」**：结尾讨论句留在口播里，字幕/画面文字停在此句之前（字幕是硬文本最易被扫，音频转写命中率低一档；不保证豁免，只降概率）。Outro 的 ctaText 只放中性选择题。
+- **极限词连带**：「第一/最强/暴涨/天花板」等即使技术语境也会触发 2026-07 新规清洗（GLM 视频因此连带风险）。技术表述改「开源榜前列/提升 X%」。
+- 发布描述（metadata 简介）、评论区管理（预审 + 及时删违规评论）同口径：无指令词、无导流。
+- 发布后如被判违规：创作者服务中心 → 作品分析 → 申诉（原始文件），勿用第三方强开。
+
 ### 完播率优化：价值钩子前置 + 结论先行（2026-08-17 专家建议，强制）
 
 > 数据背景：某源码解析视频 2s 跳出率 43.51%、完播率 1.46%。根因是「内容价值」与「观众预期」匹配效率低——观众要的是「我能学到什么 / 这有什么用」，不是创作者的过程铺垫。目标：2s 跳出率 < 30%，平均播放时长提升。
@@ -164,6 +172,8 @@ video-generation/                        ← 项目根：所有内容配置 + �
   - 窗口内文案必须与文章口径一致（如本文「热重载」是禁词，settings 窗口里也不能出现）；改口播时同步改 deck 对应卡
   - 排行榜（`rank` 卡）分数必须真实来源（如 Terminal-Bench 2.1 官方实测），条形宽度 = 分数 / 榜首 折算；数据从榜单抓取，不编造
   - **拟物化方向（教程类强制，2026-08-03 定规）**：教程/操作类不用抽象 CSS 假界面、不 mockup 能真实截图的界面。**核心原则：能浏览器截图的步骤，一律用 `realshot` 截真实网页**（`capture_shots.py` 抓官网实拍 1600×900，热点坐标记百分比；渲染时 base64 内嵌 + `.shotwrap` 16:9 容器 + 热点框随 `active_idx` 三态 + 箭头标签）。**不只是下载/安装页——任何能在浏览器里呈现的 UI 都该截**：官网、应用市场、GitHub、控制台、在线编辑器（如 vscode.dev）。CSS 仿真窗口（`vscode` mockup / 终端）**只在浏览器截不到时才兜底**（本地桌面应用、需登录态才能进的真实界面）。截图不编造内容
+  - **内容事实校验（强制，2026-08-17 定规）**：写进 deck/口播的**数字和命令必须先验证**——① 涉及 star 数一律查 GitHub API（`api.github.com/repos/<owner>/<repo>` 的 `stargazers_count`），文章/网页里的旧数据经常过时（实测 8.5k → 9603）；② 涉及 npm 包名一律 `npm view <pkg>` 验证存在性（文章里流传的 `@deepseek-ai/dsh-tui` 实际是 404，正确包是 `@deepseek-harness-tui/dsh-tui`）；③ 教程类**下载地址必须写进画面**（realshot 的 `url_note` / 口播报域名），不能只说「官网下载」四个字
+  - **官网截图超时兜底（2026-08-17 踩坑）**：部分官网（dshdesktop.cn）对 Playwright 默认 `goto(domcontentloaded)` 直接超时，curl 却能 200——改用 `wait_until="commit"` + 长 settle（10s+）能截到；热点坐标用 `bounding_box()` 实测百分比，不目测（页面改版会漂移）
   - **平台合规（强制）**：口播 + 画面**禁止「评论区扣XX / 关注我」类诱导 CTA**（抖音违规诱导，限流/下架）；结尾用中性价值钩子（「零基础四分钟装好 · 不用注册官方账号」）**或开放式提问/选择题**（「你站哪边？」「你卡在哪一步？评论区聊聊」，见「黄金 2 秒与互动设计」）。禁止自问自答设问句（「key哪来」）——**画面里也不能出现**（反例：`terminal` 曾硬编码「← 还是官方模型？」自问句）
   - **tool 卡内容全透传**：`build.py::normalize_card` 必须 `dict(raw)` 透传 tool 卡全部字段（big/mats/cta/items/req/resp/hotspots/lines 等），否则 builder 落默认值（老 bug）。**新增可配内容不要硬编码进 builder**（反例：`terminal` 曾硬编码旧视频「Claude Opus 5」内容），一律走卡字段
 
@@ -174,6 +184,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
   - 单词音（API→/æpi/、GLM→/gælm/）**自然流畅**，虽不完全符合中文技术圈逐字母习惯，但可识别
   - ✅ **结论**：`normalize_for_tts` 白名单**只留会被读成"无法识别中文错音"的词**，其他缩写当单词读。当前白名单 = `{DOM, AI}`。
   - ⚠️ **AI 必须逐字母**（claude-plugins 视频踩坑，两次复发）：男声 `YunxiNeural` 实测原始 "AI" 被当单词读成拼音音"爱/哀"（不自然），"A I" 才是技术圈标准读法。故 AI 进白名单 → normalize 展开成 "A I"。**旧的"AI 自动逐字母、保持原样"结论是错的**，WordBoundary 探针已推翻。验证方法：合成后看 WordBoundary 是否把 AI 拆成 A、I 两个独立词。
+  - ⚠️ **TUI 大小写通吃 + 探针必须用口播原文（2026-08-17 踩坑）**：dsh-TUI 读音错误两轮才修好——第一轮只把 `TUI` 加进白名单，但白名单正则 `[A-Z]{2,5}` 只匹配大写，而口播写的是小写 `dsh-tui`，normalize 根本没命中，用户复听仍错。**修法：normalize 里追加大小写不敏感规则（`[tT][uU][iI]` → "T U I"）**；且**探针测试必须用口播文件里的原文（含小写）**，不能只测大写形式——探针通过 ≠ 口播通过。
   - ❌ 不要靠整体提速（rate +20%）补偿字母停顿——会让中文语调变机械。英文慢的根因是加空格，不是语速。
 - **rate 用 `+8%`**（自然区间，验证过）。男声 `zh-CN-YunxiNeural`（科普/技术默认），女声 `zh-CN-XiaoxiaoNeural`（培训）。
 - ❌ 不要用中文谐音替换（如 "AI"→"诶爱"）：实测反而切成两个独立词
@@ -203,7 +214,8 @@ video-generation/                        ← 项目根：所有内容配置 + �
 ### 工程
 - **全本地零收费**：仅 edge-tts + Playwright + FFmpeg
 - **Windows 编码**：文件 I/O 显式 `encoding="utf-8"`，子进程 `PYTHONIOENCODING=utf-8`
-- **edge-tts 间歇 NoAudioReceived**：`synth_with_boundaries` 必须带指数退避重试（服务端间歇抽风，非代码问题）
+- **edge-tts 间歇 NoAudioReceived**：`synth_with_boundaries` 必须带指数退避重试（服务端间歇抽风，非代码问题）。整批失败（make video Error 1）多为同一时段服务抽风——**直接重跑 make，一般 2-3 次内过**，先别怀疑内容
+- **Makefile video target 用 `$(PYTHON_PW)` 不是 `$(PYTHON)`**（2026-08-17 修）：`.venv` 无 playwright/edge-tts，Windows 用本机 Python311（`PYTHON_PW`），否则 `ModuleNotFoundError`
 - **变量命名**：避开 JS/Python 内置（不用 URL/name/status/data）
 - **去 AI 味**：口播文案写作去套话水词（参见 **de-ai-smell skill**，唯一权威）；**禁词（2026-08-03 定规）：兜底、铁证、说白了、先说、根子、扎眼**——口播一律不出现，写完整稿后跑 `make check-ai-smell path=...` 扫一遍
 
@@ -245,6 +257,15 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
    python scripts/screenshot_app.py --process "Codex" --title "Codex" --output video-generation/assets/<slug>/01.png
    ```
    截图后如无法目视验证（模型不支持看图），用 `scripts/ocr.py`（macOS Vision / Windows WinRT）核对窗口文字，确保截到了目标界面而非误截。
+   **Windows 实测经验（2026-08-17 deepseek-harness-desktop-cli 沉淀）**：
+   - **进程名不带 .exe**：`screenshot_app.py --process "cmd"`（`Get-Process` 的 Name 是 `cmd`，传 `cmd.exe` 匹配不到直接 "no window"）
+   - **窗口被遮挡是最大坑**：矩形截取用 `CopyFromScreen` 抓屏面上该区域，若目标窗口被编辑器/ZCode 等盖住，截到的是一张**静止黑屏/别人界面**——两帧 diff 为 None 就是截错信号（`ImageChops.difference` bbox）。截前先 `ShowWindow(SW_MINIMIZE)` 移开竞争窗口 + `SetForegroundWindow` 并核对 `GetForegroundWindow()==MainWindowHandle`，截图后两帧 diff 确认画面在变
+   - **UIA 自动化（Electron/NSIS 通用）**：按钮常不支持 `InvokePattern` → 用 `BoundingRectangle` 中心 + `mouse_event` 物理点击；文本输入用 `ValuePattern.SetValue`（Electron 输入框可用，比 SendKeys 中文可靠）；`SetValue` 需在 UIA 树按 Name 定位（如「描述你想要构建的内容」）
+   - **PS1 脚本用 python 写文件**（`open(...,'w',encoding='utf-8-sig')`），中文要么用 `[char]0x4F60` 十六进制拼接（`-join ([char[]]@(0x4F60,...))`），要么直接 UTF-8 内容——**bash heredoc 写中文 + 引号必被吞**，踩了 3 次
+   - **NSIS 安装向导**：`/S` 静默安装在部分环境会卡死不动；交互向导 + 快捷键更稳（Alt+I 开始安装、Alt+N 下一步），每页截图就是教程素材
+   - **WinRT OCR 间歇 `Wait` 异常**：转换 `SoftwareBitmap.Convert(Bgra8)` 后重试；小字号终端字体 OCR 读不出是正常的，配合像素 diff / 区域放大验证
+   - **教程类「真机实拍」验收（强制）**：装完必须**真配置（填 key）+ 发真实请求（如「你是谁」）等回答后再截图**，不截空壳欢迎页；回答内容（会话标题/token 统计）就是最好的"能用"证据。key 这类敏感信息本机测试可临时用，视频里只教官方申请路径
+   - **自动化产物不算真实坑**：TUI 黑屏/窗口不渲染这类由脚本或环境变量引发的现象，要么如实归因（「部分终端环境黑屏，换终端试试」），要么不放——**不许把自动化事故包装成用户会遇到的坑**
 
 `tool` 现有实现（`screencast.py` 的 `_CONTENT` 注册表）：
 `hook` 痛点+材料+前置 CTA ｜ `realshot` 真实截图打底 + 箭头热点（拟物化步骤卡）｜
