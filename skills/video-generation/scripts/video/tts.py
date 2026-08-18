@@ -22,6 +22,9 @@ import edge_tts
 _LETTER_BY_LETTER_ABBREV = {
     "DOM",
     "AI",
+    # TUI 实测（WordBoundary 探针，YunxiNeural）：整词 "dsh-TUI" 读成一个乱音词，
+    # "T U I" 才逐字母。dsh 单独读法可接受，只拆 TUI。
+    "TUI",
 }
 
 
@@ -44,7 +47,11 @@ def normalize_for_tts(text: str) -> str:
             return " ".join(word)
         return word
 
-    return re.sub(r"(?<![A-Za-z])[A-Z]{2,5}(?![A-Za-z])", _expand, text)
+    out = re.sub(r"(?<![A-Za-z])[A-Z]{2,5}(?![A-Za-z])", _expand, text)
+    # TUI 大小写都要逐字母（口播常写小写 "dsh-tui"，
+    # 小写 "tui" 会被读成一个整词音；实测 "T U I" 才逐字母）
+    out = re.sub(r"(?<![A-Za-z])[tT][uU][iI](?![A-Za-z])", "T U I", out)
+    return out
 
 
 async def _synth(text: str, out_path: Path, voice: str, rate: str) -> None:

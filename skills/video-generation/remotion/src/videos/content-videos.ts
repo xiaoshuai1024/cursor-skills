@@ -64,6 +64,45 @@ export const contentVideos: ContentVideoEntry[] = [
     }),
   },
   {
+    id: "claude-code-write-your-own-skill",
+    title: "收藏 80 个 skill 不如写 1 个：Claude Code 从零到能跑",
+    durationInFrames: 10312,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/claude-code-write-your-own-skill/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "claude-codex-top10-plugins",
+    title: "Claude 和 Codex 必装的 10 大插件",
+    durationInFrames: 9495,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/claude-codex-top10-plugins/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "codex-ccswitch-deepseek",
+    title: "省掉订阅费的 Codex，把国产模型用明白了",
+    durationInFrames: 8016,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/codex-ccswitch-deepseek/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
     id: "deepseek-harness-first-look",
     title: "DeepSeek 开源自研 Harness：模型、工具、Agent Loop 一切皆插件",
     durationInFrames: 21925,
@@ -90,9 +129,22 @@ export const contentVideos: ContentVideoEntry[] = [
     }),
   },
   {
+    id: "glm-5-3-coding-evaluation",
+    title: "GLM-5.3 发布实测：编程暴涨 50%，开源第一的成色拆开看",
+    durationInFrames: 9779,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/glm-5-3-coding-evaluation/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
     id: "pi-agent-beats-claude-code",
     title: "Pi Agent 凭什么打赢 Claude Code：极简内核与扩展系统的胜负手",
-    durationInFrames: 15416,
+    durationInFrames: 13277,
     fps: 60,
     width: 1920,
     height: 1080,

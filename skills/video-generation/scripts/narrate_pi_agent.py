@@ -36,7 +36,7 @@ AUDIO_NAME = "pi-agent-narration.mp3"
 
 NARRATION_SENTENCES = [
     # 句0 Cover 数据钩子
-    "一个个人维护的开源项目，在 Databricks 的真实代码库跑分里，把 Claude Code 和 Codex 挤到了旁边。便宜一半，分数打平。这次把 Pi 拆开讲清楚。",
+    "一个个人维护的开源项目，在 Databricks 的真实代码库跑分里，把 Claude Code 和 Codex 挤到了旁边，便宜一半分数打平。这次给你三个判断：模型怎么选、账怎么算、Harness 怎么换。",
     # 句1 跑分速报
     "Databricks 拿自家工程师合并过的 PR 当考题，几百万行代码，模型没见过，评分跑测试说话。性价比前沿线上七个点，Pi 占了四个。最高分九十，是 Pi 接 Opus 跑出来的。同一个模型换个壳，账单差一倍。",
     # 句2 模型层
@@ -56,7 +56,7 @@ NARRATION_SENTENCES = [
     # 句9 结论
     "三句话带走。模型是租来的，旗舰挤在一层。算账算总账，token 效率比单价狠。Harness 是你能控制的变量，框架适应人，不是人适应框架。",
     # 句10 Outro
-    "关注，看懂 AI 研发实战。",
+    "你是官方派还是开源派，聊聊你的组合。",
 ]
 
 

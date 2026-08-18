@@ -40,13 +40,16 @@ class Shot:
 
     def __init__(self, key: str, url: str, hotspots: list[dict],
                  scroll_heading: str | None = None, wait_sel: str | None = None,
-                 settle_ms: int = 900):
+                 settle_ms: int = 900, wait_commit: bool = False):
         self.key = key
         self.url = url
         self.hotspots = hotspots          # [{sel|text, after_heading?, label}]
         self.scroll_heading = scroll_heading  # 滚动到文章内含该文本的标题
         self.wait_sel = wait_sel
         self.settle_ms = settle_ms
+        # 2026-08-17: 部分官网对 domcontentloaded 超时（curl 却 200），
+        # 用 wait_until="commit" + 长 settle 兜底（dshdesktop.cn 踩坑）
+        self.wait_commit = wait_commit
 
     @staticmethod
     def _locate(pg, h: dict) -> dict | None:
@@ -130,6 +133,35 @@ SHOTS: list[Shot] = [
         ],
         settle_ms=2500,
     ),
+    # 5. DSH Desktop 官网（deepseek-harness-desktop-cli 教程版）：hero 下载按钮
+    #    官网对 domcontentloaded 超时 → wait_commit=True（2026-08-17 踩坑）
+    Shot(
+        key="dshdesktop-home",
+        url="https://www.dshdesktop.cn/",
+        wait_commit=True,
+        settle_ms=12000,
+        # 按钮坐标用 bounding_box 实测（百分比，见 deck.json 静态热点）：
+        #   「下载 Mac 版」(8.0,58.1,9.7,6.0)  「下载 Windows 版」(18.7,58.1,12.1,6.0)
+        hotspots=[],
+    ),
+    # 6. DSH Desktop GitHub 仓库：star 计数
+    Shot(
+        key="dsh-desktop-repo",
+        url="https://github.com/anywhere-labs/deepseek-harness-desktop",
+        hotspots=[
+            {"sel": "#repo-stars-counter-star", "label": "8.5k Star"},
+        ],
+        settle_ms=2200,
+    ),
+    # 7. dsh-TUI 官网：hero 安装区
+    Shot(
+        key="dsh-tui-home",
+        url="https://dshtui.com/",
+        hotspots=[
+            {"text": "npm", "label": "安装命令"},
+        ],
+        settle_ms=2200,
+    ),
 ]
 
 
@@ -169,7 +201,9 @@ def capture(shots: list[Shot], out_dir: Path) -> dict:
             rec = {"key": shot.key, "url": shot.url, "hotspots": []}
             png = out_dir / f"{shot.key}.png"
             try:
-                pg.goto(shot.url, wait_until="domcontentloaded", timeout=40000)
+                pg.goto(shot.url,
+                       wait_until="commit" if shot.wait_commit else "domcontentloaded",
+                       timeout=40000)
                 try:
                     pg.wait_for_load_state("networkidle", timeout=20000)
                 except Exception:

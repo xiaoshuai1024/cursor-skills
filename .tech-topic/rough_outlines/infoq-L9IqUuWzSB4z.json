@@ -1,0 +1,32 @@
+{
+  "article_id": "infoq-L9IqUuWzSB4z",
+  "title": "Azure Cosmos DB 严重漏洞曝光：一条查询可攻破所有租户数据库",
+  "url": "https://www.infoq.cn/article/L9IqUuWzSB4zgP0PBqG2",
+  "brief": "<div align='right'><a href='https://www.infoq.cn/article/L9IqUuWzSB4zgP0PBqG2?utm_source=rss&utm_medium=article'>点击查看原文>",
+  "digg_count": 0,
+  "view_count": 0,
+  "collect_count": 0,
+  "comment_count": 0,
+  "hot_rank": 0,
+  "ctime": 1786621995,
+  "rtime": 1786621995,
+  "is_original": 1,
+  "author": "InfoQ",
+  "tags": [
+    "数据库"
+  ],
+  "direction": "后端",
+  "source": "infoq",
+  "matched_keywords": [
+    "数据库"
+  ],
+  "in_hot": true,
+  "in_vertical": true,
+  "interaction": 0.0,
+  "age_days": 0.1,
+  "title_key": "azurecosmosdb严重漏洞曝光一",
+  "inter_score": 0.0,
+  "abs_inter": 0.0,
+  "inter_combined": 0.0,
+  "score": 0.35
+}

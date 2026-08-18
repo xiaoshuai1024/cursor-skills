@@ -19,3 +19,4 @@ import "./PricePrediction";import "./ScatterFrontier";
 import "./TokenBarRace";
 import "./OrbitCapabilities";
 import "./VsShowdown";
+import "./RepoShot";
