@@ -327,7 +327,7 @@ from video.narrate import generate_narration_from_sentences
 mp3, json_path = generate_narration_from_sentences(
     sentences=["第一句完整话。", "第二句。"],
     out_dir=Path("out"),
-    voice="zh-CN-YunxiNeural",   # 男声；培训用 zh-CN-XiaoxiaoNeural
+    voice="zh-CN-YunjianNeural",  # 解说/深度口播默认男声（见下方「音色选择」）
     rate="+8%",                   # 自然语速
     fps=60,
     audio_name="narration.mp3",
@@ -335,6 +335,20 @@ mp3, json_path = generate_narration_from_sentences(
 # → out/narration.mp3（整段口播）+ out/narration.json（segments 单元级时间戳）
 ```
 命令行：`python -m video.narrate --text-file units.txt --out-dir out/`（每行一句完整话，自动 `split_units`）
+
+### 音色选择（2026-08-18 实测标定）
+
+对标过抖音口播标杆（低沉男声解说型，F0 中位 ≈148Hz、频谱质心 ≈1kHz，偏暗），用同一句文案对 edge-tts 4 个中文男声测基频/质心对比，结论：
+
+| 场景 | 音色 | 说明 |
+|------|------|------|
+| **解说/深度/悬疑叙事（默认）** | `zh-CN-YunjianNeural` | 低沉磁性男声（F0med 132Hz、质心 1205Hz，4 者中最接近对标），rate `0%`~`+8%` |
+| 轻快教程/产品演示 | `zh-CN-YunxiNeural` | 阳光青年男声（F0med 186Hz），节奏快时配 `+10%`~`+15%` |
+| 新闻播报式/权威口径 | `zh-CN-YunyangNeural` | 播音腔男声，音色偏亮（质心 1543Hz），科普引用数据时可切 |
+| 培训/温和女声 | `zh-CN-XiaoxiaoNeural` | 女声兜底 |
+
+- 判据可复现：`ffmpeg` 抽 wav → 30ms 帧自相关估 F0 + rFFT 质心，对比样本落点（脚本思路见 `/tmp` 一次性分析，不必沉淀）。
+- 抖音头部「AI 解说」类多为剪映系音色（如解说小帅），edge-tts 无同款；**YunjianNeural 是可白嫖的最接近替代**。若对标的明显是真人配音，不做音色克隆，按上表选最近替代。
 
 ## Remotion 数据可视化视频（第三种模式）
 
