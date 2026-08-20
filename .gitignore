@@ -12,6 +12,7 @@ node_modules/
 .douyin-build/
 .wechat-build/
 .xiaohongshu-build/
+/video-generation/
 *.mp4
 *.wav
 

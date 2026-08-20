@@ -77,6 +77,71 @@ export const contentVideos: ContentVideoEntry[] = [
     }),
   },
   {
+    id: "claude-codex-arch-overview",
+    title: "",
+    durationInFrames: 12728,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/claude-codex-arch-overview/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "claude-codex-context-compaction",
+    title: "",
+    durationInFrames: 13291,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/claude-codex-context-compaction/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "claude-codex-permission-gating",
+    title: "",
+    durationInFrames: 13363,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/claude-codex-permission-gating/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "claude-codex-skill-mcp-loading",
+    title: "",
+    durationInFrames: 13658,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/claude-codex-skill-mcp-loading/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "claude-codex-subagent-scheduling",
+    title: "",
+    durationInFrames: 12767,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/claude-codex-subagent-scheduling/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
     id: "claude-codex-top10-plugins",
     title: "Claude 和 Codex 必装的 10 大插件",
     durationInFrames: 9495,
@@ -90,13 +155,13 @@ export const contentVideos: ContentVideoEntry[] = [
     }),
   },
   {
-    id: "codex-ccswitch-deepseek",
-    title: "省掉订阅费的 Codex，把国产模型用明白了",
-    durationInFrames: 8016,
+    id: "claude-codex-turn-loop",
+    title: "",
+    durationInFrames: 13145,
     fps: 60,
     width: 1920,
     height: 1080,
-    lazyComponent: () => import("@videos/codex-ccswitch-deepseek/config").then((m) => {
+    lazyComponent: () => import("@videos/claude-codex-turn-loop/config").then((m) => {
       const cfg = toConfig(m);
       const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
       return { default: Comp };
@@ -142,13 +207,39 @@ export const contentVideos: ContentVideoEntry[] = [
     }),
   },
   {
+    id: "motion-showcase",
+    title: "Motion Showcase：动画原语与转场",
+    durationInFrames: 2130,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/motion-showcase/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
     id: "pi-agent-beats-claude-code",
     title: "Pi Agent 凭什么打赢 Claude Code：极简内核与扩展系统的胜负手",
-    durationInFrames: 13277,
+    durationInFrames: 12136,
     fps: 60,
     width: 1920,
     height: 1080,
     lazyComponent: () => import("@videos/pi-agent-beats-claude-code/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "pipeline-arch",
+    title: "一条技术视频是怎么自动做出来的",
+    durationInFrames: 3613,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/pipeline-arch/config").then((m) => {
       const cfg = toConfig(m);
       const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
       return { default: Comp };

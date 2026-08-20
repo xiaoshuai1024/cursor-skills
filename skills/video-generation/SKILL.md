@@ -576,6 +576,17 @@ make publish-video slug=xxx confirm=yes
 make publish-video slug=xxx platforms=douyin confirm=yes
 ```
 
+### 抖音先行 + 后台状态门禁（2026-08-20 定规，强制）
+
+> 背景：ccswitch 抖音审核「不符合相关法规」后，其余平台若已同时发布会造成多平台无效副本。且自动化发布的「发布成功」日志 ≠ 后台状态正确（定时发布可能变「审核未通过/仅自己可见」）。
+
+- **流程（发布顺序强制）**：
+  1. `make pub-video slug=xxx platforms=douyin confirm=yes schedule="…"` —— 只发抖音
+  2. `python scripts/pub/douyin_check_status.py "<标题关键词>"` —— 后台状态检查，**必须确认「定时发布」**（无「不适宜公开/仅自己可见/未通过」标记）
+  3. 状态确认后，再发其余平台：`make pub-video slug=xxx platforms=kuaishou,xiaohongshu,shipinhao,weixin confirm=yes schedule="…"`
+- **门禁**：状态检查返回非 0（未找到/状态异常）→ 禁止发布其余平台，先人工处理抖音后台。
+- 配套工具：`scripts/pub/douyin_delete_verified.py`（带弹窗全文安全阀+删除后验证的删除）、`scripts/pub/douyin_scan_works.py`（只读扫描）。
+
 **发布管线**(`scripts/yixiaoer/publish_video.py`)自动处理:
 
 - **封面生成**:自动生成标准封面(不截帧),设计规格 / 参数化 / 主标题优先级见上文「封面」章节
