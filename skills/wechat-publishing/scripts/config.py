@@ -13,12 +13,16 @@ BROWSER_CHANNEL = os.environ.get("BROWSER_CHANNEL", "msedge" if sys.platform == 
 
 # ============ 路径 ============
 def _find_project_root():
+    # Makefile 已传 WECHAT_PROJECT_ROOT（junction 场景下脚本真实路径找不到 hugo.toml）
+    env_root = os.environ.get("WECHAT_PROJECT_ROOT")
+    if env_root and os.path.exists(os.path.join(env_root, "hugo.toml")):
+        return env_root
     p = os.path.dirname(os.path.abspath(__file__))
     while p != os.path.dirname(p):
         if os.path.exists(os.path.join(p, "hugo.toml")):
             return p
         p = os.path.dirname(p)
-    return cwd  # fallback: 让后续步骤报可读的错误
+    return os.getcwd()  # fallback: 让后续步骤报可读的错误
 
 PROJECT_ROOT = _find_project_root()
 PUBLIC_DIR = os.path.join(PROJECT_ROOT, "public")
