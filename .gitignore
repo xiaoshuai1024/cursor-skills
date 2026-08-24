@@ -20,3 +20,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 wechat-profile/
+.douyin-topic/
+.tmp-verify/
+.video-analytics/
