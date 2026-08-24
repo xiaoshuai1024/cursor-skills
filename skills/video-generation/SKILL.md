@@ -84,7 +84,24 @@ video-generation/                        ← 项目根：所有内容配置 + �
    - **BGM**：按内容选情绪档——tense（源码内幕 / 揭秘 / 踩坑）、walk（教程 / 步骤 / 上手）、focus（深度长讲）、bright（新发布 / 技巧）、epic（对决 / 评测 / 跑分）、calm（默认安全档）
    - **音效**：至少覆盖开场音、提问音（`questionFrames`，全片 2~4 个，对应提问式开头与段中问题）、章节转场音、关键动作音（安装成功 / 报错 / 打字 / 计时等）
    - **转场**：逐场景指定类型（15 种：`rotate3d/fade/slide/slideRight/wipe/wipeUp/flip/clockWipe/iris/pushCut/glitch/flash/whipPan/lightLeak/ripple/crossWarp`，见 `transitions/TransitionFrame.tsx`），章节边界必设，同章节内硬切省预算
-   - 口播稿中以 `【钩子①】【回收①】【SFX:成功音】【BGM:tense】【转场:whipPan】` 式标记内嵌，喂管线时转成 config 的 `sfx.bgmMood` / `questionFrames` / `scenes[].transitionType`
+   - 口播稿中以 `【钩子①】【回收①】【SFX:成功音】【BGM:tense】【转场:whipPan】` 式标记内联，喂管线时转成 config 的 `sfx.bgmMood` / `questionFrames` / `scenes[].transitionType`
+
+**每支视频成片前 checklist（2026-08-24 定规，七项全过才许渲染，任一不过先改稿/改 config）**：
+
+- [ ] **① 提问式开头**：第一句口播 = 固定引导语（「问你一个问题」/「你有没有想过」二选一）+ ≤20 字问句（痛点/反常识，无「凭什么」）；该问题在正文有明确回答（记下回答的时间码）
+- [ ] **② 钩子已埋**：钩子→回收映射表已附（编号 + 埋点时间码），含标题暗示的隐性钩子也入表；表为空 = 重写开头
+- [ ] **③ 钩子已消费**：映射表每行的回收时间码非空——没回收点的钩子不许埋；每个回收时刻有视觉强调（字卡 / 高亮 / 专属音效至少其一）
+- [ ] **④ BGM**：分镜表 BGM 列逐场景非空，情绪档在六档内（tense/walk/focus/bright/epic/calm）；章节换档处标了情绪切换点
+- [ ] **⑤ 音效**：开场音、提问音（`questionFrames` 全片 2~4 个）、章节转场音、关键动作音（安装成功/报错/打字等）四类全覆盖，config 的 `sfx` 段落齐全
+- [ ] **⑥ 转场**：分镜表转场列逐场景有类型（15 种之内），章节边界必设；同章节内不滥用（硬切省预算）
+- [ ] **⑦ 内容动画**：deck 卡片入场 / 代码高亮 / 图表数字生长 / 字卡弹出至少覆盖主要场景，无 >10s 纯静态画面（对齐 M1：每 5-10 秒一个视觉变化）；「内容动画继续」= 动画在内容推进全程持续，不许只做片头
+- [ ] **⑧ Metadata（标题/简介/话题，发布前查）**：
+  - **标题**：过 metadata-optimizer 7 项清单（可识别实体/真实数字/清晰动词/后果人群/标点转折/权威钩子/概念包装）**≥4 合格**；事实边界——素材里没有的事实（刚刚/首个/第一/榜单数字）不得出现；平台变体（`标题_抖音` 等）不超该平台 title_max（抖音 30 / 快手 50 / B站 80 字）
+  - **简介**：首句三拍（当前不适 → 更好愿景 → 行动路径）；结尾含互动问题；公众号 digest ≤129 字
+  - **话题**：用 topic_suggest 推荐后再定（不拍脑袋），各平台数量不超配额（抖音 4 / 快手 3 / B站 6 / 视频号 10）
+  - **门禁**：`make metadata-lint slug=<slug>` 跑到绿（FAIL 项必修：硬截断/词中断/结构红线；WARN 酌情）；发布文案再过 platform-compliance 违禁词扫描
+
+> 执行时机：①-③ 口播稿定稿时查，④-⑥ 分镜/config 定稿时查，⑦ 渲染前 deck 检查，⑧ 发布前查；与 directives 自查同批做。
 
 ### 签名与品牌露出（2026-08-24 用户定规，与三要素配套执行）
 
@@ -454,6 +471,7 @@ video-generation/
 - `make video-remotion` / `make video` 渲染完成后，必须立即跟：`make video-cover slug=<slug>`（横竖双封面）+ 在 `video-generation/build/<slug>/` 写入 `metadata.txt`（标题/系列/期数/封面标题或关键词/标签/简介/话题，简介含结尾互动问题与原文链接）。
 - 渲染管线如中途失败/被取消，恢复后要确认没有残留僵尸渲染进程（node/ffmpeg）锁住输出文件——曾因此 Permission denied 连环失败。清场：`taskkill /F /IM node.exe` 后单实例重渲。
 - 封面过 `make video-cover-check`，metadata 过 platform-compliance（标题/简介/话题），**音频过 `verify_render.py`**（BGM 底垫在场 + 混音不削波，见「声音层与转场」），三项都绿才算产出闭环。
+- **metadata-lint 机检（2026-08-24 定规，三检之后的第四道）**：`make metadata-lint slug=<slug>`——硬截断/词中断/结构红线（凭什么/打赢类）FAIL，最优长度/话题配比/断句丢钩子 WARN。发布管线 `--confirm` 时自动跑同一 lint，FAIL 拒发（`--force` 逃生留痕）。依据：`openspec/changes/metadata-optimization`。
 - **可读性双检（2026-08-24 定规，强制）**：发布前过 `make video-lint`（模板字号基准 + Remotion 场景字号，非零退出）+ `make video-preview slug=<slug>`（抖音信息流模拟图：黑边 + 右侧图标列 + 底部文案叠加，缩 390px 宽），模拟图里**正文层文字「一眼可读」**才发布。新 deck 要点密度过 `video-lint --deck <slug>`（≤3 条/卡、≤14 字/条；存量 deck 超限渲染时只警告）。基准与依据：`openspec/changes/video-landscape-readability`（正文 ≥48px/画面高 4.4%、标题 ≥72px、右缘避让 180px、crf 18、screencast 热点 1.6× 特写取景）。
 
 ## 成片生命周期：build → archive（2026-08-24 定规，强制）
@@ -621,7 +639,8 @@ make video-cover-check slug=<slug>
 - **痛点前置，禁流水账**：❌「我肝了一天，DeepSeek Harness 的源码解析」✅「看完你就明白它为什么比 Codex 更灵活」。标题回答「看完我能得到什么」，不是记录自己做了什么。
 - **认知反差，禁说明书式平铺**：❌「Harness 工程：AI 编程从命令体系到自治体系的演进」✅「AI 编程还在玩 Prompt 工程？Harness 工程才是下一个方向」。「还在 X？Y 才是 Z」句式制造认知缺口，但结论必须有内容兑现。
 - **「你」代入，禁「我」陈述**（踩坑/教程类）：❌「我肝了一天读完主线」✅「你安装 Harness 总失败？因为忽略了这 3 个源码级细节」。第二人称让读者对号入座。
-- 平台字数裁剪（抖音≤30 / 快手≤50 / 视频号≤80 / B站≤80，小红书已移除）由发布管线自动处理，但**钩子必须落在裁剪后的前半段**——写标题时把冲突点放前 10 字。
+- 平台字数裁剪（抖音≤30 / 快手≤50 / 视频号≤80 / B站≤80，小红书已移除）由发布管线自动处理，但**钩子必须落在裁剪后的前半段**——写标题时把冲突点放前 10 字。标点断句裁剪丢了数字钩子（如「307MB」被切掉）或硬截断带 `…` 会被 metadata-lint 抓（前者 WARN 后者 FAIL）。
+- **超短上限平台提供标题变体**：主标题在抖音（≤30）会被硬截断的，在 metadata.txt 补 `标题_抖音: <变体>`（钩子前置、≤30 字），发布管线用变体替代裁剪；变体超上限同样是 FAIL。
 - 与封面规则联动：标题文案优先用痛点问句或结果承诺（见「内容创作规范 → 开头」末条）。
 
 ### 简介：从「目录」到「价值预告」
@@ -713,4 +732,4 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 - **门禁**：状态检查返回非 0（未找到/状态异常）→ 禁止发布其余平台，先人工处理抖音后台。
 - 配套工具：`scripts/pub/douyin_delete_verified.py`（带弹窗全文安全阀+删除后验证的删除）、`scripts/pub/douyin_scan_works.py`（只读扫描）。
 
-**主管线**（`scripts/pub/publish.py`，抖音/视频号/B站通道 + 公众号 mp API）自动处理：封面横竖双版生成（复用 `scripts/yixiaoer/cover.py`）、标题裁剪、AI 声明、合集选择（抖音/视频号）、平台间隔风控缓冲（180-480s）、结果回收 link-map。**快手走 v2**（主管线 KSVideo 选择器过期待修）。⚠️ link-map 无文件锁——多平台并行发布时互相覆盖（2026-08-23 实证），串行发布或事后核对。
+**主管线**（`scripts/pub/publish.py`，抖音/视频号/B站通道 + 公众号 mp API）自动处理：封面横竖双版生成（复用 `scripts/yixiaoer/cover.py`）、**metadata lint 门禁**（`--confirm` 前跑，FAIL 拒发；lint 自身异常同样拒发，`--force` 逃生留痕）、标题裁剪、AI 声明、合集选择（抖音/视频号）、平台间隔风控缓冲（180-480s）、结果回收 link-map。**快手走 v2**（主管线 KSVideo 选择器过期待修）。⚠️ link-map 无文件锁——多平台并行发布时互相覆盖（2026-08-23 实证），串行发布或事后核对。
