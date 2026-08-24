@@ -147,6 +147,21 @@ def normalize_card(raw: dict) -> dict:
     }
 
 
+
+def warn_points_over_limit(slug: str, deck_cards: list[dict]) -> None:
+    """可读性基准警告：要点超条数/超字数（大字号下会折行拥挤）。
+
+    只警告不阻塞（存量 deck 普遍超限）；`make video-lint` 机检时硬卡。
+    基准见 config.POINT_MAX_COUNT / POINT_MAX_CHARS（2026-08-24 定规）。
+    """
+    for i, card in enumerate(deck_cards):
+        pts = card.get("points") or []
+        if len(pts) > C.POINT_MAX_COUNT:
+            print(f"  ⚠️ 卡{i:02d} 要点 {len(pts)} 条 > {C.POINT_MAX_COUNT}（精简到 3 条内）")
+        for j, t in enumerate(pts):
+            if len(str(t)) > C.POINT_MAX_CHARS:
+                print(f"  ⚠️ 卡{i:02d} 要点{j + 1} {len(str(t))} 字 > {C.POINT_MAX_CHARS}：「{t}」")
+
 def build_courseware(slug: str, voice: str, rate: str) -> None:
     """课件模式：程序化深色科幻画面 + 配音驱动的逐条浮现。"""
     from playwright.sync_api import sync_playwright
@@ -164,6 +179,7 @@ def build_courseware(slug: str, voice: str, rate: str) -> None:
     deck_cards = deck["cards"]
     if len(deck_cards) != len(cards_text):
         raise SystemExit(f"❌ deck 卡片数({len(deck_cards)}) ≠ 口播数({len(cards_text)})")
+    warn_points_over_limit(slug, deck_cards)
 
     bdir = C.build_dir(slug)
     seg_dir = bdir / "segments"
@@ -188,10 +204,20 @@ def build_courseware(slug: str, voice: str, rate: str) -> None:
     print(f"[2/3] 逐帧渲染课件画面（Playwright + FFmpeg，{frames.FPS}fps）...")
     segs = []
     progress_base = 0.0
+    # 内容感知音效点位：问句 cue 的提问音（每卡最多 1 个，全片最多 3 个）
+    sfx_probe = C.sfx_paths() or {}
+    question_sfx = sfx_probe.get("question")
+    question_points: list[tuple[Path, float]] = []
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
         page = browser.new_page(viewport={"width": C.COURSEWARE_W, "height": C.COURSEWARE_H})
         for i, (card, tl, audio, dur) in enumerate(cards_data):
+            if question_sfx and len(question_points) < 3:
+                for cue in tl["subtitle_cues"]:
+                    if cue["text"].rstrip().endswith(("？", "?")):
+                        t = progress_base + frames.HEAD_PAD + cue["start_ms"] / 1000.0
+                        question_points.append((question_sfx, t))
+                        break
             seg = seg_dir / f"seg_{i:02d}.mp4"
             frames.render_card_segment(card, tl, dur, audio, progress_base, total_dur, seg, page)
             segs.append(seg)
@@ -199,23 +225,29 @@ def build_courseware(slug: str, voice: str, rate: str) -> None:
             print(f"  段 {i:02d} 完成  累计 {progress_base:6.2f}s")
         browser.close()
 
-    print("[3/3] 拼接 + 混 BGM（使用 xfade 转场）...")
+    print("[3/3] 拼接 + BGM/音效同图混入（xfade 转场，单 pass 装配）...")
     final = bdir / f"{slug}.mp4"
     transition_dur = 0.8  # 转场持续时间（秒）
     # 转场会减少总时长：每个转场重叠 transition_dur 秒
     actual_dur = total_dur - (len(cards_data) - 1) * transition_dur
 
-    if C.BGM_PATH.exists():
-        full = bdir / "full.mp4"
-        render.concat_with_transitions(segs, full, transition_dur)
-        render.mix_bgm(full, C.BGM_PATH, actual_dur, final)
-    else:
-        render.concat_with_transitions(segs, final, transition_dur)
+    # 内容感知选曲：口播关键词 → 情绪档（tense/epic/chiptune/...，未命中 calm）
+    mood = C.suggest_bgm_mood(cards_text)
+    bgm = C.bgm_path(mood)
+    sfx = C.sfx_paths()
+    render.concat_with_transitions(
+        segs, final, transition_dur,
+        bgm=bgm, sfx=sfx, transition_sfx_every=C.TRANSITION_SFX_EVERY,
+        extra_sfx=question_points,
+    )
 
     print(f"\n✅ 完成：{final}")
     print(f"   总时长 {actual_dur:.1f}s · {len(cards_data)} 段 · 课件模式 {C.COURSEWARE_SIZE}@{frames.FPS}fps · xfade 转场 {transition_dur}s")
-    if not C.BGM_PATH.exists():
-        print(f"   ⚠ 未找到 BGM（{C.BGM_PATH}），纯配音版；放入该文件重跑即自动混入。")
+    print(f"   BGM {mood} {'✓ ' + bgm.name if bgm else '✗ 未找到（narration/ 素材与 assets/bgm.mp3 均缺失），纯配音版'}")
+    sfx_desc = f"✓ 开场音 + 每 {C.TRANSITION_SFX_EVERY} 段转场音" if sfx else "✗ narration/ 音效素材缺失，跳过"
+    if question_points:
+        sfx_desc += f" + {len(question_points)} 处提问音"
+    print(f"   音效 {sfx_desc}")
 
 
 def build_graph(slug: str, voice: str, rate: str, theme: str = "dark") -> None:
@@ -239,6 +271,7 @@ def build_graph(slug: str, voice: str, rate: str, theme: str = "dark") -> None:
     deck_cards = deck["cards"]
     if len(deck_cards) != len(cards_text):
         raise SystemExit(f"❌ deck 卡片数({len(deck_cards)}) ≠ 口播数({len(cards_text)})")
+    warn_points_over_limit(slug, deck_cards)
 
     bdir = C.build_dir(slug)
     # theme 后缀目录，支持同 slug 生成多主题
@@ -285,10 +318,8 @@ def build_graph(slug: str, voice: str, rate: str, theme: str = "dark") -> None:
     video_only = seg_dir / "video_only.mp4"
     render.concat_with_transitions(segs, video_only, transition_dur)
 
-    # 2. 合并音频：用 acrossfade 交叉淡化，与视频 xfade 严格对齐。
-    #    关键：视频 xfade 让段 i 尾部与段 i+1 头部重叠 transition_dur，
-    #    音频 acrossfade 同样交叉 transition_dur，总时长 = sum(dur) - (n-1)*d，
-    #    与视频完全一致 → 字幕/画面/声音全程同步。
+    # 2. 合并音频 + BGM/音效同图混入：acrossfade 与视频 xfade 严格对齐，
+    #    BGM 垫底 + 音效点缀在同一条 filter_complex 里完成（单 pass，非成片后混）。
     audio_inputs = []
     for _, _, audio, _ in cards_data:
         audio_inputs.extend(["-i", str(audio)])
@@ -309,41 +340,59 @@ def build_graph(slug: str, voice: str, rate: str, theme: str = "dark") -> None:
         )
         prev_label = out_label
 
+    # 音效点位与 courseware 同语义：开场 @0.08s；段 k(k>0, k%every==0) 在其
+    # 转场重叠起点响（音频时间轴段 k 起点 = sum(dur_j, j<k) - k*d，再往前 d）
+    mood = C.suggest_bgm_mood(cards_text)
+    bgm = C.bgm_path(mood)
+    sfx = C.sfx_paths()
+    sfx_points: list[tuple[Path, float]] = []
+    if sfx:
+        sfx_points.append((sfx["opening"], 0.08))
+        every = max(1, C.TRANSITION_SFX_EVERY)
+        durs = [dur for _, _, _, dur in cards_data]
+        for k in range(1, n):
+            if k % every == 0:
+                start_k = sum(durs[:k]) - k * transition_dur
+                sfx_points.append((sfx["transition"], max(start_k - transition_dur, 0.0)))
+
+    extra_inputs, overlay_parts, audio_label = render.audio_overlay_chain(
+        "[aout]", bgm, sfx_points, actual_dur, n
+    )
+    af_parts.extend(overlay_parts)
+    audio_inputs.extend(extra_inputs)
+
     filter_complex_audio = ";".join(af_parts)
     merged_audio = seg_dir / "merged_audio.wav"
     cmd = [
         "ffmpeg", "-y",
         *audio_inputs,
         "-filter_complex", filter_complex_audio,
-        "-map", "[aout]",
+        "-map", audio_label,
         "-c:a", "pcm_s16le", str(merged_audio),
     ]
     r = subprocess.run(cmd, capture_output=True, encoding="utf-8")
     if r.returncode != 0:
         raise RuntimeError(f"音频 acrossfade 失败: {r.stderr[-2000:]}")
 
-    # 3. 把合并音频 mux 进视频
-    if C.BGM_PATH.exists():
-        render.mix_bgm(video_only, C.BGM_PATH, actual_dur, final)
-    else:
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", str(video_only),
-            "-i", str(merged_audio),
-            "-c:v", "copy",
-            "-c:a", "aac", "-b:a", "192k",
-            "-map", "0:v", "-map", "1:a",
-            "-shortest",
-            str(final),
-        ]
-        r = subprocess.run(cmd, capture_output=True, encoding="utf-8")
-        if r.returncode != 0:
-            raise RuntimeError(f"音视频合成失败: {r.stderr[-2000:]}")
+    # 3. 把合并音频（已含 BGM/音效）mux 进视频
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(video_only),
+        "-i", str(merged_audio),
+        "-c:v", "copy",
+        "-c:a", "aac", "-b:a", "192k",
+        "-map", "0:v", "-map", "1:a",
+        "-shortest",
+        str(final),
+    ]
+    r = subprocess.run(cmd, capture_output=True, encoding="utf-8")
+    if r.returncode != 0:
+        raise RuntimeError(f"音视频合成失败: {r.stderr[-2000:]}")
 
     print(f"\n✅ 完成：{final}")
     print(f"   总时长 {actual_dur:.1f}s · {len(cards_data)} 段 · 节点图模式({theme}) {C.COURSEWARE_SIZE}@{frames.FPS}fps · xfade 转场 {transition_dur}s · acrossfade 音频同步")
-    if not C.BGM_PATH.exists():
-        print(f"    未找到 BGM（{C.BGM_PATH}），纯配音版。")
+    print(f"   BGM {mood} {'✓ ' + bgm.name if bgm else '✗ 未找到（narration/ 素材与 assets/bgm.mp3 均缺失），纯配音版'}")
+    print(f"   音效 {'✓ 开场音 + 每 ' + str(C.TRANSITION_SFX_EVERY) + ' 段转场音' if sfx else '✗ narration/ 音效素材缺失，跳过'}")
 
 
 def _render_graph_segment(
@@ -460,12 +509,13 @@ def build_legacy(slug: str, voice: str, rate: str) -> None:
     ass = bdir / "subtitle.ass"
     build_ass(meta, cards_text, ass)
     final = bdir / f"{slug}.mp4"
-    render.finalize(full, ass, C.BGM_PATH, cursor, final)
+    bgm = C.bgm_path()
+    render.finalize(full, ass, bgm, cursor, final)
 
     print(f"\n✅ 完成：{final}")
     print(f"   总时长 {cursor:.1f}s · {len(cards)} 段 · legacy {C.OUT_SIZE}@{C.FPS}fps")
-    if not C.BGM_PATH.exists():
-        print(f"   ⚠ 未找到 BGM（{C.BGM_PATH}），纯配音版；放入该文件重跑即自动混入。")
+    if bgm is None:
+        print("   ⚠ 未找到 BGM（narration/bgm-bed.wav 与 assets/bgm.mp3 均缺失），纯配音版")
 
 
 def main() -> None:

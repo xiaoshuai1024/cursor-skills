@@ -79,7 +79,7 @@ const SkillStage: React.FC<SkillStageProps> = ({
           border: `1.5px solid ${c}66`,
           backgroundColor: `${c}18`,
           color: c,
-          fontSize: 26,
+          fontSize: 34,
           fontFamily: theme.fonts.mono,
           fontWeight: 700,
           letterSpacing: 6,
@@ -91,7 +91,7 @@ const SkillStage: React.FC<SkillStageProps> = ({
         {stageNote && (
           <div style={{
             color: theme.colors.textMuted,
-            fontSize: 22,
+            fontSize: 30,
             fontFamily: theme.fonts.chinese,
             letterSpacing: 2,
             marginTop: 10,
@@ -137,7 +137,7 @@ const SkillStage: React.FC<SkillStageProps> = ({
                 width: 380,
                 flexShrink: 0,
                 color: isCurrent ? c : isPast ? theme.colors.textMuted : theme.colors.text,
-                fontSize: sk.name.length > 24 ? 20 : sk.name.length > 18 ? 24 : 34,
+                fontSize: sk.name.length > 24 ? 30 : sk.name.length > 18 ? 34 : 44,
                 fontFamily: theme.fonts.mono,
                 fontWeight: 700,
                 letterSpacing: 1,
@@ -149,9 +149,9 @@ const SkillStage: React.FC<SkillStageProps> = ({
               <div style={{
                 flex: 1,
                 color: isPast ? theme.colors.textMuted : theme.colors.text,
-                fontSize: 26,
+                fontSize: 38,
                 fontFamily: theme.fonts.chinese,
-                lineHeight: 1.5,
+                lineHeight: 1.45,
                 opacity: isPast ? 0.75 : 1,
               }}>
                 {sk.desc}

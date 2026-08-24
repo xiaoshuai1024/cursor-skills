@@ -59,8 +59,27 @@ sfx: {
 - **提问音**：只放真·提问句（口播里问句对应的字幕帧），`questionFrames` 手工点帧。**数量克制**：一篇视频 2–4 个提问音足够，多了成电子琴乱弹。反思/收束句用 `-down`。
 - **强调/揭示音**（`sfx-emphasis` / `sfx-emphasis-tick` / `sfx-reveal` / `sfx-reveal-bloom`）：给关键词落地、数字滚动、图表/结论出现配点缀，同样走 `questionFrames` 那套帧定位，音量 0.4 以下。
 - **音量**：SFX `volume` **0.4**（口播片，2026-08-20 降档）；BGM `bgmVolume` 0.3–0.5（口播）或 0.6（无口播快剪）。所有提示音都要低于口播人声，新 10 个变体内置幅度更小（RMS 比旧款低 3~10dB）。
-- **BGM 选曲**（本地 4 轨，30-46s 循环，见 `gen-sfx.py`）：calm=沉稳科普 / walk=轻快带节奏 / focus=极简专注 / bright=明亮进取；口播片默认 calm 或 focus，快剪默认 bright。时长 32-46s，一条 30-40s 视频一轨不重头。
-- **帧定位铁律**：SFX 全部用 `<Sequence from={帧号}>` 定位，禁用 wall-clock。转场音必须和转场窗口对齐（`sceneStarts` 已自动对齐场景头）。
+- **BGM 选曲**（本地 8 轨，30-53s 循环，见 `gen-sfx.py`）：calm=沉稳科普 / walk=轻快带节奏 / focus=极简专注 / bright=明亮进取 + **tense=悬疑脉冲 / epic=史诗推进 / chiptune=8-bit / lofi=Lo-fi 七和弦**（2026-08-24 对齐抖音科技/知识区扩充）；口播片默认 calm 或 focus，快剪默认 bright。情绪档由**内容感知自动选**：courseware/graph 按口播关键词（`config.py::BGM_MOOD_RULES`），Remotion 用 `core/sound-points.ts::suggestBgmMood`——两边规则同源，改一边必须同步另一边。
+- **帧定位铁律**：SFX 全部用 `<Sequence from={帧号}>` 定位，禁用 wall-clock。转场音必须和转场窗口对齐（`sceneStarts` 已自动对齐场景头）。提问帧可 `autoQuestionFrames(U)` 自动算（问句单元起始帧，≤4 个），关键词落点 `keywordFrames(U, [...])`。
+
+## 四点五、2026-08-24 扩充：抖音风格 SFX（10 个）
+
+按抖音科技/知识区高频音效类型合成（继续确定性、零版权、轻声幅度纪律）：
+
+| 音效 | 用途 |
+|------|------|
+| sfx-transition-glitch | 数字故障抖动，配 glitch 转场 |
+| sfx-transition-tapestop | 磁带急停（音高下坠），悬念切断 |
+| sfx-impact | 低频重击，硬切强调/重点结论 |
+| sfx-coin | 金属双音，数字/收益/成本落地 |
+| sfx-ticktock | 时钟滴答，倒计时/时间线 |
+| sfx-heartbeat | 低频心跳，悬念/紧张铺垫 |
+| sfx-harp-gliss | 竖琴上行刮奏，揭晓/揭秘 |
+| sfx-ding | 清亮叮，里程碑/通知 |
+| sfx-typewriter | 打字机咔嗒，代码逐行/字幕 |
+| sfx-outro-chord | 终止式软和弦（G→C），收尾定格 |
+
+用法：Remotion `sfx.emphasis/reveal` 槽 + `emphasisFrames/revealFrames`（`keywordFrames` 算帧）；数量纪律不变——全片点缀总数 ≤8，多了成电子琴。
 
 ## 五、素材再生成
 
@@ -68,7 +87,7 @@ sfx: {
 # 在 blog 仓(VIDEO_PROJECT_ROOT 决定输出到 public 目录 video-generation/narration/)
 cd .agents/skills/video-generation/remotion
 VIDEO_PROJECT_ROOT=$PWD/../../../.. PYTHONIOENCODING=utf-8 python scripts/gen-sfx.py
-# 产物: 短音效 13 个(sfx-opening/transition/question 各 3 变体 + emphasis/reveal 各 2) + 轻音乐 4 轨 + bgm-bed 别名
+# 产物: 短音效 23 个 + BGM 8 轨 + bgm-bed 别名
 # 全部纯 stdlib 确定性合成,无版权风险,重跑结果一致
 ```
 

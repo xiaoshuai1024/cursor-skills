@@ -38,47 +38,47 @@ body {
   pointer-events: none;
 }
 .stage { position: relative; width: 100%; height: 100%;
-  display: flex; flex-direction: column; padding: 50px 72px 40px; z-index: 1; }
+  display: flex; flex-direction: column; padding: 50px 190px 40px 72px; z-index: 1; }
 .eyebrow { font-size: 24px; color: #22d3ee; font-weight: 700; letter-spacing: 6px;
   margin-bottom: 14px; text-shadow: 0 0 20px rgba(34,211,238,0.8), 0 0 40px rgba(34,211,238,0.4); }
-.title { font-size: 58px; font-weight: 800; color: #ffffff; line-height: 1.28;
+.title { font-size: 72px; font-weight: 800; color: #ffffff; line-height: 1.24;
   letter-spacing: 2px; text-shadow: 0 0 30px rgba(34,211,238,0.6), 0 4px 20px rgba(0,0,0,0.8); word-break: break-word; }
 .title-bar { width: 140px; height: 6px; margin-top: 20px; background: #22d3ee;
   box-shadow: 0 0 30px rgba(34,211,238,1), 0 0 60px rgba(34,211,238,0.6); border-radius: 3px; }
 .main-row { flex: 1; min-height: 0; display: flex; flex-direction: row; gap: 44px; }
-.left-col { width: 44%; display: flex; flex-direction: column; min-width: 0; }
+.left-col { width: 50%; display: flex; flex-direction: column; min-width: 0; }
 .right-col { flex: 1; min-width: 0; display: flex; flex-direction: column;
   justify-content: flex-end; gap: 14px; padding: 6px 0; }
-.points { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 18px; padding-top: 6px; }
-.point { position: relative; font-size: 34px; line-height: 1.45; padding: 12px 18px 12px 28px;
+.points { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 22px; padding-top: 6px; }
+.point { position: relative; font-size: 48px; line-height: 1.4; padding: 12px 18px 12px 28px;
   border-radius: 8px; color: #475569; opacity: 0.5; }
 .point.done { color: #ffffff; opacity: 1; }
 .point.done::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px;
   width: 4px; background: #22d3ee; box-shadow: 0 0 20px rgba(34,211,238,0.9), 0 0 40px rgba(34,211,238,0.5); border-radius: 2px; }
-.point.active { color: #22d3ee; opacity: 1; font-size: 40px; font-weight: 700;
+.point.active { color: #22d3ee; opacity: 1; font-size: 56px; font-weight: 700;
   background: rgba(34,211,238,0.12); box-shadow: 0 0 40px rgba(34,211,238,0.7), inset 0 0 20px rgba(34,211,238,0.1);
   border: 1px solid rgba(34,211,238,0.5); text-shadow: 0 0 15px rgba(34,211,238,0.6); }
 .sp-item { position: relative; border-radius: 12px; word-break: break-word; }
-.sp-item.done { font-size: 23px; line-height: 1.4; color: rgba(203,213,225,0.8);
+.sp-item.done { font-size: 28px; line-height: 1.4; color: rgba(203,213,225,0.8);
   padding: 8px 16px; background: rgba(15,23,42,0.5); border-left: 3px solid rgba(34,211,238,0.35); }
 .sp-item.active { background: rgba(15,23,42,0.85); border: 1px solid rgba(34,211,238,0.55);
-  border-radius: 16px; padding: 40px 38px 38px; min-height: 300px;
+  border-radius: 16px; padding: 34px 32px 32px; min-height: 280px;
   box-shadow: 0 0 60px rgba(34,211,238,0.3), inset 0 0 80px rgba(34,211,238,0.08); }
 .sp-item.active::before { content: "知识卡片"; position: absolute; top: -16px; left: 28px;
-  background: #22d3ee; color: #0a0e1a; font-size: 20px; font-weight: 700;
+  background: #22d3ee; color: #0a0e1a; font-size: 24px; font-weight: 700;
   padding: 5px 18px; border-radius: 8px; letter-spacing: 3px; box-shadow: 0 0 25px rgba(34,211,238,0.8), 0 0 50px rgba(34,211,238,0.4); }
-.sp-item.active .sp-text { font-size: 38px; line-height: 1.5; color: #ffffff; font-weight: 500;
+.sp-item.active .sp-text { font-size: 48px; line-height: 1.45; color: #ffffff; font-weight: 500;
   text-shadow: 0 0 10px rgba(34,211,238,0.3); }
 .sp-placeholder { display: flex; align-items: center; justify-content: center; height: 100%;
   color: rgba(148,163,184,0.5); font-size: 26px; letter-spacing: 6px; }
 .footer-bar { margin-top: 10px; font-size: 24px; font-style: italic; color: #22d3ee;
   text-align: center; opacity: 0.9; height: 32px; line-height: 32px; overflow: hidden;
   white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 0 20px rgba(34,211,238,0.7), 0 0 40px rgba(34,211,238,0.3); }
-.subtitle-band { height: 96px; padding: 0 36px; margin-top: 14px;
+.subtitle-band { height: 112px; padding: 0 150px 0 36px; margin-top: 14px;
   background: rgba(15,23,42,0.92); border: 1px solid rgba(34,211,238,0.4);
   border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden;
   box-shadow: 0 0 30px rgba(34,211,238,0.15), inset 0 0 20px rgba(34,211,238,0.05); }
-.subtitle { font-size: 38px; line-height: 1; color: #ffffff; text-align: center; max-width: 100%;
+.subtitle { font-size: 48px; line-height: 1; color: #ffffff; text-align: center; max-width: 100%;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-shadow: 0 2px 4px rgba(0,0,0,0.95), 0 0 2px #000,
     -1px -1px 0 #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000; }
@@ -88,7 +88,7 @@ body {
 .progress-fill { height: 100%; background: linear-gradient(90deg, #06b6d4, #22d3ee);
   box-shadow: 0 0 25px rgba(34,211,238,1), 0 0 50px rgba(34,211,238,0.6); }
 /* 封面：副标题 + 大标题 + outline 论点列表 + 字幕带 + 进度 */
-.stage.cover { justify-content: space-between; padding: 64px 72px 40px; }
+.stage.cover { justify-content: space-between; padding: 64px 190px 40px 72px; }
 .stage.cover .main-row { display: none; }
 .cover-head { text-align: center; }
 .stage.cover .eyebrow { letter-spacing: 10px; }
@@ -97,11 +97,11 @@ body {
 .outline-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
 .outline { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr);
   gap: 22px; width: 100%; max-width: 1720px; }
-.outline li { font-size: 28px; line-height: 1.3; color: #e2e8f0; font-weight: 600;
+.outline li { font-size: 36px; line-height: 1.3; color: #e2e8f0; font-weight: 600;
   padding: 26px 16px; text-align: center;
   background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.45);
   border-radius: 14px; box-shadow: 0 0 30px rgba(34,211,238,0.2), inset 0 0 15px rgba(34,211,238,0.05); }
-.outline li .num { display: block; font-size: 40px; color: #22d3ee; font-weight: 800;
+.outline li .num { display: block; font-size: 48px; color: #22d3ee; font-weight: 800;
   margin-bottom: 10px; text-shadow: 0 0 20px rgba(34,211,238,0.8), 0 0 40px rgba(34,211,238,0.4); }"""
 
 

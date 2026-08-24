@@ -79,7 +79,7 @@ body {
   color: #e2e8f0; position: relative; overflow: hidden; -webkit-font-smoothing: antialiased;
 }
 .screencast { position: relative; width: 100%; height: 100%; z-index: 1;
-  display: flex; flex-direction: column; padding: 32px 64px 0; }
+  display: flex; flex-direction: column; padding: 32px 190px 0 64px; }
 .window { flex: 1; min-height: 0; display: flex; flex-direction: column;
   background: #0b1220; border: 1px solid #2a3a55; border-radius: 16px;
   box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03); overflow: hidden; }
@@ -89,8 +89,8 @@ body {
 .lights i { width: 14px; height: 14px; border-radius: 50%; }
 .lights .r { background: #ff5f57; } .lights .y { background: #febc2e; }
 .lights .g { background: #28c840; }
-.wtitle { margin-left: 8px; font-size: 21px; color: #94a3b8; letter-spacing: 1px; }
-.wtag { margin-left: auto; font-size: 17px; color: #64748b; }
+.wtitle { margin-left: 8px; font-size: 28px; color: #94a3b8; letter-spacing: 1px; }
+.wtag { margin-left: auto; font-size: 24px; color: #64748b; }
 .winbody { flex: 1; min-height: 0; position: relative; display: flex; overflow: hidden;
   align-items: center; justify-content: center; padding: 26px 40px; }
 /* 顶部步骤条：始终显示全部步骤（done ✓ / active ▶ / future 暗淡） */
@@ -102,7 +102,7 @@ body {
   color: #64748b; display: flex; align-items: center; justify-content: center;
   font-size: 16px; font-weight: 800; }
 .s-step .tx { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  color: #64748b; font-size: 19px; }
+  color: #64748b; font-size: 26px; }
 .s-step.done { border-color: rgba(74,222,128,0.45); background: rgba(40,200,72,0.06); }
 .s-step.done .ix { background: rgba(40,200,72,0.22); color: #28c840; }
 .s-step.done .tx { color: #94a3b8; }
@@ -125,19 +125,19 @@ body {
 /* 避坑警告（别注册官方号 / 别买黄牛） */
 .warnbox { width: 100%; max-width: 1540px; display: flex; flex-direction: column; gap: 20px; }
 .warnbox .wrow { background: #2a1215; border: 1px solid rgba(248,113,113,0.55); border-radius: 14px;
-  padding: 26px 34px; font-size: 30px; font-weight: 700; color: #fecaca; display: flex;
-  align-items: center; gap: 20px; line-height: 1.45; }
-.warnbox .wrow .wmark { color: #f87171; font-size: 38px; flex: none; }
+  padding: 26px 34px; font-size: 44px; font-weight: 700; color: #fecaca; display: flex;
+  align-items: center; gap: 20px; line-height: 1.4; }
+.warnbox .wrow .wmark { color: #f87171; font-size: 48px; flex: none; }
 .warnbox .wrow.done { opacity: 0.8; }
 
 /* Claude Code 对话窗（用嘴提需求 → 写代码 → 自动跑） */
 .chat { width: 100%; max-width: 1520px; display: flex; flex-direction: column; gap: 20px; }
-.cb { border-radius: 14px; padding: 22px 30px; font-size: 27px; line-height: 1.55; max-width: 82%; }
+.cb { border-radius: 14px; padding: 22px 30px; font-size: 40px; line-height: 1.5; max-width: 82%; }
 .cb.user { align-self: flex-start; background: #123044; border: 1px solid rgba(34,211,238,0.5);
   color: #e0f2fe; }
 .cb.ai { align-self: flex-end; background: #0f1a2e; border: 1px solid #2a3a55; color: #e2e8f0;
   font-family: Consolas, "Courier New", monospace; }
-.cb.ai .cbname { color: #67e8f9; font-size: 19px; margin-bottom: 10px;
+.cb.ai .cbname { color: #67e8f9; font-size: 26px; margin-bottom: 10px;
   font-family: "Microsoft YaHei", "微软雅黑", sans-serif; }
 
 /* 真实截图打底（realshot）：等宽容器 + 热点框 + 箭头标注 */
@@ -145,6 +145,13 @@ body {
   border-radius: 10px; overflow: hidden; border: 1px solid #2a3a55;
   background: #000; box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
 .shotwrap img { display: block; width: 100%; height: 100%; object-fit: fill; }
+/* 特写取景：底层整页暗化作参照，上层热点中心 1.6× 放大（内层 img 由内联样式定位） */
+.shotctx { filter: brightness(0.42) saturate(0.8); }
+.shotzoom { position: absolute; left: 4%; top: 4%; right: 4%; bottom: 4%;
+  border-radius: 12px; overflow: hidden; border: 2px solid rgba(34,211,238,0.55);
+  box-shadow: 0 0 0 4px rgba(34,211,238,0.18), 0 18px 60px rgba(0,0,0,0.7);
+  background: #000; }
+.shotzoom img { position: absolute; object-fit: fill; }
 .hspot { position: absolute; border: 3px solid #22d3ee; border-radius: 6px;
   box-shadow: 0 0 0 3px rgba(34,211,238,0.35), 0 0 34px rgba(34,211,238,0.45); z-index: 2; }
 .hspot.done { border-color: rgba(74,222,128,0.65); opacity: 0.7;
@@ -162,7 +169,7 @@ body {
 .harr.right i { border: 0 solid transparent; border-right: 16px solid #22d3ee;
   border-left: 0; border-top: 11px solid transparent; border-bottom: 11px solid transparent; }
 .hlab { background: rgba(10,14,26,0.92); border: 1px solid #22d3ee; color: #e0f2fe;
-  font-size: 19px; font-weight: 700; padding: 5px 12px; border-radius: 8px;
+  font-size: 34px; font-weight: 700; padding: 8px 18px; border-radius: 8px;
   white-space: nowrap; box-shadow: 0 0 14px rgba(34,211,238,0.3); }
 
 /* 写实 VSCode 窗口（vscode tool）：拟物化 Claude Code 插件使用界面 */
@@ -353,11 +360,11 @@ body {
   box-shadow: 0 0 50px rgba(34,211,238,0.5); }
 
 /* 字幕带 + 进度条 */
-.subtitle-band { flex: none; height: 88px; padding: 0 36px; margin-top: 16px;
+.subtitle-band { flex: none; height: 104px; padding: 0 120px 0 36px; margin-top: 16px;
   background: rgba(15,23,42,0.92); border: 1px solid rgba(34,211,238,0.4); border-radius: 12px;
   display: flex; align-items: center; justify-content: center; overflow: hidden;
   box-shadow: 0 0 30px rgba(34,211,238,0.15), inset 0 0 20px rgba(34,211,238,0.05); }
-.subtitle { font-size: 36px; line-height: 1; color: #ffffff; text-align: center; max-width: 100%;
+.subtitle { font-size: 48px; line-height: 1; color: #ffffff; text-align: center; max-width: 100%;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-shadow: 0 2px 4px rgba(0,0,0,0.95), 0 0 2px #000, -1px -1px 0 #000, 1px 1px 0 #000; }
 .subtitle.empty { visibility: hidden; }
@@ -517,10 +524,15 @@ def _chat(card, a):
 
 
 def _realshot(card, a):
-    """真实网页截图打底 + 热点框 + 箭头标注（拟物化核心）。
+    """真实网页截图打底 + 热点特写取景 + 箭头标注（拟物化核心）。
 
     card 字段：slug（资产目录）、shot（截图 key）、hotspots=[{x,y,w,h,label}]，
-    坐标均为截图百分比（capture_shots.py 产出）。active_idx 驱动的箭头指向当前操作点。
+    坐标均为截图百分比（capture_shots.py 产出）。
+
+    布局（2026-08-24 可读性改造）：有 active 热点时双层呈现——底层整页截图
+    暗化 45% 作位置参照，上层以热点为中心 1.6× 特写（截图内文字信息流等效从
+    6-8px 提到 10px+）。热点框/箭头画在特写层坐标系（源百分比 v → (v-c)*Z+50）。
+    无 active 热点（a<0 或该步无坐标）回退整页呈现（原行为）。
     """
     src = _shot_b64(card.get("slug", ""), card.get("shot", ""))
     if not src:
@@ -528,25 +540,53 @@ def _realshot(card, a):
                 f'截图缺失: {_esc(card.get("shot", ""))}</div>')
     hotspots = card.get("hotspots") or []
     points = card.get("points") or []
-    parts = [f'<img src="{src}" alt="">']
-    # hotspots 数组按 points 索引对齐；某步无热点用 null 占位。
-    for i in range(len(points)):
-        hp = hotspots[i] if i < len(hotspots) else None
-        if not hp:
-            continue
-        x, y, w, h = hp["x"], hp["y"], hp["w"], hp["h"]
-        cls = "hspot done" if i < a else ("hspot active" if i == a else "hspot fut")
-        parts.append(f'<div class="{cls}" style="left:{x}%;top:{y}%;width:{w}%;height:{h}%"></div>')
-        if i == a:
-            label = _esc(hp.get("label", ""))
-            if x >= 22:  # 热点靠右 → 从左边指进去
-                parts.append(
-                    f'<div class="harr" style="left:{x}%;top:{y + h / 2}%">'
-                    f'<span class="hlab">{label}</span><i></i></div>')
-            else:        # 热点贴左 → 从右边指进去
-                parts.append(
-                    f'<div class="harr right" style="left:{x + w}%;top:{y + h / 2}%">'
-                    f'<i></i><span class="hlab">{label}</span></div>')
+
+    active_hp = None
+    if 0 <= a < len(hotspots) and hotspots[a]:
+        active_hp = hotspots[a]
+
+    def spot_divs(zoom: float, cx: float, cy: float) -> list[str]:
+        """热点框 + active 箭头标签，画在 zoom 倍特写坐标系。"""
+        out = []
+        for i in range(len(points)):
+            hp = hotspots[i] if i < len(hotspots) else None
+            if not hp:
+                continue
+            x = (hp["x"] - cx) * zoom + 50
+            y = (hp["y"] - cy) * zoom + 50
+            w, h = hp["w"] * zoom, hp["h"] * zoom
+            cls = "hspot done" if i < a else ("hspot active" if i == a else "hspot fut")
+            out.append(f'<div class="{cls}" style="left:{x}%;top:{y}%;width:{w}%;height:{h}%"></div>')
+            if i == a:
+                label = _esc(hp.get("label", ""))
+                if x >= 22:  # 热点靠右 → 从左边指进去
+                    out.append(
+                        f'<div class="harr" style="left:{x}%;top:{y + h / 2}%">'
+                        f'<span class="hlab">{label}</span><i></i></div>')
+                else:        # 热点贴左 → 从右边指进去
+                    out.append(
+                        f'<div class="harr right" style="left:{x + w}%;top:{y + h / 2}%">'
+                        f'<i></i><span class="hlab">{label}</span></div>')
+        return out
+
+    if not active_hp:
+        # 回退：整页呈现（原行为），坐标系即源图本身
+        parts = [f'<img src="{src}" alt="">'] + spot_divs(1.0, 50.0, 50.0)
+        return '<div class="shotwrap">' + "".join(parts) + "</div>"
+
+    Z = 1.6  # 特写放大倍数
+    # 热点中心（源百分比）；clamp 保证特写窗四边不越出源图
+    half = 50.0 / Z
+    cx = min(max(active_hp["x"] + active_hp["w"] / 2, half), 100 - half)
+    cy = min(max(active_hp["y"] + active_hp["h"] / 2, half), 100 - half)
+    zoom_inner = (
+        f'<img src="{src}" alt="" style="width:{Z * 100:.0f}%;height:{Z * 100:.0f}%;'
+        f'left:calc(50% - {cx * Z:.1f}%);top:calc(50% - {cy * Z:.1f}%)">'
+    )
+    parts = [
+        f'<img class="shotctx" src="{src}" alt="">',
+        '<div class="shotzoom">' + zoom_inner + "".join(spot_divs(Z, cx, cy)) + "</div>",
+    ]
     return '<div class="shotwrap">' + "".join(parts) + "</div>"
 
 

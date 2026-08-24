@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .config import (
     AUDIO_KWARGS, BGM_VOLUME, FADE, FPS, HEAD_PAD, OUT_H, OUT_SIZE, OUT_W,
-    VIDEO_KWARGS,
+    SFX_VOLUME_DB, VIDEO_KWARGS,
 )
 
 
@@ -17,6 +17,62 @@ def _run(cmd: list[str], cwd: str | None = None) -> None:
             f"CMD: {' '.join(cmd[:6])} ...\n"
             f"STDERR:\n{r.stderr[-3000:]}"
         )
+
+
+def audio_overlay_chain(
+    narration_label: str,
+    bgm: Path | None,
+    sfx_points: list[tuple[Path, float]],
+    total_dur: float,
+    next_input_index: int,
+    bgm_volume: float = 0.35,
+    sfx_volume_db: str = SFX_VOLUME_DB,
+) -> tuple[list[str], list[str], str]:
+    """构建「BGM 垫底 + 定点音效」滤镜链，叠加在口播音频标签之上。
+
+    装配期同图混入（xfade/acrossfade 的同一条 filter_complex），不是对成片
+    二次后混——单 pass 出片，无中间文件。返回 (追加输入参数, 追加滤镜片段,
+    最终音频标签)。输入序号从 next_input_index 起（调用方已占 0..n-1）。
+
+    - BGM：-stream_loop -1 整片循环，淡入 1s / 尾部淡出 2s，atrim 对齐总时长
+    - 音效：逐点 adelay 定位（毫秒，绝对时间轴）
+    - amix duration=first 以口播时长为准；normalize=0 不自动压电平
+    """
+    extra_inputs: list[str] = []
+    parts: list[str] = []
+    mix_labels = [narration_label]
+    idx = next_input_index
+
+    if bgm is not None:
+        fade_out = max(total_dur - 2.0, 0.0)
+        extra_inputs += ["-stream_loop", "-1", "-i", str(bgm)]
+        parts.append(
+            f"[{idx}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,"
+            f"volume={bgm_volume},afade=t=in:st=0:d=1,"
+            f"afade=t=out:st={fade_out:.3f}:d=2,atrim=0:{total_dur:.3f}[ovbgm]"
+        )
+        mix_labels.append("[ovbgm]")
+        idx += 1
+
+    for i, (sfx_path, t) in enumerate(sfx_points):
+        ms = max(0, int(round(t * 1000)))
+        extra_inputs += ["-i", str(sfx_path)]
+        parts.append(
+            f"[{idx}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,"
+            f"volume={sfx_volume_db},adelay={ms}|{ms}[ovsfx{i}]"
+        )
+        mix_labels.append(f"[ovsfx{i}]")
+        idx += 1
+
+    if len(mix_labels) == 1:
+        return extra_inputs, parts, narration_label
+
+    out_label = "[ovaout]"
+    parts.append(
+        f"{''.join(mix_labels)}amix=inputs={len(mix_labels)}:duration=first:"
+        f"dropout_transition=0:normalize=0{out_label}"
+    )
+    return extra_inputs, parts, out_label
 
 
 def build_segment(card: Path, audio: Path, dur: float, out: Path) -> None:
@@ -61,11 +117,24 @@ def concat(segments: list[Path], out: Path) -> None:
     _run(cmd)
 
 
-def concat_with_transitions(segments: list[Path], out: Path, transition_dur: float = 0.8) -> None:
-    """用 FFmpeg xfade 滤镜做段间炫酷转场。
+def concat_with_transitions(
+    segments: list[Path],
+    out: Path,
+    transition_dur: float = 0.8,
+    bgm: Path | None = None,
+    sfx: dict[str, Path] | None = None,
+    bgm_volume: float = 0.35,
+    transition_sfx_every: int = 4,
+    extra_sfx: list[tuple[Path, float]] | None = None,
+) -> None:
+    """用 FFmpeg xfade 滤镜做段间转场，BGM/音效同图混入（单 pass 装配）。
 
     转场类型循环使用：fade, wipeleft, wipeup, slideleft, slideup, fadeblack。
     transition_dur: 转场持续时间（秒），默认 0.8s。
+    bgm: BGM wav 路径（-stream_loop 循环垫底，None 则不加）。
+    sfx: {"opening": Path, "transition": Path}（None 则不加）。开场音 @0.08s；
+         转场音按段边界稀疏触发（每 transition_sfx_every 段一次，首段只开场音）。
+    extra_sfx: 追加定点音效（如提问音，内容感知点位由调用方从口播时间轴提取）。
     """
     if len(segments) == 0:
         return
@@ -101,10 +170,11 @@ def concat_with_transitions(segments: list[Path], out: Path, transition_dur: flo
     for seg in segments:
         inputs.extend(["-i", str(seg)])
 
-    # 构建 xfade 滤镜链（视频）
+    # 构建滤镜链
     filter_parts = []
     offset = 0.0
     prev_label = "[0:v]"
+    boundaries: list[float] = []
 
     for i in range(n - 1):
         transition = transitions[i % len(transitions)]
@@ -117,6 +187,7 @@ def concat_with_transitions(segments: list[Path], out: Path, transition_dur: flo
             f"{prev_label}[{i+1}:v]xfade=transition={transition}:duration={transition_dur}:offset={xfade_offset:.3f}{out_label}"
         )
 
+        boundaries.append(xfade_offset)
         offset = xfade_offset
         prev_label = out_label
 
@@ -135,6 +206,27 @@ def concat_with_transitions(segments: list[Path], out: Path, transition_dur: flo
         )
         prev_label = out_label
 
+    # BGM + 音效同图混入（装配期一步完成，非成片二次后混）。
+    # 转场音语义与 Remotion SoundLayer 一致：段 k（k>0）且 k % every == 0 时，
+    # 在进入段 k 的转场重叠起点（boundaries[k-1]）响。
+    total_dur = sum(durations) - (n - 1) * transition_dur
+    sfx_points: list[tuple[Path, float]] = []
+    if sfx:
+        sfx_points.append((sfx["opening"], 0.08))
+        every = max(1, transition_sfx_every)
+        for k in range(1, n):
+            if k % every == 0:
+                sfx_points.append((sfx["transition"], max(boundaries[k - 1], 0.0)))
+    sfx_points.extend(extra_sfx or [])
+    sfx_points.sort(key=lambda p: p[1])
+
+    audio_label = "[aout]"
+    extra_inputs, overlay_parts, audio_label = audio_overlay_chain(
+        audio_label, bgm, sfx_points, total_dur, n
+    )
+    filter_parts.extend(overlay_parts)
+    inputs.extend(extra_inputs)
+
     filter_complex = ";".join(filter_parts)
 
     cmd = [
@@ -142,7 +234,7 @@ def concat_with_transitions(segments: list[Path], out: Path, transition_dur: flo
         *inputs,
         "-filter_complex", filter_complex,
         "-map", "[vout]",
-        "-map", "[aout]",
+        "-map", audio_label,
         "-shortest",
         *VIDEO_KWARGS, *AUDIO_KWARGS,
         str(out),

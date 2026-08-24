@@ -17,6 +17,17 @@
     sfx-emphasis-tick.wav      极短 tick(数字/小词) ~0.08s
     sfx-reveal.wav             轻 whoosh-open + 上行(数据出现) ~0.4s
     sfx-reveal-bloom.wav       软和弦 bloom(结论/高光) ~0.8s
+  再扩 10 个(2026-08-24,对齐抖音科技/知识区高频音效类型,继续确定性合成零版权):
+    sfx-transition-glitch.wav  数字故障抖动(配 glitch 转场) ~0.22s
+    sfx-transition-tapestop.wav 磁带急停(音高快速下坠,悬念切断) ~0.35s
+    sfx-impact.wav             低频重击(硬切强调/重点结论) ~0.5s
+    sfx-coin.wav               金属双音(数据/收益/成本落地) ~0.3s
+    sfx-ticktock.wav           时钟滴答两声(倒计时/时间线) ~0.9s
+    sfx-heartbeat.wav          低频心跳(悬念/紧张铺垫) ~0.8s
+    sfx-harp-gliss.wav         竖琴上行刮奏(揭晓/揭秘) ~0.7s
+    sfx-ding.wav               清亮叮(里程碑/通知) ~0.6s
+    sfx-typewriter.wav         打字机咔嗒(代码逐行/字幕) ~0.15s
+    sfx-outro-chord.wav        终止式软和弦(收尾定格) ~1.4s
 
 用法:
   python gen-sfx.py [输出目录]
@@ -313,10 +324,182 @@ def gen_reveal_bloom() -> list[float]:
     return out
 
 
+# ── 抖音风格扩充(2026-08-24:转场/功能/氛围音,继续"轻声"幅度纪律)─────────────
+
+def gen_transition_glitch() -> list[float]:
+    """数字故障抖动:3 段错位噪声碎片 + 方波跳频,配 glitch 转场,~0.22s。"""
+    dur = 0.22
+    n = int(RATE * dur)
+    noise = _noise(dur, 20260826)
+    out = []
+    jumps = ((0.00, 0.05), (0.07, 0.04), (0.13, 0.09))  # (起点, 时长) 碎片错位
+    freqs = (880.0, 1245.0, 660.0)
+    for i in range(n):
+        t = i / RATE
+        v = 0.0
+        for gi, (gs, gd) in enumerate(jumps):
+            if gs <= t < gs + gd:
+                # 方波跳频(数字感),载波随碎片切换
+                v += 0.16 * math.copysign(1.0, math.sin(2 * math.pi * freqs[gi] * t))
+        # 贯穿底噪(过中低通,像信号劣化)
+        v += 0.14 * noise[int(i * 7.3) % n]
+        env = min(1.0, t / 0.004) * max(0.0, 1.0 - t / dur)
+        out.append(v * env)
+    return out
+
+
+def gen_transition_tapestop() -> list[float]:
+    """磁带急停:音高快速下坠(高频→低频扫频 + 幅度骤收),悬念切断,~0.35s。"""
+    dur = 0.35
+    n = int(RATE * dur)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        # 下坠速率随时间加快(指数下坠感):相位积分用分段近似
+        f = 900.0 * math.exp(-t * 14.0) + 90.0
+        env = min(1.0, t / 0.01) * math.exp(-t * 9.0)
+        v = env * (_note(f, t) + 0.3 * _note(f * 1.5, t))
+        out.append(0.34 * v)
+    return out
+
+
+def gen_impact() -> list[float]:
+    """低频重击:45Hz thump + 次谐波 + 5ms 噪声起音,硬切强调/重点结论,~0.5s。"""
+    dur = 0.5
+    n = int(RATE * dur)
+    noise = _noise(dur, 20260827)
+    lp = _lowpass_2pole(noise, 800.0)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        env = min(1.0, t / 0.003) * math.exp(-t * 7.0)
+        v = env * (math.sin(2 * math.pi * (45.0 + 30.0 * math.exp(-t * 25.0)) * t)
+                   + 0.4 * math.sin(2 * math.pi * 90.0 * t))
+        v += 0.10 * lp[i] * max(0.0, 1.0 - t / 0.05)  # 起音噪声
+        out.append(0.38 * v)
+    return out
+
+
+def gen_coin() -> list[float]:
+    """金属双音 B5→E6(短亮清脆,数据/收益/成本数字落地),~0.3s。"""
+    dur = 0.3
+    out = []
+    for i in range(int(RATE * dur)):
+        t = i / RATE
+        v = 0.0
+        for start, freq in ((0.0, 988.0), (0.07, 1318.5)):
+            dt = t - start
+            if dt >= 0:
+                v += 0.32 * math.exp(-dt * 14.0) * _note(freq, dt, (1.0, 0.45, 0.18))
+        out.append(v)
+    return out
+
+
+def gen_ticktock() -> list[float]:
+    """时钟滴答两声:高频短噪 click + 2kHz 共振,第二声低一点(嗒),~0.9s。"""
+    dur = 0.9
+    n = int(RATE * dur)
+    noise = _noise(dur, 20260828)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        v = 0.0
+        for start, f, amp in ((0.0, 2050.0, 0.30), (0.5, 1750.0, 0.24)):
+            dt = t - start
+            if 0 <= dt < 0.05:
+                v += amp * math.exp(-dt * 60.0) * (_note(f, dt, (1.0, 0.3)) + 0.8 * noise[i])
+        out.append(v)
+    return out
+
+
+def gen_heartbeat() -> list[float]:
+    """低频心跳两下(咚-咚,第二下轻):悬念/紧张铺垫,~0.8s。"""
+    dur = 0.8
+    out = []
+    for i in range(int(RATE * dur)):
+        t = i / RATE
+        v = 0.0
+        for start, amp in ((0.0, 0.40), (0.28, 0.30)):
+            dt = t - start
+            if 0 <= dt < 0.22:
+                env = min(1.0, dt / 0.012) * math.exp(-dt * 16.0)
+                v += amp * env * (math.sin(2 * math.pi * 58.0 * dt)
+                                  + 0.35 * math.sin(2 * math.pi * 116.0 * dt))
+        out.append(v)
+    return out
+
+
+def gen_harp_gliss() -> list[float]:
+    """竖琴上行刮奏:C 大调跨两个八度 8 音快速琶音,揭晓/揭秘,~0.7s。"""
+    notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.26]
+    dur = 0.7
+    n = int(RATE * dur)
+    out = [0.0] * n
+    step = 0.055
+    for k, freq in enumerate(notes):
+        a0 = int(k * step * RATE)
+        for i in range(int(0.35 * RATE)):
+            idx = a0 + i
+            if idx >= n:
+                break
+            t = i / RATE
+            out[idx] += 0.26 * math.exp(-t * 8.0) * _pluck(freq, t, decay=7.0, harmonics=(1.0, 0.35, 0.15))
+    return out
+
+
+def gen_ding() -> list[float]:
+    """清亮叮:E6 纯高音慢衰减(比 emphasis 更亮更长),里程碑/通知,~0.6s。"""
+    dur = 0.6
+    out = []
+    for i in range(int(RATE * dur)):
+        t = i / RATE
+        out.append(0.34 * min(1.0, t / 0.004) * math.exp(-t * 6.5)
+                   * _note(1318.5, t, (1.0, 0.30, 0.10)))
+    return out
+
+
+def gen_typewriter() -> list[float]:
+    """打字机双咔嗒:短噪 + 1.7kHz 板共振,代码逐行/字幕打出,~0.15s。"""
+    dur = 0.15
+    n = int(RATE * dur)
+    noise = _noise(dur, 20260829)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        v = 0.0
+        for start, amp in ((0.0, 0.26), (0.06, 0.18)):
+            dt = t - start
+            if 0 <= dt < 0.03:
+                v += amp * math.exp(-dt * 90.0) * (noise[i] + 0.6 * _note(1700.0, dt, (1.0, 0.2)))
+        out.append(v)
+    return out
+
+
+def gen_outro_chord() -> list[float]:
+    """终止式软和弦:G 和弦短推 → C 大三和弦长收(G→C resolution),收尾定格,~1.4s。"""
+    dur = 1.4
+    out = []
+    for i in range(int(RATE * dur)):
+        t = i / RATE
+        v = 0.0
+        # G 和弦(属)短推 0.35s
+        if t < 0.4:
+            env = min(1.0, t / 0.02) * math.exp(-t * 6.0)
+            v += 0.20 * env * (_note(196.0, t) + 0.6 * _note(246.94, t) + 0.4 * _note(293.66, t))
+        # C 大三和弦(主)长收 0.3s 起
+        if t >= 0.3:
+            dt = t - 0.3
+            env = min(1.0, dt / 0.02) * math.exp(-dt * 2.8)
+            v += 0.26 * env * (_note(261.63, dt) + 0.6 * _note(329.63, dt)
+                               + 0.45 * _note(392.0, dt) + 0.3 * _note(523.25, dt))
+        out.append(v)
+    return out
+
+
 # ── 无版权轻音乐垫底(多轨,30-45s,确定性合成)────────────────────────
 # 每轨: 软拨弦 arp(八分音符) + 慢起 pad + 正弦低音 + 主音旋律点 + 可选轻 shaker。
 # 全部纯 stdlib,无版权风险。键位/和弦按"轻音乐"口粮设计,整体音量低于人声。
-# 和弦表: 名字 -> (根音Hz, 三音Hz, 五音Hz, 低音Hz)
+# 和弦表: 名字 -> (根音Hz, 三音Hz, 五音/七音Hz, 低音Hz)。七和弦省五音用七音(爵士省略法)
 _CHORDS = {
     "C":  (261.63, 329.63, 392.00, 130.81),
     "G":  (196.00, 246.94, 293.66,  98.00),
@@ -325,15 +508,26 @@ _CHORDS = {
     "D":  (293.66, 369.99, 440.00, 146.83),
     "Dm": (293.66, 349.23, 440.00, 146.83),
     "Em": (164.81, 196.00, 246.94,  82.41),
+    # 七和弦(lofi 用):根/三/七/低音,省五音
+    "Cmaj7":  (261.63, 329.63, 493.88, 130.81),
+    "Am7":    (220.00, 261.63, 392.00, 110.00),
+    "Fmaj7":  (174.61, 220.00, 329.63,  87.31),
+    "G7":     (196.00, 246.94, 349.23,  98.00),
 }
 
-# 每轨配置: bpm / 和弦进行(每小节一个) / 音量 / 风格
-_BGM_TRACKS = [
-    # name, bpm, progression, pluck, pad, bass, lead, shaker, bars
+# 每轨配置: bpm / 和弦进行(每小节一个) / 音量 / 风格。
+# 风格开关(2026-08-24): pulse=八分脉冲低音(悬疑) / square=方波 arp(8-bit) / kick=拍点底鼓(史诗)
+_BGM_TRACKS: list[tuple] = [
+    # name, bpm, progression, pluck, pad, bass, lead, shaker, bars [, pulse, square, kick]
     ("bgm-light-calm.wav",  90, ["C", "G", "Am", "F"] * 4,  0.20, 0.11, 0.17, 0.12, 0.00, 16),
     ("bgm-light-walk.wav", 108, ["G", "C", "D", "Em"] * 4,  0.22, 0.10, 0.18, 0.14, 0.04, 16),
     ("bgm-light-focus.wav", 84, ["Am", "F", "C", "G"] * 4,  0.18, 0.12, 0.16, 0.10, 0.00, 16),
     ("bgm-light-bright.wav", 120, ["F", "C", "G", "Am"] * 4, 0.22, 0.09, 0.18, 0.15, 0.06, 16),
+    # ── 抖音风格扩充(2026-08-24):悬疑脉冲 / 史诗推进 / 8-bit / Lo-fi ──
+    ("bgm-tense.wav",    76, ["Am", "F", "Dm", "Em"] * 4,      0.09, 0.12, 0.20, 0.06, 0.00, 16, 1, 0, 0),
+    ("bgm-epic.wav",     96, ["Dm", "Am", "F", "C"] * 4,       0.15, 0.13, 0.18, 0.13, 0.05, 16, 0, 0, 1),
+    ("bgm-chiptune.wav", 128, ["F", "G", "C", "Am"] * 4,       0.17, 0.06, 0.13, 0.12, 0.08, 16, 0, 1, 0),
+    ("bgm-lofi.wav",     72, ["Cmaj7", "Am7", "Fmaj7", "G7"] * 4, 0.15, 0.14, 0.14, 0.07, 0.025, 16),
 ]
 
 
@@ -354,8 +548,11 @@ def _pad_env(t: float, bar: float) -> float:
 
 
 def gen_bgm_track(name: str) -> list[float]:
-    bpm, prog, lv_p, lv_pd, lv_b, lv_l, lv_s, bars = next(
-        t for t in _BGM_TRACKS if t[0] == name)[1:]
+    t = next(t for t in _BGM_TRACKS if t[0] == name)
+    bpm, prog, lv_p, lv_pd, lv_b, lv_l, lv_s, bars = t[1:9]
+    pulse = t[9] if len(t) > 9 else 0
+    square = t[10] if len(t) > 10 else 0
+    kick = t[11] if len(t) > 11 else 0
     beat = 60.0 / bpm
     bar = 4 * beat
     dur = bars * bar
@@ -374,19 +571,44 @@ def gen_bgm_track(name: str) -> list[float]:
         t0 = b_i * bar
         b0 = int(t0 * RATE)
         b1 = int((t0 + bar) * RATE)
-        # 低音: 正弦 + 弱二次谐波,慢起
-        for i in range(b0, b1):
-            t = i / RATE - t0
-            env = _pad_env(t, bar)
-            out[i] += lv_b * env * (math.sin(2 * math.pi * bass * t)
-                                    + 0.25 * math.sin(4 * math.pi * bass * t))
+        # 低音: 正弦 + 弱二次谐波,慢起(pulse=1 时改为八分音符短脉冲,悬疑驱动感)
+        if pulse:
+            for k in range(8):
+                at = t0 + k * beat / 2
+                a0 = int(at * RATE)
+                for i in range(int(0.16 * RATE)):
+                    idx = a0 + i
+                    if idx >= n:
+                        break
+                    tt = i / RATE
+                    env = min(1.0, tt / 0.008) * math.exp(-tt * 11.0)
+                    out[idx] += lv_b * env * (math.sin(2 * math.pi * bass * tt)
+                                              + 0.2 * math.sin(4 * math.pi * bass * tt))
+        else:
+            for i in range(b0, b1):
+                t = i / RATE - t0
+                env = _pad_env(t, bar)
+                out[i] += lv_b * env * (math.sin(2 * math.pi * bass * t)
+                                        + 0.25 * math.sin(4 * math.pi * bass * t))
+        # 底鼓(kick=1): 每拍 48Hz 快衰减 thump,史诗推进的骨架
+        if kick:
+            for k in range(4):
+                at = t0 + k * beat
+                a0 = int(at * RATE)
+                for i in range(int(0.18 * RATE)):
+                    idx = a0 + i
+                    if idx >= n:
+                        break
+                    tt = i / RATE
+                    env = min(1.0, tt / 0.004) * math.exp(-tt * 9.0)
+                    out[idx] += kick * env * math.sin(2 * math.pi * (48.0 + 26.0 * math.exp(-tt * 30.0)) * tt)
         # pad: 三音慢起(轻失谐)
         for f in (r3, r5, r7):
             det = f * 0.0015
             for i in range(b0, b1):
                 t = i / RATE - t0
                 out[i] += lv_pd * _pad_env(t, bar) * math.sin(2 * math.pi * (f + det) * t)
-        # arp: 八分音符拨弦,根-五-三-五 循环
+        # arp: 八分音符,根-五-三-五 循环(square=1 时用方波,8-bit 味)
         arp_notes = (r3, r5, r7, r5)
         for k in range(8):
             freq = arp_notes[k % 4]
@@ -397,7 +619,11 @@ def gen_bgm_track(name: str) -> list[float]:
                 if idx >= n:
                     break
                 t = i / RATE
-                out[idx] += lv_p * _pluck(freq, t)
+                if square:
+                    env = min(1.0, t / 0.004) * math.exp(-t * 10.0)
+                    out[idx] += lv_p * env * 0.6 * math.copysign(1.0, math.sin(2 * math.pi * freq * 2 * t))
+                else:
+                    out[idx] += lv_p * _pluck(freq, t)
         # 主音旋律点: 每小节第 1、3 拍,高八度的根/五音,稀疏轻灵
         for k in (0, 2):
             freq = (r3 * 2, r7 * 2)[k // 2]
@@ -443,25 +669,40 @@ def main() -> None:
     )
     os.makedirs(out_dir, exist_ok=True)
     specs = {
-        # 短音效:旧 3 个(向后兼容) + 新 10 个(2026-08-20 扩充)
+        # 短音效:旧 3 个(向后兼容) + 2026-08-20 扩充 10 个 + 2026-08-24 抖音风格 10 个
         "sfx-opening.wav": gen_opening(),
         "sfx-opening-chime.wav": gen_opening_chime(),
         "sfx-opening-riser.wav": gen_opening_riser(),
         "sfx-transition.wav": gen_transition(),
         "sfx-transition-swoosh.wav": gen_transition_swoosh(),
         "sfx-transition-pop.wav": gen_transition_pop(),
+        "sfx-transition-glitch.wav": gen_transition_glitch(),
+        "sfx-transition-tapestop.wav": gen_transition_tapestop(),
         "sfx-question.wav": gen_question(),
         "sfx-question-up.wav": gen_question_up(),
         "sfx-question-down.wav": gen_question_down(),
         "sfx-emphasis.wav": gen_emphasis(),
         "sfx-emphasis-tick.wav": gen_emphasis_tick(),
+        "sfx-impact.wav": gen_impact(),
+        "sfx-coin.wav": gen_coin(),
+        "sfx-ticktock.wav": gen_ticktock(),
+        "sfx-heartbeat.wav": gen_heartbeat(),
+        "sfx-harp-gliss.wav": gen_harp_gliss(),
+        "sfx-ding.wav": gen_ding(),
+        "sfx-typewriter.wav": gen_typewriter(),
         "sfx-reveal.wav": gen_reveal(),
         "sfx-reveal-bloom.wav": gen_reveal_bloom(),
-        # 无版权轻音乐垫底:4 轨 30-45s(不同调性/节奏),bgm-bed 保留为 calm 别名(旧配置兼容)
+        "sfx-outro-chord.wav": gen_outro_chord(),
+        # 无版权轻音乐垫底:4 轻 + 4 抖音风格(悬疑/史诗/8-bit/Lo-fi),
+        # bgm-bed 保留为 calm 别名(旧配置兼容)
         "bgm-light-calm.wav": gen_bgm_track("bgm-light-calm.wav"),
         "bgm-light-walk.wav": gen_bgm_track("bgm-light-walk.wav"),
         "bgm-light-focus.wav": gen_bgm_track("bgm-light-focus.wav"),
         "bgm-light-bright.wav": gen_bgm_track("bgm-light-bright.wav"),
+        "bgm-tense.wav": gen_bgm_track("bgm-tense.wav"),
+        "bgm-epic.wav": gen_bgm_track("bgm-epic.wav"),
+        "bgm-chiptune.wav": gen_bgm_track("bgm-chiptune.wav"),
+        "bgm-lofi.wav": gen_bgm_track("bgm-lofi.wav"),
         "bgm-bed.wav": gen_bgm_track("bgm-light-calm.wav"),
     }
     for name, samples in specs.items():

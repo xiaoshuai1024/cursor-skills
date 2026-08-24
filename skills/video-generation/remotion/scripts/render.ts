@@ -46,6 +46,49 @@ const outputDir = path.join(projectRoot, "video-generation", "build", videoId);
 const outputFile = `${videoId}.mp4`;
 const outputPath = path.join(outputDir, outputFile);
 
+/** 声音层素材(BGM + SFX,VideoComposition 原生渲染引用 public/ 即 narration/ 目录)。
+ * 缺失时自动重跑 gen-sfx.py(纯 stdlib 确定性合成,重跑结果一致)——
+ * 保证新视频零配置即有 BGM/音效,不会因素材被清而静默丢声。 */
+function ensureSfxAssets(root: string): void {
+  const narrationDir = path.join(root, "video-generation", "narration");
+  const required = [
+    "bgm-bed.wav",
+    "bgm-light-calm.wav",
+    "bgm-light-walk.wav",
+    "bgm-light-focus.wav",
+    "bgm-light-bright.wav",
+    "bgm-tense.wav",
+    "bgm-epic.wav",
+    "bgm-chiptune.wav",
+    "bgm-lofi.wav",
+    "sfx-opening-chime.wav",
+    "sfx-transition-swoosh.wav",
+    "sfx-question-up.wav",
+    "sfx-emphasis.wav",
+    "sfx-reveal.wav",
+    "sfx-reveal-bloom.wav",
+    "sfx-ding.wav",
+  ];
+  const missing = required.filter((f) => !fs.existsSync(path.join(narrationDir, f)));
+  if (missing.length === 0) return;
+  console.log(`\n🎵 声音素材缺失 ${missing.length} 个,自动重跑 gen-sfx.py ...`);
+  try {
+    execSync(
+      `${process.env.PYTHON || "python"} scripts/gen-sfx.py`,
+      {
+        stdio: "inherit",
+        cwd: process.cwd(),
+        env: { ...process.env, VIDEO_PROJECT_ROOT: root, PYTHONIOENCODING: "utf-8" },
+      },
+    );
+    console.log(`✅ 声音素材已再生成为 ${narrationDir}`);
+  } catch (error) {
+    // 不阻断渲染:视频若显式 sfx:{enabled:false} 或未引用缺失文件仍可出片,
+    // 引用了缺失文件的会在 Remotion 取 staticFile 时大声报错(好过静默无声明)。
+    console.error(`\n⚠️ gen-sfx.py 失败(引用缺失文件的音频层会渲染报错):`, error.message);
+  }
+}
+
 console.log(`\n🎬 渲染视频: ${videoId}`);
 console.log(`📁 输出文件: ${outputPath}\n`);
 
@@ -55,6 +98,8 @@ async function main() {
 
   try {
     fs.mkdirSync(outputDir, { recursive: true });
+    // 声音层素材自检(缺失自动 gen-sfx.py 重生成),先于渲染
+    ensureSfxAssets(projectRoot);
     // 本机 GL 环境不稳（EGL/CVDisplayLink 报错）导致渲染器随机卡死：
     // --gl=angle（Metal 加速）+ 单并发可稳定跑完；swiftshader 软件渲染是兜底
     // （2026-08-10 实测：并发 >1 在 angle/swiftshader 下都会卡首帧）。

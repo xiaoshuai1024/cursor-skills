@@ -12,6 +12,13 @@ import { llmThinkingConfig } from "./videos/llm-thinking/config";
 import { dummy2Config } from "./videos/dummy-2/config";
 import { testDRConfig } from "./videos/test-datareveal/config";
 import { testStyleBConfig } from "./videos/test-style-b/config";
+import { mascotTestConfig } from "./videos/mascot-test/config";
+import {
+  mascotSize180Config,
+  mascotSize210Config,
+  mascotSize240Config,
+  mascotSize270Config,
+} from "./videos/mascot-size/config";
 // 内容视频（git 忽略的 .video-generation/remotion-videos/ 下，按需加载）：
 // 由 scripts/sync-content-videos.ts 扫描生成注册表，缺失配置不会进入打包。
 import { contentVideos } from "./videos/content-videos";
@@ -35,6 +42,11 @@ export const RemotionRoot: React.FC = () => {
     dummy2Config,
     testDRConfig,
     testStyleBConfig,
+    mascotTestConfig,
+    mascotSize180Config,
+    mascotSize210Config,
+    mascotSize240Config,
+    mascotSize270Config,
   ];
 
   return (

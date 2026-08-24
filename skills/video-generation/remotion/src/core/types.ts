@@ -22,6 +22,8 @@ export interface SceneConfig<P = unknown> {
   props: P;
   /** 该场景在视频时间轴上占的帧数 */
   durationInFrames: number;
+  /** 该场景的转场类型(覆盖全局 transitionType)。可选 15 种,见 transitions/TransitionFrame.tsx */
+  transitionType?: string;
 }
 
 /** Theme token:控制视觉风格的最小变量集 */
@@ -60,6 +62,84 @@ export interface Theme {
  * 一个视频 = 一个 VideoConfig。
  * 加新视频 = 在 videos/<new>/config.ts 导出一个 VideoConfig,不改框架。
  */
+/**
+ * 声音层配置:BGM 垫底 + 三档 SFX(开场/转场/提问)。
+ * 设计规范见 skill references/sound-design.md——能量靠 BGM 不靠音效,
+ * SFX 稀疏点缀、全部用 <Sequence from={帧号}> 定位,音量低于口播人声。
+ */
+export interface SfxConfig {
+  /** 关闭整个声音层(BGM + SFX 都不放),默认开启 */
+  enabled?: boolean;
+  /** 开场音文件名(相对 public/,即 video-generation/narration/)。默认 sfx-opening-chime.wav */
+  opening?: string;
+  /** 转场音文件名。默认 sfx-transition-swoosh.wav */
+  transition?: string;
+  /** 转场音稀疏度:每 N 个场景响一次(场景 0 只放开场音,不算转场)。默认 4 */
+  transitionEvery?: number;
+  /** 提问音文件名。仅当 questionFrames 提供时生效 */
+  question?: string;
+  /** 提问音绝对帧号(手工点帧,全片 2~4 个为宜) */
+  questionFrames?: number[];
+  /** SFX 音量(0~1)。口播片 0.4,不抢人声 */
+  volume?: number;
+  /** BGM 文件名。默认 bgm-bed.wav(gen-sfx.py 生成,calm 轨别名) */
+  bgm?: string;
+  /** BGM 情绪档(与 bgm 二选一,mood 自动映射文件名;见 core/sound-points.ts) */
+  bgmMood?: string;
+  /** BGM 音量(0~1)。口播片 0.3~0.4,无口播快剪可到 0.6。默认 0.35 */
+  bgmVolume?: number;
+  /** 强调音文件名(关键词/结论落地,配 emphasisFrames) */
+  emphasis?: string;
+  /** 强调音绝对帧号(用 keywordFrames(U, [...]) 自动算) */
+  emphasisFrames?: number[];
+  /** 揭示音文件名(数据/榜单/揭秘出现,配 revealFrames) */
+  reveal?: string;
+  /** 揭示音绝对帧号 */
+  revealFrames?: number[];
+}
+
+/** 声音层默认值:config.sfx 未声明时自动套用,新视频零配置即有 BGM + 音效 */
+export const DEFAULT_SFX: SfxConfig = {
+  enabled: true,
+  opening: "sfx-opening-chime.wav",
+  transition: "sfx-transition-swoosh.wav",
+  transitionEvery: 4,
+  volume: 0.4,
+  bgm: "bgm-bed.wav",
+  bgmVolume: 0.35,
+};
+
+/** 形象表情/姿态(与封面 mascot.svg 同一语言);类型载体在 MascotFigure */
+export type { MascotMood, MascotPose } from "../primitives/MascotFigure";
+
+/**
+ * 形象伴随层配置:终端小子全片常驻 + 随口播时间轴随动。
+ * 对齐 DEFAULT_SFX 先例——config.mascot 未声明时自动套默认(即默认启用)。
+ */
+export interface MascotConfig {
+  /** 关闭整个形象层。默认 true */
+  enabled?: boolean;
+  /** 形象高度 px(宽按 320/470 自动),默认 210(2026-08-24 四档标定定稿:240 起抢戏/180 符号偏小) */
+  height?: number;
+  /** 贴角位置,默认 bottom-right */
+  position?: "bottom-right" | "bottom-left";
+  /** 手工表情点帧(优先于自动推断;点后到下一手工点间自动推断挂起) */
+  moodTimeline?: Array<{ frame: number; mood: import("../primitives/MascotFigure").MascotMood }>;
+  /** 按字幕关键词自动切表情。默认 true;false 则全程 smile 只随动 */
+  autoMood?: boolean;
+  /** 字幕段边界微反应(点头/摆头/微跳轮换)。默认 true */
+  reactToSegments?: boolean;
+}
+
+/** 形象层默认值:未声明 config.mascot 即右下角 210px 常驻,表情自动推断 */
+export const DEFAULT_MASCOT: MascotConfig = {
+  enabled: true,
+  height: 210,
+  position: "bottom-right",
+  autoMood: true,
+  reactToSegments: true,
+};
+
 export interface VideoConfig {
   /** 视频唯一标识,用作 Remotion composition id 和输出文件名 */
   id: string;
@@ -77,8 +157,16 @@ export interface VideoConfig {
   subtitles?: SubtitleEntry[];
   /** 背景音乐路径(相对 public/ 或 videos/<id>/assets/) */
   audioPath?: string;
+  /** 口播音量(0~1),默认 0.6 */
+  audioVolume?: number;
+  /** 声音层(BGM + SFX)。未声明时自动套用 DEFAULT_SFX,新视频零配置即有 BGM/音效 */
+  sfx?: SfxConfig;
+  /** 形象伴随层(终端小子随动)。未声明时自动套用 DEFAULT_MASCOT,零配置即有形象 */
+  mascot?: MascotConfig;
   /** 场景间 3D 过渡帧数(默认 0 = 硬切)。>0 时每个场景翻入+翻出(rotateY+scale+perspective) */
   transitionFrames?: number;
+  /** 全局转场类型(可被 SceneConfig.transitionType 逐场景覆盖),默认 rotate3d */
+  transitionType?: string;
   /** 覆盖默认 theme token(实现风格多样性) */
   themeOverrides?: Partial<{
     colors: Partial<Theme["colors"]>;

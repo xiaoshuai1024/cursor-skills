@@ -92,7 +92,7 @@ export const contentVideos: ContentVideoEntry[] = [
   {
     id: "claude-codex-context-compaction",
     title: "",
-    durationInFrames: 13291,
+    durationInFrames: 12191,
     fps: 60,
     width: 1920,
     height: 1080,
@@ -240,6 +240,19 @@ export const contentVideos: ContentVideoEntry[] = [
     width: 1920,
     height: 1080,
     lazyComponent: () => import("@videos/pipeline-arch/config").then((m) => {
+      const cfg = toConfig(m);
+      const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
+      return { default: Comp };
+    }),
+  },
+  {
+    id: "video-pipeline-6-skills",
+    title: "",
+    durationInFrames: 11412,
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    lazyComponent: () => import("@videos/video-pipeline-6-skills/config").then((m) => {
       const cfg = toConfig(m);
       const Comp: React.FC = () => React.createElement(VideoComposition, { config: cfg });
       return { default: Comp };
