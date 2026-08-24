@@ -5,7 +5,7 @@ description: 设计小红书/抖音/视频号图文笔记的卡片（图）和�
 
 # 图文卡片设计
 
-> ⚠️ **2026-08 已归档**:图文发布管线(`scripts/xiaohongshu/`、`image-text/`、yxer 发布)已删除。本 skill 仅保留卡片**设计规范**(卡片/正文分工、信息分层、对比驱动、去术语化、视觉规范),不再配套预览页/截图/发布脚本。需要实际出图时,用手工 HTML + 浏览器截图导出,图片放 `static/img/xhs-cards/`。
+> ⚠️ **2026-08 已归档**:图文发布管线(`scripts/xiaohongshu/`、`image-text/`、旧第三方发布管线)已删除。本 skill 仅保留卡片**设计规范**(卡片/正文分工、信息分层、对比驱动、去术语化、视觉规范),不再配套预览页/截图/发布脚本。需要实际出图时,用手工 HTML + 浏览器截图导出,图片放 `static/img/xhs-cards/`。
 
 ## 何时用
 
@@ -111,4 +111,4 @@ description: 设计小红书/抖音/视频号图文笔记的卡片（图）和�
 - 卡片预览：`image-text/<slug>/preview.html`（含正文区块 + 9 张卡片 + 截图模式 `?card=N`）
 - 卡片图源：`image-text/<slug>/cards/*.png`（由 preview 截图导出）
 - 正文源：`image-text/<slug>/body.txt`（description 纯文本）
-- 发布：`scripts/yxer_publish.py`（卡片 + 正文 → 小红书/抖音/视频号）
+- 发布：已删除的旧图文管线（现行发布走 blog-src `scripts/pub/`，仅视频）

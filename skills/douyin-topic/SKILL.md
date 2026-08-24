@@ -1,6 +1,6 @@
 ---
 name: douyin-topic
-description: 抖音选题 + 对标拆解。三源真实数据把热门话题筛成符合博客方向的选题（🔥热度/📈涨粉双系列），定位代表视频，拆解爆款（钩子/结构/热评/转写）产出可抄大纲与仿写脚本。两阶段：先选题确认，再深挖。
+description: 抖音选题 + 对标拆解。免登录热榜真实数据把热门话题筛成符合博客方向的选题（🔥热度/📈涨粉双系列），定位代表视频，拆解爆款（钩子/结构/热评/转写）产出可抄大纲与仿写脚本。两阶段：先选题确认，再深挖。
 ---
 
 # Douyin Topic Skill — 抖音选题 + 对标拆解
@@ -14,16 +14,14 @@ description: 抖音选题 + 对标拆解。三源真实数据把热门话题筛�
 - 想蹭热点 → 优先看 🔥热度系列（热榜 ∩ 方向关键词），跟得快有流量
 - 在 `topics.md` / `rough_outlines/` 看中某条 → `make topic-deep id=<group_id>` 确认后深挖（Phase 2）
 
-## 数据源（三源真实数据，已实测）
+## 数据源（免登录公开 API，已实测）
 
 | 源 | 通道 | 内容 |
 |----|------|------|
-| A | 抖音搜索热榜 API（免登录免签名） | 51 热搜词 + 5 上升热点，`group_id` 覆盖率 98% |
-| B | `yxer query hot-events`（蚁小二，账号已绑定） | 热榜 + 真实播放量（千万级） |
-| C | `yxer query challenges --query <方向词>` | 方向内话题搜索（存在性信号） |
+| A | 抖音搜索热榜 API（免登录免签名） | 51 热搜词（主榜）+ 5 上升热点（rising），`group_id` 覆盖率 98% |
 
-- A 源异常自动降级 B（双源兜底）；结果缓存 10 分钟
-- 抖音账号 id 动态解析（`yxer accounts list`），不硬编码
+- 主榜供 🔥热度系列，上升榜供 📈涨粉系列；结果缓存 10 分钟
+- 零登录依赖：无需任何账号绑定或第三方查询通道，断网外因只影响拉取本身
 
 ## ⚠️ 合规边界（强制，违反即错）
 
@@ -38,7 +36,6 @@ description: 抖音选题 + 对标拆解。三源真实数据把热门话题筛�
 | Python 3.11（全局，含 playwright） | 全部脚本解释器（对齐 video/wechat 管线） | 已装 |
 | playwright + msedge | 打开视频页拦截 mp4 / 截图 | 已装（wechat 管线复用） |
 | faster-whisper | 原片本地中文转写 | `py -3.11 -m pip install faster-whisper` |
-| yxer CLI（蚁小二） | B/C 源拉取 | `npm i -g @yixiaoermail/cli` + 客户端在线 |
 
 ## 运行（两阶段：先选题，确认后再深挖）
 
@@ -46,7 +43,7 @@ description: 抖音选题 + 对标拆解。三源真实数据把热门话题筛�
 
 ```bash
 # ── Phase 1 选题（不下载）──
-make topic                 # 三源拉取 → 双系列评分 → Top 候选「假设大纲」
+make topic                 # 热榜拉取 → 双系列评分 → Top 候选「假设大纲」
                            # 产物: .douyin-topic/topics.md + rough_outlines/
 # 参数: make topic top=8   # 假设大纲候选条数（默认 5）
 
@@ -75,7 +72,7 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 | 系列 | 信号 | 运营目标 | 评分侧重 |
 |------|------|---------|---------|
 | 🔥 热度 | 热榜 ∩ 方向关键词 | 蹭热点求播放 | 热度增速 + 垂直匹配 |
-| 📈 涨粉 | 方向内话题（C 源） | 垂直建定位求关注 | 垂直匹配 + 竞争度 |
+| 📈 涨粉 | 上升榜 ∩ 方向搜索词 | 垂直建定位求关注 | 垂直匹配 + 竞争度 |
 
 潜力分 = `0.4×热度增速 + 0.3×垂直匹配 + 0.2×竞争度(反向) + 0.1×互动潜力`。规则详见 `references/scoring-guide.md`。热榜无命中时**诚实输出「今日无方向命中」**，不硬凑。
 
@@ -98,7 +95,7 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 ├── topic_keywords.json        方向关键词表（可编辑）
 ├── scripts/
 │   ├── pipeline.py            两阶段编排（phase1 选题 / phase2 深挖）
-│   ├── fetch_sources.py       A+B+C 三源拉取（含降级/缓存）
+│   ├── fetch_sources.py       免登录热榜拉取（主榜+上升榜，含缓存）
 │   ├── filter_score.py        方向过滤 + 双系列 + 潜力分
 │   ├── fetch_video.py         Playwright+msedge 拉代表视频/截图
 │   ├── transcribe.py          faster-whisper 转写
@@ -121,7 +118,7 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 抖音对「固定节奏 + 固定指纹」的自动化识别很严（实测：高频导航会弹滑块验证码）。脚本已内置扰动，**新增任何对 douyin.com / CDN 的请求或浏览器动作，必须保持以下随机性**：
 
 - **UA 池**：请求用 `UA_POOL` 随机取，禁止硬编码单一 UA（`fetch_sources.py` 定义，`fetch_video.py` 复用）
-- **请求间隔**：失败重试指数退避 + `random.uniform` 抖动；C 源逐词搜索之间 2.5–6.5s 随机停顿
+- **请求间隔**：失败重试指数退避 + `random.uniform` 抖动
 - **浏览器行为**（`fetch_video.py` 的 `_humanize`）：滚动次数/步长/间隔全随机、~25% 概率回滚、随机鼠标移动；视口尺寸每次会话随机（1410–1536 × 860–940）；页面等待 10s ± 3s 抖动
 - **节奏纪律**：一次会话不要连续多次导航；触发验证码后停止，等用户手动完成或等 10 分钟再试
 - 改动后跑 `py -3.11 -m py_compile scripts/fetch_sources.py scripts/fetch_video.py` 确认语法

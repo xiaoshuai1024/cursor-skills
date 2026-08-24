@@ -92,7 +92,7 @@ export const contentVideos: ContentVideoEntry[] = [
   {
     id: "claude-codex-context-compaction",
     title: "",
-    durationInFrames: 12191,
+    durationInFrames: 12354,
     fps: 60,
     width: 1920,
     height: 1080,

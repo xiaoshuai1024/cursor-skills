@@ -284,7 +284,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - **关闭**：`mascot: { enabled: false }` 一键关；旧 config 无 mascot 段照常渲染（已回归验证：差异仅在形象区）
 - **遮挡调优**：默认 `position: "bottom-right"` + `height: 210`（2026-08-24 四档标定定稿：真实表格景+结论景 × 180/210/240/270 双景视觉模型复核，240 起喧宾夺主、180 头顶符号偏小），形象区约 right 48/bottom 36 起、宽 280 高 370（含头顶符号带）。字幕 pill 居中（≤x1340）不冲突；若场景右下角有核心内容（数据卡/结论字），调 `height: 180` 缩小或 `position: "bottom-left"` 换边
 - **验收（强制）**：`python scripts/verify_render.py <mp4> 60 --mascot-check <说话帧> <静默帧> [--mood <表情A帧> <表情B帧>]`——形象区帧差 ≥0.5%（讲话面板+浮动）、表情带 ≥0.3%；本 change 实测讲话 13.41%/表情带 68.70%/段边界反应 15.48%
-- **双份同步约束**：封面 `scripts/yixiaoer/assets/mascot.svg` 与 `MascotFigure.tsx` 是同一形象两份实现，改几何必须两边同步（两文件头部注释互指）
+- **双份同步约束**：封面 `scripts/video/assets/mascot.svg` 与 `MascotFigure.tsx` 是同一形象两份实现，改几何必须两边同步（两文件头部注释互指）
 
 ### 字幕
 - **意群单元级**（不是句级）：`split_units` 拆成的短意群，每次显示一个完整短句，按单元时间戳跟随口播
@@ -508,7 +508,7 @@ graph 模式约 1-2 分钟渲染（5 段 ~1800 帧），courseware 约 10-12 分
 
 ## 封面(cover)
 
-视频发布时**不截视频帧**,而是专门生成一张标准封面(1920×1080),参考抖音知识区爆款风格(大字标题 + 高对比)。由 `scripts/yixiaoer/cover_template.html` + Playwright 截图程序化产出,全自动、可复用。
+视频发布时**不截视频帧**,而是专门生成一张标准封面(1920×1080),参考抖音知识区爆款风格(大字标题 + 高对比)。由 `scripts/video/cover_template.html` + Playwright 截图程序化产出,全自动、可复用。
 
 **统一标准(video-cover-standard):以 `after-million-loc-my-skills`(23-skill)封面为基准模板。** 任何视频走生成管线都必须产出同一视觉语言——大字双行主标题 + 青色关键词高亮 + 副标题 + 3 标签,不依赖人工逐张调参。封面质量可用像素签名验收(见下「像素验证」),不再凭肉眼。
 
@@ -574,7 +574,7 @@ v3 追加模板占位符：`{{DENSE_CLASS}}/{{KW_HTML}}/{{PTS_HTML}}/{{HERO_HTML
 
 ### 参数化(8 个占位符)
 
-模板用 Python 字符串替换(见 `scripts/yixiaoer/cover.py` 的 `build_cover_html`):
+模板用 Python 字符串替换(见 `scripts/video/cover.py` 的 `build_cover_html`):
 
 | 占位符 | 示例 | 来源 |
 |--------|------|------|
@@ -599,10 +599,10 @@ v3 追加模板占位符：`{{DENSE_CLASS}}/{{KW_HTML}}/{{PTS_HTML}}/{{HERO_HTML
 
 ```bash
 # 发布时自动触发,无需手动
-make publish-video slug=xxx
+make pub-video slug=xxx
 ```
 
-技术链路:`cover_video.py::load_meta()` 读 metadata.txt（新,含封面字段）+ 文章 front matter → `cover.py::generate_cover()` 读模板 → 替换 8 占位符 → Playwright 渲染 → 截图 1920×1080 → `video-generation/build/<slug>/<slug>_cover.png`（与视频同目录,渲染后自动产出）→ 发布时复用 → `yxer upload` 得 key → 按平台字段注入 payload。手动补生成单张: `make video-cover slug=<slug>`；发布管线优先取同目录 `build/<slug>/<slug>_cover.png`，缺失回退旧 `covers/` 目录（存量），都没有才现场生成到同目录。
+技术链路:`cover_video.py::load_meta()` 读 metadata.txt（新,含封面字段）+ 文章 front matter → `cover.py::generate_cover()` 读模板 → 替换 8 占位符 → Playwright 渲染 → 截图 1920×1080 → `video-generation/build/<slug>/<slug>_cover.png`（与视频同目录,渲染后自动产出）→ 发布时复用 → 自建上传器按平台字段注入。手动补生成单张: `make video-cover slug=<slug>`；发布管线优先取同目录 `build/<slug>/<slug>_cover.png`，缺失回退旧 `covers/` 目录（存量），都没有才现场生成到同目录。
 
 **横竖两版（2026-08-05 定规）**：`make video-cover` 同时产出两张封面——
 - `_cover.png`（1920×1080 横屏 16:9）→ 抖音 horizontalCover / 视频号 / 快手，内容在中央 4:3（左右 240px 安全区）
@@ -675,7 +675,7 @@ make video-cover-check slug=<slug>
     #tag3
 ```
 
-规则：`#` 顶格开头是注释；缩进（空格/制表符）开头的行是上一字段续行（简介/话题用 `\n` 连接）；`标题` / `简介` / `话题` 必填。读取统一走 `scripts/yixiaoer/meta.py::load_meta()`（txt → 旧 metadata.json → 文章 front matter 兜底）。发布描述 = 简介 + `\n\n` + 话题。
+规则：`#` 顶格开头是注释；缩进（空格/制表符）开头的行是上一字段续行（简介/话题用 `\n` 连接）；`标题` / `简介` / `话题` 必填。读取统一走 `scripts/pub/meta.py::load_meta()`（txt → 旧 metadata.json → 文章 front matter 兜底）。发布描述 = 简介 + `\n\n` + 话题。
 
 ## 发布到多平台（自建管线，2026-08-23 七字段定规）
 
@@ -732,4 +732,4 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 - **门禁**：状态检查返回非 0（未找到/状态异常）→ 禁止发布其余平台，先人工处理抖音后台。
 - 配套工具：`scripts/pub/douyin_delete_verified.py`（带弹窗全文安全阀+删除后验证的删除）、`scripts/pub/douyin_scan_works.py`（只读扫描）。
 
-**主管线**（`scripts/pub/publish.py`，抖音/视频号/B站通道 + 公众号 mp API）自动处理：封面横竖双版生成（复用 `scripts/yixiaoer/cover.py`）、**metadata lint 门禁**（`--confirm` 前跑，FAIL 拒发；lint 自身异常同样拒发，`--force` 逃生留痕）、标题裁剪、AI 声明、合集选择（抖音/视频号）、平台间隔风控缓冲（180-480s）、结果回收 link-map。**快手走 v2**（主管线 KSVideo 选择器过期待修）。⚠️ link-map 无文件锁——多平台并行发布时互相覆盖（2026-08-23 实证），串行发布或事后核对。
+**主管线**（`scripts/pub/publish.py`，抖音/视频号/B站通道 + 公众号 mp API）自动处理：封面横竖双版生成（复用 `scripts/video/cover.py`）、**metadata lint 门禁**（`--confirm` 前跑，FAIL 拒发；lint 自身异常同样拒发，`--force` 逃生留痕）、标题裁剪、AI 声明、合集选择（抖音/视频号）、平台间隔风控缓冲（180-480s）、结果回收 link-map。**快手走 v2**（主管线 KSVideo 选择器过期待修）。⚠️ link-map 无文件锁——多平台并行发布时互相覆盖（2026-08-23 实证），串行发布或事后核对。

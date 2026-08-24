@@ -170,7 +170,7 @@ def main() -> int:
 
     p1 = sub.add_parser("phase1", help="选题（不下载）")
     p1.add_argument("--top", type=int, default=5, help="生成假设大纲的候选数")
-    p1.add_argument("--no-cache", action="store_true", help="忽略缓存强制刷新三源")
+    p1.add_argument("--no-cache", action="store_true", help="忽略缓存强制刷新热榜")
 
     p2 = sub.add_parser("phase2", help="下载+拆解+可抄大纲")
     p2.add_argument("--group-id", required=True, help="代表视频 group_id")

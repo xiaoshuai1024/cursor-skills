@@ -5,7 +5,7 @@ import { useCurrentFrame } from "remotion";
  * MascotFigure - 终端小子(AI 形象)的 React 版单帧几何。
  *
  * 几何与表情/姿态/头顶符号组逐 path 同步自封面资产
- * scripts/yixiaoer/assets/mascot.svg(CSS 类互斥显隐版)。
+ * scripts/video/assets/mascot.svg(CSS 类互斥显隐版)。
  * 改几何时两处必须同步——封面走 CSS 类,这里走条件渲染。
  *
  * 与封面的差异:talking 态波形条即嘴——讲话时表情嘴隐去,嘴位 (y146-198) 显示

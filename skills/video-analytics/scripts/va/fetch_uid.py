@@ -36,7 +36,7 @@ def _norm(s: str) -> str:
 def load_meta_for(slug: str) -> dict | None:
     try:
         sys.path.insert(0, str(ROOT))
-        from scripts.yixiaoer.meta import load_meta
+        from scripts.pub.meta import load_meta
         return load_meta(slug)
     except BaseException:  # load_meta 失败会 sys.exit（SystemExit），一并吞掉
         return None
@@ -86,7 +86,7 @@ DUR_CACHE = common.DATA_DIR / "duration_cache.json"
 
 
 def _video_path(slug: str) -> Path | None:
-    """与 scripts/yixiaoer/publish_video.find_video 同规则（内联避免 import 链）。"""
+    """与 scripts/pub/publish.py 的 find_video 同规则（内联避免 import 链）。"""
     build = ROOT / "video-generation" / "build" / slug
     if build.exists():
         for name in (f"{slug}_light.mp4", f"{slug}_dark.mp4", f"{slug}.mp4"):

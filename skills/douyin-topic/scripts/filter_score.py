@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """方向过滤 + 双系列 + 潜力分评分（抖音选题 skill）。
 
-输入: fetch_sources 的汇总 dict（a/b/c 列表）
+输入: fetch_sources 的汇总 dict（a 列表 = 主榜 main + 上升榜 rising）
 处理:
-  1. 合并 A+B 热榜（按 word 去重，优先 B：B 有真实播放量）
-  2. 热榜 ∩ 方向关键词 → 🔥热度系列
-  3. C 源（方向内话题）→ 📈涨粉系列（存在性信号）
+  1. A 热榜按 word 去重（主榜优先）
+  2. 热榜 ∩ hot_list_match → 🔥热度系列
+  3. 上升榜 ∩ challenge_search → 📈涨粉系列
   4. 潜力分 = 0.4×热度 + 0.3×垂直匹配 + 0.2×竞争度(反向) + 0.1×互动
   5. 无命中 → 诚实输出「今日无方向命中」
 
@@ -18,7 +18,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any
 
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
@@ -35,20 +34,16 @@ def match_keywords(word: str, keywords: list[str]) -> list[str]:
     return [kw for kw in keywords if kw.lower() in lowered]
 
 
-def merge_hot_pool(a_items: list[dict], b_items: list[dict]) -> list[dict]:
-    """合并 A+B 热榜。按 word 去重，优先 B（真实播放量）。"""
+def dedup_hot_pool(a_items: list[dict]) -> list[dict]:
+    """热榜按 word 去重，主榜条目优先（上升榜同词不覆盖主榜数据）。"""
     merged: dict[str, dict] = {}
     for item in a_items:
-        merged[item["word"]] = item
-    for item in b_items:
-        merged[item["word"]] = item  # B 覆盖 A（B 有真实 view_count）
+        merged.setdefault(item["word"], item)
     return list(merged.values())
 
 
 def _heat_value(item: dict) -> float:
-    """热度原始值：C 源用 viewNum（相对活跃度），热榜用 view_count/hot_value。"""
-    if item.get("source") == "c":
-        return float(item.get("viewNum") or 0)
+    """热度原始值：热榜用 view_count/hot_value（上升榜缺 view_count 落到 hot_value）。"""
     return float(item.get("view_count") or item.get("hot_value") or 0)
 
 
@@ -96,16 +91,15 @@ def _interaction_score(item: dict) -> float:
 def score_item(item: dict, heat_max: float, matched: list[str]) -> dict:
     """给单个话题打分，返回带评分字段的副本。heat_max 按系列各自的最大热度值。"""
     heat = _heat_score(item, heat_max)
-    match = _match_score(matched)
     comp = _competition_score(item)
     inter = _interaction_score(item)
-    total = 0.4 * heat + 0.3 * match + 0.2 * comp + 0.1 * inter
+    total = 0.4 * heat + 0.3 * _match_score(matched) + 0.2 * comp + 0.1 * inter
     scored = dict(item)
     scored.pop("_hot_kws", None)
     scored.update({
         "score": round(total, 1),
         "heat": round(heat, 1),
-        "match": round(match, 1),
+        "match": round(_match_score(matched), 1),
         "comp": round(comp, 1),
         "inter": round(inter, 1),
         "matched_keywords": matched,
@@ -116,12 +110,11 @@ def score_item(item: dict, heat_max: float, matched: list[str]) -> dict:
 def build_topics(summary: dict, hot_kws: list[str], growth_kws: list[str]) -> dict:
     """从 fetch 汇总构建双系列选题清单。"""
     a_items = summary.get("a") or []
-    b_items = summary.get("b") or []
-    c_items = summary.get("c") or []
 
-    hot_pool = merge_hot_pool(a_items, b_items)
+    hot_pool = dedup_hot_pool(a_items)
     hot_max = max([_heat_value(i) for i in hot_pool] or [0])
-    c_max = max([_heat_value(i) for i in c_items] or [0])
+    rising_pool = [i for i in a_items if i.get("sub_board") == "rising"]
+    growth_max = max([_heat_value(i) for i in rising_pool] or [0])
 
     # 🔥 热度系列: 热榜 ∩ 方向关键词
     hot_scored = sorted(
@@ -132,11 +125,11 @@ def build_topics(summary: dict, hot_kws: list[str], growth_kws: list[str]) -> di
         key=lambda x: x["score"], reverse=True,
     )
 
-    # 📈 涨粉系列: C 源方向内话题（按 match_keyword 计垂直匹配，viewNum 相对活跃度）
+    # 📈 涨粉系列: 上升榜 ∩ 方向搜索词（热度上升期求关注转化）
     growth_scored = sorted(
         (
-            score_item(it, c_max, [it.get("match_keyword") or ""])
-            for it in c_items
+            score_item(it, growth_max, match_keywords(it["word"], growth_kws))
+            for it in rising_pool if match_keywords(it["word"], growth_kws)
         ),
         key=lambda x: x["score"], reverse=True,
     )
@@ -176,12 +169,13 @@ def render_markdown(topics: dict) -> str:
         )
 
     growth = topics["series"]["growth"]
-    lines.append("\n## 📈 涨粉系列（方向内话题，求关注转化）")
+    lines.append("\n## 📈 涨粉系列（上升榜 ∩ 方向，求关注转化）")
     if not growth:
-        lines.append("- 方向内无话题（已尝试关键词: " + "、".join(topics["no_hit"]["growth_tried_keywords"][:8]) + "）")
+        lines.append("- 上升榜无方向命中（已尝试关键词: " + "、".join(topics["no_hit"]["growth_tried_keywords"][:8]) + "）")
     for item in growth[:12]:
+        heat = item.get("hot_value") or "-"
         lines.append(
-            f"- [{item['score']}] {item['word']} | 匹配词 {item.get('match_keyword', '')} | 存在性 {item.get('viewNum', '-')}"
+            f"- [{item['score']}] {item['word']} | 热度 {heat} | 命中 {','.join(item['matched_keywords'][:2])}"
         )
 
     if topics.get("notes"):

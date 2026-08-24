@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-"""三源真实数据拉取（抖音选题 skill）。
+"""抖音热榜数据拉取（免登录公开 API，单源自足）。
 
-A 源: 抖音搜索热榜 API（免登录免签名）-> word_list(51) + trending_list(5 上升)
-B 源: yxer query hot-events（蚁小二官方，账号已绑定）-> 热榜 + 真实播放量
-C 源: yxer query challenges --query（方向关键词搜抖音话题）
+A 源: 抖音搜索热榜 API（免登录免签名）-> word_list(主榜) + trending_list(上升榜)
+      主榜供 🔥热度系列，上升榜供 📈涨粉系列（2026-08-24 起随多源剥离承接）。
 
 设计决策（探索阶段实证）:
-- A 源异常自动降级 B（双源兜底，抗签名收紧）
+- 仅用免登录公开 API，不依赖任何需登录/第三方 SaaS 的查询通道
 - 结果缓存 5-10 分钟，避免打爆接口
-- 账号 id 动态解析（yxer accounts list），不硬编码
-- A 源 hot_value/view_count 间歇性为 0，作为可选字段透传
-- C 源 viewNum 量级小，仅作「方向内存在性」信号
+- hot_value/view_count 间歇性为 0，作为可选字段透传（评分侧记中性分）
+- 浏览器指纹池随机 UA + 随机退避，避免固定节奏被风控识别
 """
 from __future__ import annotations
 
@@ -18,7 +16,6 @@ import argparse
 import json
 import os
 import random
-import subprocess
 import sys
 import time
 import urllib.parse
@@ -114,37 +111,6 @@ def _http_get_json(url: str, retries: int = 1) -> dict:
     raise last_exc
 
 
-def yxer(*args: str) -> dict:
-    """执行 yxer CLI（蚁小二），返回 JSON 结果。"""
-    result = subprocess.run(
-        ["yxer", *args, "--json"],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
-        shell=sys.platform == "win32",  # Windows .cmd 需 shell; POSIX 直接调用(yxer 是可执行)
-    )
-    if result.returncode != 0:
-        return {"ok": False, "error": {"message": (result.stderr or result.stdout)[:300]}}
-    try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return {"ok": False, "error": {"message": f"非 JSON 输出: {result.stdout[:200]}"}}
-
-
-def resolve_douyin_account_id() -> tuple[Optional[str], str]:
-    """动态解析抖音在线账号 id。返回 (account_id, error_msg)。"""
-    resp = yxer("accounts", "list")
-    if not resp.get("ok"):
-        return None, f"yxer accounts list 失败: {resp.get('error', {}).get('message', '')}"
-    accounts = resp.get("data") or []
-    for acct in accounts:
-        platform_name = acct.get("platformName", "") or ""
-        if "抖音" in platform_name and acct.get("status") == 1:
-            return acct.get("id"), ""
-    return None, "抖音账号未找到或未在线（status!=1），请在蚁小二后台检查"
-
-
 def cache_get(key: str) -> Optional[dict]:
     """读缓存（未过期则返回 dict，否则 None）。"""
     path = CACHE_DIR / f"{key}.json"
@@ -219,136 +185,35 @@ def _cover_url(cover: Optional[dict]) -> Optional[str]:
     return url_list[0] if url_list else None
 
 
-# ---------- B 源: yxer hot-events ----------
-
-def fetch_b(account_id: str, use_cache: bool = True) -> tuple[list[dict], str]:
-    """拉取 B 源（hot-events 热榜）。返回 (items, error_msg)。"""
-    if use_cache:
-        cached = cache_get("source_b")
-        if cached is not None:
-            return cached, ""
-    resp = yxer("query", "hot-events", account_id)
-    if not resp.get("ok"):
-        return [], f"yxer query hot-events 失败: {resp.get('error', {}).get('message', '')}"
-    items: list[dict] = []
-    for entry in (resp.get("data") or {}).get("list") or []:
-        raw = entry.get("raw") or {}
-        items.append({
-            "word": entry.get("yixiaoerName") or raw.get("word", ""),
-            "group_id": raw.get("group_id"),
-            "word_cover": entry.get("yixiaoerImageUrl") or raw.get("word_cover"),
-            "hot_value": raw.get("hot_value"),
-            "view_count": entry.get("viewNum"),
-            "event_time": raw.get("event_time"),
-            "video_count": raw.get("video_count"),
-            "discuss_video_count": raw.get("discuss_video_count"),
-            "label": raw.get("label"),
-            "sub_board": "main",
-            "source": "b",
-        })
-    if use_cache:
-        cache_set("source_b", items)
-    return items, ""
-
-
-# ---------- C 源: yxer challenges（方向词搜索） ----------
-
-def fetch_c(account_id: str, keywords: list[str], use_cache: bool = True) -> list[dict]:
-    """逐词搜索方向话题（challenges）。C 源 viewNum 仅作存在性信号。"""
-    if use_cache:
-        cached = cache_get("source_c")
-        if cached is not None:
-            return cached
-    items: list[dict] = []
-    seen: set[str] = set()
-    for idx, kw in enumerate(keywords):
-        resp = yxer("query", "challenges", account_id, "--query", kw)
-        if not resp.get("ok"):
-            continue
-        for entry in (resp.get("data") or {}).get("list") or []:
-            word = entry.get("yixiaoerName") or ""
-            if not word or word in seen:
-                continue
-            seen.add(word)
-            items.append({
-                "word": word,
-                "viewNum": entry.get("viewNum"),
-                "image_url": entry.get("yixiaoerImageUrl"),
-                "match_keyword": kw,
-                "source": "c",
-            })
-        # 词与词之间随机停顿 2.5-6.5s，模拟真人逐个搜索（固定节奏是反爬特征）
-        if idx < len(keywords) - 1:
-            time.sleep(random.uniform(2.5, 6.5))
-    if use_cache:
-        cache_set("source_c", items)
-    return items
-
-
 # ---------- 汇总 ----------
 
-def fetch_all(keywords: list[str], use_cache: bool = True) -> dict[str, Any]:
-    """三源并行拉取，A 异常降级 B。返回汇总 dict。"""
+def fetch_all(use_cache: bool = True) -> dict[str, Any]:
+    """拉取热榜数据（免登录单源）。返回汇总 dict。"""
     summary: dict[str, Any] = {
         "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "a_ok": False, "b_ok": False, "c_ok": False,
-        "a": [], "b": [], "c": [],
+        "a_ok": False,
+        "a": [],
         "notes": [],
     }
-
-    # A 源（免登录，最优先）
     try:
         summary["a"] = fetch_a(use_cache=use_cache)
         summary["a_ok"] = True
     except Exception as exc:
-        summary["notes"].append(f"A 源失败，降级 B 源: {str(exc)[:120]}")
-
-    # 账号 id
-    account_id, acct_err = resolve_douyin_account_id()
-    if not account_id:
-        summary["notes"].append(f"B/C 源跳过: {acct_err}")
-        return summary
-
-    # B 源
-    b_items, b_err = fetch_b(account_id, use_cache=use_cache)
-    if b_err:
-        summary["notes"].append(b_err)
-    else:
-        summary["b"] = b_items
-        summary["b_ok"] = True
-
-    # C 源
-    try:
-        summary["c"] = fetch_c(account_id, keywords, use_cache=use_cache)
-        summary["c_ok"] = True
-    except Exception as exc:
-        summary["notes"].append(f"C 源失败: {str(exc)[:120]}")
-
+        summary["notes"].append(f"A 源失败: {str(exc)[:160]}")
     return summary
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="三源拉取抖音热榜/话题数据")
+    parser = argparse.ArgumentParser(description="拉取抖音热榜数据(免登录公开 API)")
     parser.add_argument("--out", default=None, help="输出 JSON 文件路径（默认 stdout）")
     parser.add_argument("--no-cache", action="store_true", help="忽略缓存强制刷新")
-    parser.add_argument("--keywords-file", default=None,
-                        help="方向关键词 JSON（默认取 topic_keywords.json 的 challenge_search）")
     args = parser.parse_args()
 
-    keywords_file = args.keywords_file or str(
-        Path(__file__).resolve().parent.parent / "topic_keywords.json"
-    )
-    try:
-        kw_conf = json.loads(Path(keywords_file).read_text(encoding="utf-8"))
-        keywords = kw_conf.get("challenge_search") or []
-    except (OSError, json.JSONDecodeError):
-        keywords = []
-
-    result = fetch_all(keywords, use_cache=not args.no_cache)
+    result = fetch_all(use_cache=not args.no_cache)
     text = json.dumps(result, ensure_ascii=False, indent=2)
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
-        print(f"✅ 数据已写入 {args.out}（a:{len(result['a'])} b:{len(result['b'])} c:{len(result['c'])}）")
+        print(f"✅ 数据已写入 {args.out}（a:{len(result['a'])}）")
     else:
         sys.stdout.write(text + "\n")
     return 0

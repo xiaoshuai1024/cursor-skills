@@ -104,21 +104,28 @@ INFO_RULES: dict[str, list[str]] = {
 _FILE_EXTS = {".md", ".txt", ".json", ".py", ".html"}
 
 
+_KV_LINE = re.compile(r"^[A-Za-z0-9_一-鿿]+[：:]\s*")
+
+
 def _scan_text(text: str, source: str, platform: str, report: list[dict]) -> None:
     lines = text.splitlines()
     for lineno, line in enumerate(lines, 1):
+        # 键值行(如 metadata.txt 的「标题_B站: …」)只扫值部分——键名是字段名不会发布，
+        # 否则平台变体键名里的「B站」会被平台名导流规则误判(metadata-optimization 后的交叉盲区)
+        kv = _KV_LINE.match(line)
+        scan_part = line[kv.end():] if kv else line
         for cat, words in COMMON_HIGH.items():
             for w in words:
-                if w in line:
+                if w in scan_part:
                     report.append({"级别": "HIGH", "平台": "通用", "类别": cat, "词": w, "位置": f"{source}:{lineno}", "行": line.strip()[:60]})
-        if "最" in line:
-            if _MOST_COMMERCIAL.search(line):
+        if "最" in scan_part:
+            if _MOST_COMMERCIAL.search(scan_part):
                 report.append({"级别": "HIGH", "平台": "通用", "类别": "①极限词-最字", "词": "最+商业词", "位置": f"{source}:{lineno}", "行": line.strip()[:60]})
-            elif _MOST_NEUTRAL.search(line):
+            elif _MOST_NEUTRAL.search(scan_part):
                 report.append({"级别": "MEDIUM", "平台": "通用", "类别": "⑨最+技术词(人工判)", "词": "最+中性词", "位置": f"{source}:{lineno}", "行": line.strip()[:60]})
         for cat, words in MEDIUM_WORDS.items():
             for w in words:
-                if w in line:
+                if w in scan_part:
                     report.append({"级别": "MEDIUM", "平台": "通用", "类别": cat, "词": w, "位置": f"{source}:{lineno}", "行": line.strip()[:60]})
         # 平台层：只扫目标平台（all = 全部平台都扫）
         for pf, pf_words in PLATFORM_HIGH.items():
@@ -126,7 +133,7 @@ def _scan_text(text: str, source: str, platform: str, report: list[dict]) -> Non
                 continue
             for cat, words in pf_words.items():
                 for w in words:
-                    if w in line:
+                    if w in scan_part:
                         report.append({"级别": "HIGH", "平台": PLATFORM_NAMES[pf], "类别": cat, "词": w, "位置": f"{source}:{lineno}", "行": line.strip()[:60]})
 
 

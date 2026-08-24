@@ -120,7 +120,7 @@ async function main() {
   // PYTHON 环境变量指定解释器（Makefile 已传 Python311 绝对路径，内置 playwright）
   try {
     execSync(
-      `${process.env.PYTHON || "python"} -m scripts.yixiaoer.cover_video --slug ${videoId}`,
+      `${process.env.PYTHON || "python"} -m scripts.video.cover_video --slug ${videoId}`,
       {
         stdio: "inherit",
         cwd: projectRoot,

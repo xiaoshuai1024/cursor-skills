@@ -120,7 +120,7 @@ def record_error(platform: str, message: str) -> None:
 
 
 def crop_title_inline(title: str, max_len: int) -> str:
-    """与 scripts/yixiaoer/publish_video.crop_title 同口径（内联避免拖入发布管线 import 链）。"""
+    """与 scripts/pub/meta.py 的 crop_title 同口径（内联避免拖入发布管线 import 链）。"""
     if len(title) <= max_len:
         return title
     for sep in ["：", ":", "—", "-", "，", ","]:

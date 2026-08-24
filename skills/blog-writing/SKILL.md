@@ -173,7 +173,7 @@ print(f\"{'✅' if ok else '❌'} {slug}: {cn}字[{band}] / {imgs}图(需≥{quo
 
 ### 第 10 步:生成图文版(小红书/抖音) — 已归档
 
-> ⚠️ **2026-08 已归档**:图文发布管线(`scripts/xiaohongshu/`、`scripts/douyin/`、`image-text/`、`scripts/yxer_publish.py` 及对应 Makefile 目标)已整体删除,仓库不再生成/发布小红书、抖音图文版。历史内容与旧命令见 git 历史。卡片**设计规范**仍保留在 `image-text-cards` skill 供参考。
+> ⚠️ **2026-08 已归档**:图文发布管线(`scripts/xiaohongshu/`、`scripts/douyin/`、`image-text/`、旧第三方发布脚本 及对应 Makefile 目标)已整体删除,仓库不再生成/发布小红书、抖音图文版。历史内容与旧命令见 git 历史。卡片**设计规范**仍保留在 `image-text-cards` skill 供参考。
 
 ---
 
