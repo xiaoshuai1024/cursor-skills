@@ -94,3 +94,9 @@ make analytics-report             # 标准化 → 诊断 → 报告
 - B站：任意 Python（stdlib urllib）
 - ffprobe（时长兜底匹配用）
 - Windows：`PYTHONIOENCODING=utf-8`（Makefile 已带）
+
+## 时间序列库（2026-08-28 定规，analytics-timeseries-db）
+
+**每日采集后跑 `make analytics-ts`**：snapshots JSONL → SQLite（`data/analytics/timeseries.db`，gitignore）UPSERT 每日一行/视频/平台 → 生成 `timeseries-report.md`（进 git：最近 5 条视频今日 vs 昨日 Δ + 发布以来趋势，含播放/点赞/评论/涨粉/完播率/3 秒跳出）。
+- `py -m va.ts_db import` 幂等（同日重跑覆盖）；deep/fans 子目录快照并入（涨粉/跳出率来源）。
+- 趋势判断纪律：累积 ≥7 个采集日后做趋势结论；`py -m va.ts_db query "SELECT ..."` 只读 SQL 逃生舱。
