@@ -11,11 +11,13 @@
   },
   "dependencies": {
     "@react-three/fiber": "^9.6.1",
-    "@remotion/cli": "4.0.502",
-    "@remotion/three": "4.0.502",
+    "@remotion/cli": "4.0.517",
+    "@remotion/three": "4.0.517",
+    "codehike": "^1.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "remotion": "4.0.502",
+    "remotion": "4.0.517",
+    "shiki": "^4.4.3",
     "three": "^0.168.0"
   },
   "devDependencies": {

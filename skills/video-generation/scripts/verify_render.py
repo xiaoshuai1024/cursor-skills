@@ -37,7 +37,7 @@ TMP = Path(__file__).resolve().parent.parent / ".tmp-verify"
 
 # 形象伴随层默认包围盒（右下角 240px 高形象 + 头顶符号 + bob/反应余量），
 # 覆盖 bottom 24-420 / right 0-320 区域；position/height 非默认时用 --box 覆盖
-MASCOT_BOX = (1600, 660)   # (x0, y0)，x1/y1 由帧尺寸推导（右下角锚定）
+MASCOT_BOX = (0, 620)      # (x0, y0)，x1/y1 由帧尺寸推导（左下角锚定，openspec video-mascot-placement；宽 0..320 盖 left48+形象带）
 
 
 def video_frames(video: Path) -> int:

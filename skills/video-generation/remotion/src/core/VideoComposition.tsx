@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, Sequence, useVideoConfig, Audio, staticFile } from "remotion";
 import type { SfxConfig, VideoConfig } from "./types";
 import { DEFAULTS, DEFAULT_SFX, DEFAULT_MASCOT, mergeTheme } from "./types";
-import { setCurrentTheme, getCurrentTheme } from "./theme";
+import { setCurrentTheme, getCurrentTheme, defaultTheme } from "./theme";
 import { SubtitleOverlay } from "./SubtitleOverlay";
 import { TechBackground } from "../primitives/TechBackground";
 import { MascotCompanion } from "../primitives/MascotCompanion";
@@ -106,29 +106,9 @@ export const VideoComposition: React.FC<{ config: VideoConfig }> = ({
 }) => {
   const videoConfig = useVideoConfig();
 
-  // 初始化 theme(只在第一帧做,避免每帧重算)
+  // 初始化 theme(只在第一帧做,避免每帧重算);默认值单源 theme.ts(与 palette.py 对齐)
   const theme = React.useMemo(
-    () =>
-      mergeTheme(
-        {
-          colors: {
-            background: "#0a0e1a",
-            backgroundAlt: "#0a1929",
-            accent: "#00d9ff",
-            text: "#ffffff",
-            textMuted: "#94a3b8",
-            error: "#dc2626",
-            success: "#0f766e",
-            highlight: "#dbeafe",
-          },
-          fonts: {
-            chinese: '"Source Han Sans SC", "Noto Sans SC", sans-serif',
-            english: '"Orbitron", sans-serif',
-            mono: '"JetBrains Mono", monospace',
-          },
-        },
-        config.themeOverrides,
-      ),
+    () => mergeTheme(defaultTheme, config.themeOverrides),
     [config.themeOverrides],
   );
 

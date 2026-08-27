@@ -19,6 +19,8 @@ import {
   mascotSize240Config,
   mascotSize270Config,
 } from "./videos/mascot-size/config";
+import { CodewalkProbeComposition } from "./videos/codewalk-probe/CodeWalkDemo";
+import { ScreenshotZoomComposition } from "./videos/screenshot-probe/ScreenshotZoomDemo";
 // 内容视频（git 忽略的 .video-generation/remotion-videos/ 下，按需加载）：
 // 由 scripts/sync-content-videos.ts 扫描生成注册表，缺失配置不会进入打包。
 import { contentVideos } from "./videos/content-videos";
@@ -66,6 +68,9 @@ export const RemotionRoot: React.FC = () => {
           defaultProps={{ config: cfg }}
         />
       ))}
+      {/* codewalk 模式小样（独立验证件，不走 VideoConfig 注册表） */}
+      <CodewalkProbeComposition />
+      <ScreenshotZoomComposition />
       {contentVideos.map((v) => (
         <Composition
           key={v.id}

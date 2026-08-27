@@ -8,11 +8,11 @@ description: 把技术博客文章/主题生成为横屏 16:9 视频。三种模
 把一篇技术博客文章 / 一个技术主题生成为**横屏 16:9 视频**。三种程序化模式：
 
 - **remotion（默认）**：数据可视化 + 真实素材——深色科技网格底 + 真实数据图表 + 素材标注，适合发布速报、性能对比、教程步骤（Remotion 管线，`remotion/` 目录）。**默认主题，参照 `after-million-loc-my-skills.mp4`**
-- **courseware**：课件式——左栏要点逐条浮现 + 右栏知识卡片 + 底部字幕带（Playwright 管线）
+- **courseware**：课件式——左栏要点逐条浮现 + 右栏知识卡片（或 flow 流程图逐节点动画）+ 底部字幕带（Playwright 管线）。**全元素动画 + 主锚联动零配置自动带**（2026-08-25 起，见「动画与特效强制规范」）：口播分句驱动每个元素的出生帧，要点弹入/知识卡 spring/标题条与进度条脉冲/字幕上滑同拍联动，flow 卡的节点弹出+连线生长+跑线扫光+逐字标签讲到哪步动到哪步
 - **screencast（courseware 子模式）**：屏录感工具界面——**浏览器真实网页截图打底 + 箭头标注是主角**（`realshot`：任何能在浏览器里呈现的步骤都截图，官网 / 市场 / GitHub / 控制台 / 在线编辑器都行），CSS 仿真窗口（VSCode mockup / 终端）只在浏览器截不到时才兜底（本地桌面应用、需登录态的真实界面）。标题栏下方**顶部常显步骤条**（全部步骤：done/active/future 三态），`active_idx` 高亮当前操作 + 光标箭头，对标抖音「录屏+标注」爆款（Ai小白Lab 26.2 万赞）。deck 卡 `type:"tool"` 即触发
 - **graph**：节点图/知识图谱——中心辐射布局，节点逐个高亮 + 连线生长，适合概念关系/体系架构（Playwright 管线）
 
-三种模式共用 TTS/断句/字幕规则（`narrate.py`）。数据 → edge-tts 配音 + 程序化画面渲染 + FFmpeg 合成。零收费、全本地。
+三种模式共用 TTS/断句/字幕规则（`narrate.py`）。数据 → 程序化画面渲染 + FFmpeg 合成。零收费、全本地。配音分两档：**发布视频默认 IndexTTS-2 克隆声（严格标点断句管线，见「默认口播配置：IndexTTS-2 克隆 + 严格标点断句」）**；edge-tts 为快速预览与 fallback。
 
 ## 目录结构（skill 存代码，产物落项目根）
 
@@ -86,28 +86,73 @@ video-generation/                        ← 项目根：所有内容配置 + �
    - **转场**：逐场景指定类型（15 种：`rotate3d/fade/slide/slideRight/wipe/wipeUp/flip/clockWipe/iris/pushCut/glitch/flash/whipPan/lightLeak/ripple/crossWarp`，见 `transitions/TransitionFrame.tsx`），章节边界必设，同章节内硬切省预算
    - 口播稿中以 `【钩子①】【回收①】【SFX:成功音】【BGM:tense】【转场:whipPan】` 式标记内联，喂管线时转成 config 的 `sfx.bgmMood` / `questionFrames` / `scenes[].transitionType`
 
-**每支视频成片前 checklist（2026-08-24 定规，七项全过才许渲染，任一不过先改稿/改 config）**：
+**每支视频成片前 checklist（2026-08-24 定规，⑧⑨ 为发布前门禁；任一不过先改稿/改 config）**：
 
 - [ ] **① 提问式开头**：第一句口播 = 固定引导语（「问你一个问题」/「你有没有想过」二选一）+ ≤20 字问句（痛点/反常识，无「凭什么」）；该问题在正文有明确回答（记下回答的时间码）
-- [ ] **② 钩子已埋**：钩子→回收映射表已附（编号 + 埋点时间码），含标题暗示的隐性钩子也入表；表为空 = 重写开头
+- [ ] **② 钩子已埋**：钩子→回收映射表已附（编号 + 埋点时间码），含标题暗示的隐性钩子也入表；表为空 = 重写开头；**「15s 兑现位」列非空**（前 15 秒内兑现的硬信息位置——数字/结论/对比至少其一，openspec douyin-featured-selection）
 - [ ] **③ 钩子已消费**：映射表每行的回收时间码非空——没回收点的钩子不许埋；每个回收时刻有视觉强调（字卡 / 高亮 / 专属音效至少其一）
 - [ ] **④ BGM**：分镜表 BGM 列逐场景非空，情绪档在六档内（tense/walk/focus/bright/epic/calm）；章节换档处标了情绪切换点
 - [ ] **⑤ 音效**：开场音、提问音（`questionFrames` 全片 2~4 个）、章节转场音、关键动作音（安装成功/报错/打字等）四类全覆盖，config 的 `sfx` 段落齐全
 - [ ] **⑥ 转场**：分镜表转场列逐场景有类型（15 种之内），章节边界必设；同章节内不滥用（硬切省预算）
-- [ ] **⑦ 内容动画**：deck 卡片入场 / 代码高亮 / 图表数字生长 / 字卡弹出至少覆盖主要场景，无 >10s 纯静态画面（对齐 M1：每 5-10 秒一个视觉变化）；「内容动画继续」= 动画在内容推进全程持续，不许只做片头
+- [ ] **⑦ 内容动画**：deck 卡片入场 / 代码高亮 / 图表数字生长 / 字卡弹出至少覆盖主要场景，无 >10s 纯静态画面（对齐 M1：每 5-10 秒一个视觉变化）；「内容动画继续」= 动画在内容推进全程持续，不许只做片头。**全元素 + 联动硬规**（2026-08-25）：每个内容元素有动画（入场/换态/强调至少其一），每次讲解节拍联动 ≥3 元素、反馈 ≤3 帧，流程图框线文字三件套同拍——细则见「动画与特效强制规范」
 - [ ] **⑧ Metadata（标题/简介/话题，发布前查）**：
   - **标题**：过 metadata-optimizer 7 项清单（可识别实体/真实数字/清晰动词/后果人群/标点转折/权威钩子/概念包装）**≥4 合格**；事实边界——素材里没有的事实（刚刚/首个/第一/榜单数字）不得出现；平台变体（`标题_抖音` 等）不超该平台 title_max（抖音 30 / 快手 50 / B站 80 字）
   - **简介**：首句三拍（当前不适 → 更好愿景 → 行动路径）；结尾含互动问题；公众号 digest ≤129 字
   - **话题**：用 topic_suggest 推荐后再定（不拍脑袋），各平台数量不超配额（抖音 4 / 快手 3 / B站 6 / 视频号 10）
   - **门禁**：`make metadata-lint slug=<slug>` 跑到绿（FAIL 项必修：硬截断/词中断/结构红线；WARN 酌情）；发布文案再过 platform-compliance 违禁词扫描
+- [ ] **⑨ 互动引导（发布前查，openspec video-engagement-cta）**：主 CTA 已按内容类型选定（教程/工具/避坑→收藏、观点/拆解→点赞、B站→三连）；结尾四段结构就位（单动作引导在签名句之前、价值锚定 ≤15 字、互动段 ≤10s、**CTA 句字幕默认在场**）；平台变体过「平台 × 露出面」矩阵（抖音全链路无「评论区」三字、无「点赞关注」连用、简介无动作指令词；视频号无转发引导）；置顶评论文案已备稿（发布后 1h 内发）
+- [ ] **⑩ 完播纪律（冲精选，openspec douyin-featured-selection）**：选题三问有档（获得感/惊喜感/共鸣感，全空 = 重做选题）；成片 ≤120s（120-150s lint WARN、>150s 无「豁免_时长」**FAIL 拒发**，豁免填拆系列论证）；前 15s 硬信息兑现位在钩子映射表有标注（见 ②）
 
-> 执行时机：①-③ 口播稿定稿时查，④-⑥ 分镜/config 定稿时查，⑦ 渲染前 deck 检查，⑧ 发布前查；与 directives 自查同批做。
+> 执行时机：①-③ 口播稿定稿时查，④-⑥ 分镜/config 定稿时查，⑦ 渲染前 deck 检查，⑧-⑩ 发布前查（⑩ 的选题三问在定稿时查、时长在成片后查）；与 directives 自查同批做。自查通过 ≠ 可渲染——checklist 全过后还须过「渲染前用户确认」门禁（完整稿呈用户审阅，见「规则约束 → 渲染前用户确认」）。
+
+> **发布窗口（2026-08-26 用户定规）**：视频一律 **晚上 20:00 发布**，不再中午发（渲染/自查可在白天完成，定时任务挂 20:00 出片）。黄金档依据：晚 8 点是各平台流量峰，中午发完播数据持续偏低。**定时用平台侧 `--schedule`**：`py -3.11 -m scripts.pub.publish --slug <slug> --platforms douyin --confirm --schedule "YYYY-MM-DD 20:00"`（抖音服务器定时发布，电脑休眠/会话结束不影响；白天挂好晚上自动出片——不要用本地 cron/长等待方案）。注意本机 PATH 的 `python` 指向 hermes venv（无 patchright），发布一律 `py -3.11`。**发布流程 = 白天挂定时 → 20:00 出片 → 归档**（2026-08-26 补定规）：**四平台挂全才算「定时挂好」**（2026-08-27 定规：抖音/快手/B站/视频号一个不少、不分先后，收尾自检见「全平台发布与逐平台状态确认」，只挂了部分平台不许归档收尾）；定时挂好即归档本视频相关、tasks 已全勾的 openspec 变更（移入 `openspec/changes/archive/YYYY-MM-DD-<name>/`），不留尾巴。
+
+> **每日一篇原则（2026-08-27 用户定规，优先级最高）**：**每天 20:00 只发布一个视频**；已有定时排队的视频，新片往后排队到第二天 20:00。定时挂好前先查队列（抖音创作中心「定时发布」tab 有无当日卡）；发布冲突时用「修改定时」顺延旧卡（比删除重传温和——不用 build 目录来回搬），删除/取消定时后再归档的走 README 变更日志登记。**实战教训（同日沉淀）**：① 抖音定时卡会重复积累（同一视频多次提交各占一卡），撤卡后必须用只读清单复核到 0 才算撤干净；② **上传器日志虚报实锤两处**——`douyin_delete_scheduled.py` 报「删除成功」实际没删（DOM 匹配失效）、publish 报 `ok:true` 但快手卡没挂上——**一切以平台侧回读为准**：抖音用 check_status、快手/B站/视频号进管理页实读卡片与「定时发布中」标记；③ `publish.py` 的结果回收是**整条覆盖** link-map（单平台补发会冲掉其他平台历史记录，已人工修复一次）——补发后核对 results 完整性，待修合并逻辑；④ B站验证双轨：网页 cookie（`bilibili.json`，会过期）与 biliup 登录态（`biliup login` 写入的 cookie_info 格式，SESSDATA 长效）是两套——网页跳扫码页 ≠ 投稿失败；用 biliup cookie_info 的 SESSDATA 提取后以完整属性（domain 缺省 .bilibili.com、secure、sameSite）挂浏览器进管理页实读即免扫码核验；B站公开搜索（标题+发布时间+播放数）是无登录旁证；⑤ 无 TTY 环境（后台任务）跑 `biliup login` 直接退出且二维码不可见——B站重新登录必须真实终端前台跑 `~\.social-auto-upload	oolsiliup\windows-x86_64iliup.exe -u scripts\pub\cookiesilibili.json login`（PATH 里的 pip 同名 biliup 是另一个包，勿用）。
 
 ### 签名与品牌露出（2026-08-24 用户定规，与三要素配套执行）
 
 - **开头 / 钩子后不放自我介绍**：黄金秒数全部留给钩子与结论；提问式开头的固定引导语（问你一个问题 / 你有没有想过）就是听觉签名，不另报名字（调研结论：开头介绍杀 5s 留存，转粉发生在结尾价值兑现后）。
-- **结尾固定签名句**：收尾段价值交付完、最后一句话固定为 **「我是1024工程笔记，干工程的活，记工程的账。」** 全系列同款，字幕 + 片尾字卡双露出；中性口径，**禁止**在其后追加「关注我 / 点关注」类诱导词（平台合规 HIGH）。
+- **结尾固定签名句**：收尾段价值交付完、最后一句话固定为 **「我是1024工程笔记，越基础的东西，越值得讲透。」**（2026-08-26 用户定稿，替代旧句「干工程的活，记工程的账」——旧句身份陈述无钩子，新句是反直觉工程价值观：大家抢热点我讲基础，给选题预期 + 内容颗粒度承诺）全系列同款，字幕 + 片尾字卡双露出；签名句永远是最后一句，其后不再有任何话。
+  - **「1024」读法 = 逐位「一零二四」（2026-08-26 定规）**，TTS 默认把 1024 读成「一千零二十四」，错。已固化在配音链：edge-tts/courseware 走 `tts.py::normalize_for_tts`、IndexTTS 克隆链走 `synth_indextts.py`（均只定向替换「1024工程笔记」短语，字幕仍显示「1024」）；Seed-VC fallback 复用 normalize_for_tts 自动生效。写口播稿照常写「我是1024工程笔记」，读音管线自动纠正。
+  - **签名句前允许合规求关注（2026-08-26 修订）**：位置固定在签名句之前（互动引导段之后），与主 CTA 二选一或合并成一句（合计仍 ≤10s、单动作）——即结尾结构为「价值兑现 → 互动问题 → 关注/动作引导（合规矩阵）→ 签名句」。平台变体：**B 站可硬**（「三连加关注，下期接着拆」，官方功能容忍度最高）；**抖音/快手走价值锚定软表达**（「这系列每周都更，怕刷不到，点个关注」——单独「关注」可过，禁与「点赞」连用；敏感期降险改描述式「主页能找到这个系列」，无动作词）；**视频号**可「点个关注，下期接着讲」（禁的是转发引导）；全部禁利益交换/诅咒/无意义互动指令（见下方合规矩阵）。
 - **视觉层品牌由右下角伴随机器人承担**（见「形象伴随层」），**不加常驻文字水印**——机器人在，名字就在。
+
+### 互动与转化引导（合规矩阵，2026-08-24 定规，openspec video-engagement-cta）
+
+> 调研结论：四平台一致允许**价值锚定式温和引导**（动作词挂在内容价值上，如「先收藏，下次配置的时候照着走」），一致禁止四类诱导——①利益交换（抽奖/福利换互动）②诅咒/道德绑架（不点赞会倒霉 / 不三连者…）③无意义互动指令（扣 666 / 拍了 / 想要）④刷量。平台差异：B 站容忍度最高（三连是官方功能），视频号禁止转发引导（微信「禁止诱导分享」红线，官方已处理 25 万+条诱导骗赞），抖音最严（仓库实锤：「评论区」三字 + 「点赞关注」连用均高危）。
+
+- **结尾四段结构（每支视频强制）**：价值兑现 → 互动问题 → **单动作引导**（价值锚定一句 ≤15 字）→ 签名句定格。互动问题 + 动作引导合计 ≤10s，**一次只引导一个动作**（B 站三连算一个）——连招点名（「点赞收藏关注」依次求）=「点赞关注」连用 HIGH + 体验差，禁止。
+- **主 CTA 按内容类型轮换**：教程/工具/避坑类主推**收藏**（知识类收藏率是强推荐信号，天然「下次要用」场景）；观点/拆解类主推**点赞**（「觉得讲清楚了」）；B 站变体统一**三连** + 可加弹幕引导（「把答案打在弹幕上」）。
+- **平台 × 露出面矩阵**（2026-08-25 修订：动作引导句**默认带字幕**——价值锚定单动作不违反四平台明文规则，结尾转化时刻的阅读性优先；原「抖音只走口播」降级为**敏感期可选降险**，`〖无字幕〗` 标记即其开关）：
+
+| 露出面 | 抖音 | B站 | 快手 | 视频号 |
+|--------|------|-----|------|--------|
+| 口播 | 动作词单独可（价值锚定式） | 全放开（三连/投币/弹幕/评论区） | 温和可 | 温和可（无转发） |
+| 字幕 | **默认可带**（价值锚定单动作；审核敏感期/激进动作词加 〖无字幕〗 降险） | 可带 | 可带 | 可带 |
+| 画面/字卡 | 默认可带（同字幕口径） | 可带（含三连图标动效） | 可 | 可，无转发 |
+| 简介文本 | 只放互动问题，**禁一切外链/站外指引**（2026-08-26 事故实锤：博客链接判「引导至风险不可控渠道」→减少推荐处罚） | 可含「三连」+ 博客原文链接 | 可（不放链接） | 可，无转发、不放链接 |
+| 置顶评论 | 站队观点/补充价值，无指令词 | 可 | 可 | 可 |
+
+- **字幕带动作词的三条前提**（守住即合规，2026-08-25 定规）：①单动作无连用（「点赞关注一下」= 词库 HIGH）②无指令动词结构（扣/发/搜）③无利益承诺（收藏过万就更新）。抖音全链路（含字幕）「评论区」三字照禁——2026-08-17 实锤硬红线，不因字幕放宽而豁免。
+
+- **话术对照**：✅「觉得讲清楚了，点个赞」「先收藏，下次配置的时候照着走」「转给你团队里还在踩这个坑的人」（B站/快手/抖音口播）「你站哪边？」「评论区的问题我会挑着做下期」（B站/快手/视频号——抖音全链路无「评论区」三字）。❌「求赞」「点赞关注一下」「收藏过万就更新」「转发抽奖」「不点赞会倒霉」「扣 666 / 评论区扣 1」。
+- **评论区承接（发布后动作，与口播 CTA 同权重）**：① 发布后 **1h 内自置顶**一条评论——补充价值（视频没展开的第 N 点 / 完整清单 / 配置要点）或作者站队（结尾问题的作者立场，给观众认同/反驳的靶子）二选一，无指令词；② **24h 内回复技术评论**，兑现口播里的「我来帮你看看」——冷启动期评论互动密度是算法加权项；③ 不删批评评论（只删违规），争议讨论是评论率燃料；④ 评论区问题进选题库，后续视频「上期你们问的 X」开头（C9 反哺，编辑部口径非利益承诺）。
+
+**管线支持（2026-08-24 接线，openspec video-engagement-cta）**——上表合规矩阵的工程落地，新视频直接用：
+
+- **`〖无字幕〗` 口播标记（CTA 句降险开关，默认不用）**：口播稿里给某句加 `〖无字幕〗` 前缀（或句中任意位置，作用于标记处到句末），该句**正常配音但不出字幕**——默认 CTA 句带字幕（阅读友好、明文合规）；账号处于审核敏感期/曾触发违规/动作词较激进时，给动作句标记降险：
+  - courseware/graph/screencast 管线：`timeline.extract_nosub` 剥标记进 TTS、cue 打 `no_subtitle`，`build.py`/`frames.py` 渲染时跳过打标 cue——**deck/narrations 写法零变化，加标记即生效**
+  - Remotion 管线：`narrate.py` 句首标记 → `narration.json`/`narration.ts` 的 segment 带 `no_subtitle: true`（TS 接口已加可选字段），config.ts 字幕写法改为 **`subtitles: U.filter(s => !s.no_subtitle).map(...)`** 过滤打标单元
+  - 用法示例（结尾四段的后两段，**默认全部带字幕**）：`"你站哪边？说说你的理由。"` → `"觉得讲清楚了，点个赞。"` → `"我是1024工程笔记，越基础的东西，越值得讲透。"`；敏感期降险只改一处：`"〖无字幕〗觉得讲清楚了，点个赞。"`
+- **`简介_平台` 变体（metadata.txt）**：`简介_抖音: ...`（无动作指令词、无「评论区」三字、**无任何外链**，只放互动问题）/ `简介_B站: ...`（可含「三连」+ 博客原文链接）等，发布管线按平台读 `description_<key>`（抖音 douyin / 快手 kuaishou / 视频号 shipinhao / B站 B站 / 公众号），无变体回退通用简介；变体同样自动补话题与裁剪。**通用简介里也不要留外链**——回退通用简介的场景含抖音，链接会跟着漏过去（2026-08-26 事故：通用简介的博客链接被抖音变体回退继承，判违规）
+- **`置顶评论` 字段（metadata.txt）**：`置顶评论: ...`（支持缩进续行）——checklist ⑨ 的备稿落点，随成片归档不散失，发布后 1h 内照稿发
+- **良性引导话术库**（写口播结尾时直接套，价值锚定式单动作）：
+  - 收藏（教程/工具/避坑类主 CTA）：`先收藏，下次配置的时候照着走` / `这条收藏，装的时候少走弯路`
+  - 点赞（观点/拆解类主 CTA）：`觉得讲清楚了，点个赞` / `这坑帮你避开了，点个赞再走`
+  - 转发（B站/快手/抖音口播；视频号禁）：`转给你团队里还在踩这个坑的人`
+  - 评论（B站/快手/视频号）：`你站哪边？` / `你卡在哪一步？` / `评论区的问题我会挑着做下期`；B站可加 `把答案打在弹幕上`
+- **实操资料型互动的合规写法（2026-08-27 抖音后台建议落地，改写后入规）**：后台原话「评论区发命令，我把完整挂载脚本发你」——**照抄即双高危**：①「评论区」三字（2026-08-17 硬红线）；②「发X回Y」= 利益交换诱导（四禁之首）。合规等价三件套：① 互动问题用**可执行的具体提问**（「你卡在哪一步」优于「你怎么看」）；② 资料**主动交付**——置顶评论直接贴脚本/清单 + 简介放原文链接（全开源口径），不设「先评论再给」门槛；③ 评论承接用「评论区的问题我会挑着做下期」（B站/快手/视频号口径，抖音去掉「评论区」三字）。**原则：平台运营建议 ≠ 审核安全**——后台建议与审核执行是两套系统，任何来源的建议（含平台官方）入稿前一律过 platform-compliance 词库 + 语义自查。
+  - B站专属：`一键三连`（官方功能全露出面可带）
 
 
 > 背景：近 10 个视频数据诊断——**2s 跳出率普遍 >45%**（同类均值 35%-40%），**评论率≈0**。根因：① 开头多为静态标题页，信息密度低；② 缺少激发提问/讨论的钩子。目标：新视频 2s 跳出率降到 40% 以下、评论率明显提升。以下技巧来自同赛道热门视频拆解（pi-agent 源码书 / 7 种 Agent 架构 / DeepSeek Harness 等），**开头（痛点+数据反差）和视觉呈现（代码高亮+动态流程图）是最快见效的两块**。本节在「内容驱动设计」定完结构后执行，管口播稿、deck 骨架和画面呈现。
@@ -121,6 +166,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - **「问题-答案」结构贯穿全片，不只在开头**：正文每个模块都用「先抛观众可能遇到的具体问题 → 再给解法」组织，❌ 禁说明书式平铺。对比：「安装需要 Node 22.14+」是说明书；「为什么你安装总失败？因为忽略了 Node 版本这个硬门槛」是问题-答案。deck 搭骨架时每个卡片的标题优先写成问题句，答案作为揭示内容。
 - 第一句口播 ≤ 20 字、含具体钩子（数字/痛点/反常识），写完稿自查：把第一句单独拿出来，问自己「刷到这条会不会停下」。
 - 封面/标题同理：标题文案优先用痛点问句或结果承诺，不用平铺直叙的主题名。
+- **首帧三件套（2026-08-25 定规，2s/5s 跳出率专项，强制）**：① **intro 卡禁纯标题**——首帧必须有动态元素（big 字逐字/弹性落板入场 + 三结论第一条 0-2s 内弹出，不等口播念到；intro 卡 points 空且无动画 = 违规返工）；② **首帧与封面同源**——封面 hero 词 / dense 贴纸带的主视觉元素复用到首帧（观众点进来的瞬间不能有「换了个片」的预期断裂，封面炸首帧静 = 跳出源）；③ **钩子词 2.5s 内出口**——第一句拆短（≤14 字先亮核心反差，长问句拆两段，钩子名词放前半句），BGM 前奏脉冲即时起（淡入 ≤0.5s）。数据依据：72% 用户前 3 秒决定去留，78% 高完播视频开头即核心内容；行业 5s 完播基准 ≥50%。
 
 ### 抖音审核红线（2026-08-17 事故沉淀，强制）
 
@@ -131,6 +177,16 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - 发布描述（metadata 简介）、评论区管理（预审 + 及时删违规评论）同口径：无指令词、无导流。
 - 发布后如被判违规：创作者服务中心 → 作品分析 → 申诉（原始文件），勿用第三方强开。
 
+### 抖音精选冲选（2026-08-27 调研定规，openspec douyin-featured-selection）
+
+> 精选 = 平台打标的优质内容子品牌（2024-09 创作者大会推出，与电商「精选联盟」无关）：平台借「懂行」用户的互动行为筛选内容 → 单独优质内容池 + 专门推荐机制，官方数据精选内容播放时长是普通内容的 17 倍。**无申请通道**，唯一主动动作 = App 端开通「创作者伙伴计划」后持续产出等打标（人工动作）。完整调研（机制/标准/信源/账号数据诊断）见该 openspec 变更 design.md。
+
+- **官方标准只有定性三维度**：惊喜感 / 获得感 / 共鸣感（「不唯播放量、粉丝数论英雄」），无任何量化门槛——不臆造「完播 >X% 必进」，内部只设自查基准线（见 video-analytics）。**原创是硬门槛**（2025 起加大非原创打击；本号源码深挖 + 真实屏录天然高原创，是冲选本钱）；**持续创作能力 > 单条爆款**（官方要「值得被长期追更的作者」）。
+- **选题三问（选题定稿门禁，checklist ⑩）**：获得感（观众带走什么）/ 惊喜感（哪里超出预期）/ 共鸣感（哪里让观众想到自己）——三问全空重做选题。垂类路径定「**专业到极限**」：单工具单机制源码深挖（对标已入选案例 @秋芝2046《DeepSeek 实用技巧》——知识类占抖音播放 20% 且年增 74%，2026 官方重点 = 前沿科技 / 深度内容）。对标档案见 `douyin-topic/references/jingxuan-benchmarks.md`。
+- **完播是入场券**：完播决定进流量池，进池是精选前置——本号完播 0.9%-2.3% 是冲选第一瓶颈，纪律见「完播率优化」节末（15s 硬信息 / 删过渡句 / 时长门禁）。
+- **AI 声明与精选不冲突**：实证规范标注的视频成百万赞爆款、AI 短剧作者已入选月度精选——现有口径（AI 生成声明勾选 + 不声明原创）维持不变。
+- **节奏**：每月 18 日左右官方发上月精选作者榜单——复盘钩子见 video-analytics「反哺闭环」；发布窗口维持 20:00 定规（初步数据支持：20:00 档 1682/1933 播放 vs 中午档 466-725）。
+
 ### 完播率优化：价值钩子前置 + 结论先行（2026-08-17 专家建议，强制）
 
 > 数据背景：某源码解析视频 2s 跳出率 43.51%、完播率 1.46%。根因是「内容价值」与「观众预期」匹配效率低——观众要的是「我能学到什么 / 这有什么用」，不是创作者的过程铺垫。目标：2s 跳出率 < 30%，平均播放时长提升。
@@ -138,7 +194,16 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - **前 3 秒放最精彩的东西**：把全片最有洞察力的结论 / 看点 / 动态画面直接放到开头 3 秒（如核心流程图动起来、一句反常识结论）。❌ 禁过程性开场（「我肝了一天」「我完整读了一遍源码」）——真实但不构成观看理由。
 - **结论先行（核心结构）**：先告诉观众 3 个核心收获（「看完你会得到这三个判断」），再逐一展开论据如何支撑结论。观众带着明确目标看下去，完播才立得住。适用所有讲解结构，与「问题-答案」结构叠加使用：开头给结论清单，正文每段用问题引出对应结论。
 - **首句即价值承诺**：第一句口播写成「看完这条你能得到 X」或直接抛最锋利的结论，≤20 字。
+- **30 秒点题检查（2026-08-27 抖音创作者后台建议落地）**：前 30s 内必须用一句直白话把「这条解决什么具体痛点」说穿——30s 时观众要能回答「看完我能解决什么」，不是只听了个热闹的机制铺垫。与「15s 硬信息」互补：15s 给硬信息（数字/结论/对比），30s 给痛点对号（「你的账单为什么比同事贵」级别的具体场景）。自查法：把 0-30s 口播单独拎出来读，痛点不直白 = 重排段落，机制讲解后移。
 - 效果验证：改版发布后盯 2s 跳出率（目标 <30%）与平均播放时长，数据说话。
+
+> **冲精选期完播纪律（2026-08-27 补充，openspec douyin-featured-selection，强制）**：账号实测平均观看时长中位 **15.8s**——大部分观众死在前 15 秒铺垫里。三条固化：① **H1 升格**——提问式开头的问句之后**第 1 句就给反常识答案的半句**（不是「我们来看」，是答案本身：「答案藏在三个机制里，第一个就反直觉」级别）；② **H5 升格**——**删第 2-3 句过渡句**（「今天我们来看 / 这个话题很有意思」类铺垫句零信息量），问句 → 答案半句 → 证据直连；③ **15s 硬信息**——前 15 秒必现一个可感知的硬信息（数字/结论/对比），钩子映射表「15s 兑现位」列标注位置（checklist ②⑩），找不到兑现位 = 稿子返工。**时长分档（2026-08-27 二次定规，后台专家建议+本账号实证，默认强制）**：
+   - 🎯 **主力精选档（缺省）**：成片 **120–180s**，口播预算 **620–950 字**。一个单点源码机制讲透即收，禁止为了全而拉长。依据：147 秒的 video-pipeline-6-skills 完播为全账号最优，已验证该档位；后台专家同口径建议。
+   - 📦 **深度长档（≤240s 硬顶）**：仅系列收官片或用户明确点名时使用；必须走 lint 的「豁免_时长」论证留痕。
+   - ✂️ **>240s 禁止单片存在**：素材超了就拆上下集，单集只讲一个核心知识点，期号连续（N、N+1）。400s+ 的 ep1 总览式长片是反面教材（完播 1.2%）。
+   - ✍️ 配套三方向（同场专家建议）：① 开篇坑句式落到具体场景（「重启之后之前的上下文全丢了？」级）；② 结尾给 1–2 条观众能直接复制的操作指令；③ 双产品对比用数据对账视角做差异化。
+   - lint 映射不变：120–150s WARN、>150s 无豁免 FAIL——过 150s 必须走深度长档且经用户确认。
+   - 抖音可对同一选题发上下两集（间隔 24h），B站主发完整版：同一 deck 拆 cards 前后两段即可，不必重写口播。
 
 ### 讲解呈现：把抽象变具象（强制）
 
@@ -156,13 +221,58 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - **避坑：信息过载**——一帧画面不堆满所有文字图表，分点分步展示（跟随 `active_idx` 逐条揭示）。
 - **避坑：单调背景**——不用纯黑/纯白背景，用现有主题底（深蓝黑 `#0a0e1a` + 网格纹理 + 光晕 / 浅灰蓝），已有配色规范不变。
 
+### 讲解逻辑三原则（课件呈现的底层依据，2026-08-25 调研定规）
+
+> 联网调研结论（3Blue1Brown / Kurzgesagt / 李永乐拆解 + Mayer 多媒体学习理论，详见 openspec `courseware-motion-linkage` design.md §1），写 deck 骨架与分镜时对照执行：
+
+1. **问题先行**：卡片标题优先写问题句，答案作为揭示内容逐条给出——观众先关心问题再看答案（3B1B「通往答案的旅程」）。与「问题-答案结构贯穿全片」同源，此处落到卡片级。
+2. **信号原则 Signaling**：同一时刻只高亮当前讲解点——future/done 一律降权（暗色/半透明/虚线幽灵态），active 独占辉光；一次只让观众看一个主角。
+3. **时间接近原则 Temporal Contiguity**：口播分句驱动动画出生帧——**讲到哪，动画走到哪**，解说与对应画面变化必须同拍发生；先讲完再演示、画面先于口播跳态都违反此原则（观众认知负荷翻倍）。
+
+### 动画与特效强制规范（全内容类型，2026-08-25 定规，openspec courseware-motion-linkage）
+
+> 适用于**所有模式的所有内容元素**——不只流程图。courseware 原生元素与 flow 流程图已由管线**零配置自动保障**；其他模式沿用各自动画能力（graph 连线扫描/节点脉冲、Remotion 动画原语+15 种转场、screencast 步骤条+热点三态），分镜阶段按本规范 + checklist ⑦ 自查，缺动画的场景先补能力再拍。
+
+1. **全元素动画（硬性）**：画面中每个内容元素——标题/副标题/标题条/要点/知识卡/流程图节点与连线/代码高亮/图表数字/字幕/进度条/封面 outline——都必须有**入场、换态、强调三类动画至少其一**；任何 >10s 纯静态画面 = 违规返工。静态信息轮播是反例（2s 跳出率 >45% 的根因之一）。
+2. **联动（硬性）**：一次讲解节拍（口播分句/要点亮起）必须**同时驱动 ≥3 个元素响应**——主元素（要点弹入）+ 关联元素微反馈（知识卡/流程节点弹出、标题条与进度条辉光脉冲、字幕上滑），反馈在主拍后 0-3 帧内（100-200ms，NN/g 联动窗口）。流程图必须「框、线、文字」三件套同拍：节点弹出（ease-out-back）+ 连线生长 + 跑线扫光 + 标签逐字浮现，讲到哪步动到哪步。
+3. **缓动（硬性）**：一切位移/缩放动画必须带缓动曲线，禁止线性硬动。规范值（24fps）：入场 ease-out cubic 300-450ms（7-11 帧）；弹出 ease-out back，overshoot ≤10%；连线生长 ease-in-out sine；**出场 ease-in cubic 加速、150-250ms（4-5 帧），快于入场**（M3 退场规范）；stagger 错峰 50-100ms/项（2-3 帧）。缓动一律从 `motion.py` 取（`ease_out_cubic/ease_out_back/ease_in_out_sine/ease_in_cubic` + 落定/换词档 `ease_out_expo/ease_out_quart/ease_in_quart` + 编舞助手 `enter_tuple/exit_tuple/settle_dip/glow_mult/type_chars`），不自造曲线；选型口径见 `references/motion-patterns.md` A 表。
+4. **帧驱动铁律（既有，不可违反）**：禁 CSS animation / @keyframes / wall-clock；一切动画由 `state["frame"]` + 出生帧数学插值（Remotion 侧 `useCurrentFrame`），动画**有界窗口**、窗口外静止（PNG 复用优化）。循环/呼吸类持续动画不进 Playwright 管线。
+5. **课件动画写法（零配置）**：courseware 模式的 deck 不需要任何动画配置——口播分句时间轴自动生成每元素出生帧（`frames.py::point_births/cue_birth`），渲染自动带全元素动画；**卡尾 8 帧自动错峰出场**（`out_at` 锚：eyebrow/footer→标题/条→要点/卡片/流程节点→字幕带，ease-in 加速），分句字幕结束自动 4 帧退场（`cue_out`）。**新增内容元素时必须同步接入场+出场动画**（`motion.py::enter_tuple/exit_tuple`），在 `courseware.py`/`flowchart.py` 编舞表登记，不接动画的新元素不许合入。
+6. **元素动效配方库（换态强调类，2026-08-26 定规，源 HyperFrames catalog）**：入场/出场之外的第三类动词，数学全部入库 `motion.py`，参数/双管线落法/适用场景见 **`references/motion-patterns.md`**（分镜动画列直接写配方名）——**槽内换词** `swap_pair`（「前端→全栈→AI」身份演变）、**词组 slam 交替入场**（enter_tuple+方向轮换，钩子/结论句）、**数字滚动** `@@countup@@`、**打字机** `@@typewriter@@`、**流光扫字** `@@shimmer@@`、**划线/标记带生长** `grow_scale`（纠偏划旧说法、强调标记带）、**印章拍落** `stamp_tuple`（结论「锤一下」）、**落版白闪** `sting_tuple`（签名句/品牌 outro，白闪恰 1 帧、全片一次）。编舞三条：信封 IN→HOLD→OUT 时长不足按比例压缩 IN/OUT 禁整体加速；出场**位移优先于纯淡出**（纯 opacity 淡出中途帧实测掉到 1.02:1，对比度门禁 3:1 必炸）；换卡**先退后进**（两团文字同屏重叠=返工）。渲染质量门禁五条（文字重叠采样/淡出对比度/动画窗冲突/字体声明/media id）见 motion-patterns.md E 表，候选并入 `make video-lint`。
+7. **flow 流程图字段**（insight 卡，与 sub_points 互斥、flow 优先）：
+   ```json
+   {"type": "insight", "title": "...", "points": ["步骤一", "步骤二", "步骤三"],
+    "flow": {"nodes": [{"id":"n1","label":"口播断句"}, {"id":"n2","label":"帧号驱动"}],
+             "edges": [["n1","n2"]]}, "footer": "..."}
+   ```
+   nodes 与 points 一一对应（第 k 拍亮第 k 个节点 + 长出指向它的连线）；未讲到的节点保持虚线幽灵态，已讲节点降权实线——信号原则的流程图落法。`motion.py`（缓动/帧表/编舞助手 `enter_tuple/settle_dip/glow_mult/type_chars`）是两条管线共用的动画数学库，新动画一律从这取缓动，不自造曲线。
+
+### 卡内分镜 shots（2026-08-26 定规，openspec card-shots，每张非 intro 卡强制）
+
+> 病根（本片实测）：单卡口播 15-50s 只有一组一次性入场动画，主画面随后长时间零变化；无流程图的卡主内容区只剩空占位框（约 40% 画面空白挂整卡）。**解法：每张卡按口播句边界切 2-5 个镜头轮换，主内容区永远有实料。**
+
+1. **deck 字段**：每张非 intro 卡必填 `shots` 数组（intro 封面卡不加，首帧三件套另行保护）：
+   ```json
+   "shots": [
+     {"from_s": 0.0, "kind": "flow"},
+     {"from_s": 13.1, "kind": "code", "data": {"title": "文件名", "lines": ["..."], "hl": 1},
+      "hl_steps": [[17.8, 7], [21.0, 8]]},
+     {"from_s": 23.9, "kind": "quote", "data": {"text": "...", "source": "..."}}
+   ]
+   ```
+2. **7 种镜头**：`code` 源码卡（行号 + 高亮行随讲解推进，`hl_steps` 讲到哪行亮哪行）/ `tree` 文件树 / `term` 终端演示（cmd/out/ok/err/dim 五色行）/ `stat` 大数字卡 / `table` 对比表（首列 `*` 标高亮行）/ `quote` 引文金句卡 / `flow` 流程图（降级为镜头之一，不再独占整卡）。
+3. **节奏门禁（硬规则）**：任何镜头停留 **≤15s**；卡 >25s ≥3 镜头、15-25s ≥2 镜头、<15s 1-2 镜头；`from_s` 必须对齐该卡口播**句边界**（`boundaries_*.json` 的 start_ms），禁止句中切；占位符（「讲解中…」）禁止出现在成片。写 deck 后跑节奏自检（镜头 span + 数量下限）。
+4. **素材真实性**：code/term 镜头素材必须来自真实仓库文件（如 DSH 片用本地 deepseek-harness 仓的 AGENTS.md、agent.cordis.yml、包名清单），分镜表备注溯源路径；终端演示可重构命令序列但机制必须真实存在，不得虚构源码行。
+5. **写 deck 流程步**：每卡产出「分镜表」（时间轴 | kind | 素材内容 | 对应口播句），随 deck.json 一起交付。
+6. **实现**：`tutorial.py::_shots_stage/_shot_content`（亮色系渲染器）+ `courseware.py`（深色系同套支持）+ `frames.py`（每帧算 `shot_idx/shot_birth/shot_t_ms`）。动画：新镜头 8 帧浮入 + 前镜头 6 帧淡出 + 行级 2 帧/行 stagger，帧驱动铁律不变，静止段 HTML 等值（PNG 复用优化保持）。
+
 ### 价值与互动：可带走 + 留讨论钩子（强制）
 
-- **可带走的额外价值**：视频结尾或简介给出一份可下载/可访问的资料（博客原文、在线文档、配套代码/书），给用户明确的收藏理由，如「我把所有工具都放在在线文档里了」。有对应博客文章的视频，简介末尾必附原文链接。
+- **可带走的额外价值**：给用户明确的收藏理由——但**外链分平台**：B站简介可附博客原文链接；**抖音/快手/视频号简介禁外链**（2026-08-26 抖音实锤「引导至风险不可控渠道」处罚），这些平台的可带走价值改为纯内容表述（「完整的六步清单都在视频里」「配置要点我打在字幕上了」），链接只放 B站简介或置顶评论外的合规渠道。
 - **结尾选择题引导互动**：收尾用开放式问题或选择题（如「你站哪边？未来 AI 产品该像 Codex 一样简单，还是像 Harness 一样开放？」），二选一比开放问答更容易让人下场站队。
 - **内容埋点**：讲复杂概念/巧妙设计时，可留思考题悬念（如「这段代码为什么这么写？可以想一想」），后半段或字幕里给解答，制造「看下去 + 来评论」的双重动机。
-- **提问要具体 + 给回应承诺**：❌「大家有什么想法？」（太泛，没人接）✅「你切换 Provider 时踩过哪个坑？」（具体场景才有人答）。提问后加一句回应承诺（「评论区聊聊，我来帮你看看」），让观众知道留言会被接住，显著提高下场意愿。
-- ⚠️ **与平台合规的边界**（见下「规则约束 → 平台合规」）：允许**开放式提问/选择题引导讨论**；**禁止**「评论区扣 XX」「关注我看下期」类诱导 CTA。提问句式本身不带指令性动词（扣/发/搜），用「聊聊」「说说」「你站哪边」这类讨论词。
+- **提问要具体 + 给回应承诺**：❌「大家有什么想法？」（太泛，没人接）✅「你切换 Provider 时踩过哪个坑？」（具体场景才有人答）。提问后加一句回应承诺（「评论区聊聊，我来帮你看看」——B站/快手/视频号口径；抖音版去掉「评论区」），让观众知道留言会被接住，显著提高下场意愿。**回应承诺要兑现**：发布后 24h 内回复技术评论（见「互动与转化引导 → 评论区承接」）。
+- ⚠️ **点赞/收藏/转发动作引导的合规边界**：见上「互动与转化引导（合规矩阵）」——价值锚定、单动作、默认带字幕（抖音敏感期用 〖无字幕〗 降险、简介不放动作词）；四类违禁诱导（利益交换/诅咒道德绑架/无意义扣字/刷量）全平台禁。
 - 问题写进口播末段 + 简介文案（metadata.txt 的 `简介`），双露出。
 
 ### 管线能力缺口清单（规则先行，能力补齐前先验证再依赖）
@@ -176,8 +286,9 @@ video-generation/                        ← 项目根：所有内容配置 + �
 | 迷你进度条常驻 | 各模式均无角落进度条组件 | courseware/graph/Remotion 均缺 |
 | 术语比喻配图示 | 无现成比喻示意组件，需新原语或 Excalidraw 素材 | Remotion primitives |
 | 结尾问题视觉卡片 | `cta` 卡可承载，但无「问题卡片」专用样式 | `screencast.py` `_CONTENT.cta` |
+| 换态强调动效（swap/stamp/sting/grow） | 数学已入库 `motion.py`（2026-08-26，单测 `python -m video.test_motion`），courseware/Remotion 模板尚未接消费点——用到哪张卡再接哪张，接时按 motion-patterns.md B 节落法 | `scripts/video/motion.py` + `references/motion-patterns.md` |
 
-已确认支持：graph 连线扫描 / Remotion 卡片逐张浮现（动态流程）、courseware `sub_points`（概念卡片）、`LeaderboardChart`/`DataReveal`（数据图表）、realshot hotspots + `.hot.active`（视觉锚点）、screencast 顶部步骤条 / Remotion 阶段导航（进度导航）、`ComparisonTable3D`/`cost` 卡（对比）、`active_idx` 逐条揭示（防信息过载）、**BGM 垫底 + 三档 SFX + 15 种场景转场**（2026-08-23 接线，全管线自动，见「声音层与转场」）。
+已确认支持：graph 连线扫描 / Remotion 卡片逐张浮现（动态流程）、courseware `sub_points`（概念卡片）、`LeaderboardChart`/`DataReveal`（数据图表）、realshot hotspots + `.hot.active`（视觉锚点）、screencast 顶部步骤条 / Remotion 阶段导航（进度导航）、`ComparisonTable3D`/`cost` 卡（对比）、`active_idx` 逐条揭示（防信息过载）、**BGM 垫底 + 三档 SFX + 15 种场景转场**（2026-08-23 接线，全管线自动，见「声音层与转场」）、**courseware/screencast 左下角 mascot 伴随层**（2026-08-25 补齐：`courseware.py::_mascot_html` 对 tool/tutorial/普通卡统一注入，样式全内联防 CSS 丢失，cue 出生 8 帧落地反应 + 窗口外静止保 PNG 复用——Playwright 管线不做循环动画是铁律）。
 
 ### 内容覆盖（强制，文章→视频的完整性）
 
@@ -200,9 +311,18 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ## 规则约束（强制，违反即错）
 
+### 渲染前用户确认（强制门禁，2026-08-25 定规）
+
+- **门禁时点**：分镜脚本（deck.json / deck-graph.json / config.ts 的场景与动画设计）与口播稿（narrations/<slug>.json / narrate_<slug>.py）**完整成稿后、执行任何合成与渲染命令之前**（`synth_indextts.py` 长耗时克隆合成、`make video` / `make video-remotion` / `pnpm render` 等全部算），必须把两份**完整内容**呈给用户审阅：
+  - **完整口播稿**：逐句全文（含开头问句、钩子/回收/SFX/BGM/转场内联标记、结尾四段），不是摘要或大纲
+  - **完整分镜脚本**：逐卡/逐场景列出（画面内容与要点、动画设计、BGM 情绪档、音效触发点、转场类型三列）
+- **确认后才渲染**：用户明确回复确认后才能开合成/渲染；用户提修改 → 改完**重新呈完整稿复审**，循环直到确认。IndexTTS 克隆合成耗时长且改稿即作废，务必在确认后跑。
+- **❌ 禁止**：跳过确认直接渲染；只呈摘要/要点清单就当已确认；先渲染后补审；把 checklist 自查通过当作用户确认。
+- **例外（免复审）**：渲染技术失败重试、管线/代码 bug 修复、内容零变更的重渲（如纯补封面）无需重新确认；但口播或分镜**改了任何一处内容**，必须重新过审再渲染。
+
 ### 画面
 - **横屏 16:9，1920×1080**（知识/教学视频标准）
-- **courseware**：左栏（标题+要点三态）+ 右栏（知识卡片 sub_points）+ 底部字幕带 + 进度条
+- **courseware**：左栏（标题+要点三态）+ 右栏（知识卡片 sub_points 或 flow 流程图）+ 底部字幕带 + 进度条；全元素帧驱动动画 + 主锚联动（`point_births` 出生帧驱动，动画窗口外静止保 PNG 复用，见「动画与特效强制规范」）
 - **graph**：中心节点（当前主题放大发光）+ 卫星节点环绕 + 连线从中心辐射；节点三态（active 高亮 / done 半亮 / future 暗淡）
 - **两种主题**：`dark`（默认，深蓝黑底 + 霓虹青 `#22d3ee`）/ `light`（亮色中性，浅灰蓝底 + 深蓝 `#2563eb`）
 - **graph 动效**（帧级驱动，非 CSS animation）：节点入场缩放（0.3→1.0）、active 节点脉冲环扩散、连线扫描 dashoffset、中心节点呼吸
@@ -213,10 +333,23 @@ video-generation/                        ← 项目根：所有内容配置 + �
   - **拟物化方向（教程类强制，2026-08-03 定规）**：教程/操作类不用抽象 CSS 假界面、不 mockup 能真实截图的界面。**核心原则：能浏览器截图的步骤，一律用 `realshot` 截真实网页**（`capture_shots.py` 抓官网实拍 1600×900，热点坐标记百分比；渲染时 base64 内嵌 + `.shotwrap` 16:9 容器 + 热点框随 `active_idx` 三态 + 箭头标签）。**不只是下载/安装页——任何能在浏览器里呈现的 UI 都该截**：官网、应用市场、GitHub、控制台、在线编辑器（如 vscode.dev）。CSS 仿真窗口（`vscode` mockup / 终端）**只在浏览器截不到时才兜底**（本地桌面应用、需登录态才能进的真实界面）。截图不编造内容
   - **内容事实校验（强制，2026-08-17 定规）**：写进 deck/口播的**数字和命令必须先验证**——① 涉及 star 数一律查 GitHub API（`api.github.com/repos/<owner>/<repo>` 的 `stargazers_count`），文章/网页里的旧数据经常过时（实测 8.5k → 9603）；② 涉及 npm 包名一律 `npm view <pkg>` 验证存在性（文章里流传的 `@deepseek-ai/dsh-tui` 实际是 404，正确包是 `@deepseek-harness-tui/dsh-tui`）；③ 教程类**下载地址必须写进画面**（realshot 的 `url_note` / 口播报域名），不能只说「官网下载」四个字
   - **官网截图超时兜底（2026-08-17 踩坑）**：部分官网（dshdesktop.cn）对 Playwright 默认 `goto(domcontentloaded)` 直接超时，curl 却能 200——改用 `wait_until="commit"` + 长 settle（10s+）能截到；热点坐标用 `bounding_box()` 实测百分比，不目测（页面改版会漂移）
-  - **平台合规（强制）**：口播 + 画面**禁止「评论区扣XX / 关注我」类诱导 CTA**（抖音违规诱导，限流/下架）；结尾用中性价值钩子（「零基础四分钟装好 · 不用注册官方账号」）**或开放式提问/选择题**（「你站哪边？」「你卡在哪一步？评论区聊聊」，见「黄金 2 秒与互动设计」）。禁止自问自答设问句（「key哪来」）——**画面里也不能出现**（反例：`terminal` 曾硬编码「← 还是官方模型？」自问句）
+  - **平台合规（强制）**：口播 + 画面**禁止「评论区扣XX / 关注我」类诱导 CTA**（抖音违规诱导，限流/下架）；结尾用中性价值钩子（「零基础四分钟装好 · 不用注册官方账号」）**或开放式提问/选择题**（「你站哪边？」「你卡在哪一步？评论区聊聊」——B站/快手/视频号口径；**抖音全链路无「评论区」三字**，点赞/收藏动作引导见「互动与转化引导」矩阵，见「黄金 2 秒与互动设计」）。禁止自问自答设问句（「key哪来」）——**画面里也不能出现**（反例：`terminal` 曾硬编码「← 还是官方模型？」自问句）
   - **tool 卡内容全透传**：`build.py::normalize_card` 必须 `dict(raw)` 透传 tool 卡全部字段（big/mats/cta/items/req/resp/hotspots/lines 等），否则 builder 落默认值（老 bug）。**新增可配内容不要硬编码进 builder**（反例：`terminal` 曾硬编码旧视频「Claude Opus 5」内容），一律走卡字段
 
+### 色彩可读性（2026-08-25 定规，openspec video-color-retention）
+
+- **色板单一来源**：全部颜色以 `scripts/video/palette.py`（SSOT）为准——品牌主青 `ACCENT #22d3ee`、深底 `BG_DARK #0a0e1a`、课件中明度底 `BG_COURSEWARE #1e293b`（抗强光既定设计）、亮色系 `LIGHT_ACCENT #2563eb` / `LIGHT_MUTED #64748b`、副色紫/橙/红/黄沿封面主次制。Remotion `theme.ts` 默认值与 palette 逐项对齐（旧默认青 `#00d9ff` 已退役，全 src 禁残留）；封面横竖模板 `:root` 由 `cover.py` 构建期从 `palette.cover_root_css()` 注入，**禁手改模板色值**。
+- **对比度分级下限**（`make video-lint` 机检，声明在 `palette.PAIRS`）：正文/字幕 ≥4.5:1；≥24px 大字与**弱化态**（未讲/未来/注释）≥3.0:1。弱化态「未讲 ≠ 不可见」——户外强光下低对比文字最先消失（2026-08-25 实测升档：课件未讲 ≈1.9→5.5:1、图谱 future ≈2.1→4.4:1、代码注释 4.0→7.4:1），升档值与正常态保持 ≥2:1 主次比，层次不丢。
+- **强调色用量规约（防刺眼，管用量不改色值）**：主青限强调用途（高亮态/边框/图表系列色/进度条），**禁做正文长文本色、禁大面积实填充（单屏 ≤15%）、同屏辉光元素 ≤2 个**；面板底一律用深底/白 alpha，主色只画边框与状态标记。
+- **状态双通道（色盲安全）**：错误红/成功绿不许仅靠颜色传义，必配 ✗/✓ 或形状差异（CodeBlock token/hardcoded 行自带 ✓/✗ 前缀，CodeAuditScan/Annotation/AntiPatternWall/教程步骤条已达标——新增状态场景照此办）。
+- **新增颜色流程**：先登记 `palette.py`（品牌色进 token 区 / 拟物仿真色进 `EXEMPT` 写明理由），文字色同步进 `PAIRS` 声明配对与阈值，再进模板——`lint_colors.py` 对四个 Python 模板 + 封面模板做「色板外漂移」扫描，未登记色值直接 FAIL；palette 改 token 后模板旧字面量也会失配被拦下。单测 `python -m video.test_palette`。
+
 ### 发音（重要决策，多次试听迭代确认）
+
+> ### ⚠️ 默认口播 = IndexTTS-2 用户声克隆，不是 edge-tts（2026-08-25 定规，违者返工）
+>
+> **每条正式视频的口播必须走克隆链**（用户声音，AGENTS.md「视频声音管线」为权威）：WSL `scripts/video/synth_indextts.py <slug> --attempts 4 --emo none`（参考音 `~/refaudio/my_voice_seg.wav`，逐句 best-of-N 门禁选优）→ `tts_pipeline/assemble.py`（发布五步链：120ms 垫 / RMS -18dB / treble g=2 / deesser / alimiter）→ `tts_speed_shrink.py --tempo 1.06` → 产物落 `video-generation/audio/<slug>_t/` → `make video` 换声旁路自动接管（`audio/<slug>_t/audio_*.mp3 + boundaries_*.json` 在则跳过 edge-tts）。本节及「音色选择」的 edge-tts 内容**仅是克隆链不可用时的 fallback**，fallback 必须先向用户说明并获准，不得默认使用。`narrations/<slug>.json` 的 `voice/rate` 字段只在 fallback 生效——渲染前 checklist 必查一项：**口播是否为用户克隆声**。
+
 - edge-tts 中文语音**不支持 SSML 音素控制**（标签会被当文本读出）
 - **缩写逐字母 vs 单词音的权衡**（核心经验）：
   - 逐字母（DOM→`D O M`）读得准，但每个字母停顿 ~197ms，**慢且不自然**
@@ -253,7 +386,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
   - 转场默认开启：`transitionFrames` 未设 = 16（约 0.27s，rotate3d，与存量视频视觉一致）；`config.transitionType` 全局 / `scenes[].transitionType` 逐场景覆盖，15 种见 `transitions/TransitionFrame.tsx`；显式 `0` = 硬切
 - **courseware/graph/screencast**：`make video` 在 xfade/acrossfade **同一条 FFmpeg filter_complex** 里混入 BGM + 开场音 + 每 4 段转场音（`render.audio_overlay_chain`，单 pass 出片，无中间文件、无成片二次后混）。素材缺失自动降级并在收尾打印 `✗`
 - **素材自愈**：Remotion 渲染前 `render.ts` 自动检查 16 个关键 BGM/SFX 文件，缺失自动重跑 `gen-sfx.py`（纯 stdlib 确定性合成，重跑一致）
-- **素材位置**：`video-generation/narration/`（= Remotion public/，**BGM 8 轨 + SFX 23 个**，2026-08-24 对齐抖音科技/知识区扩充）；选曲/变体/音量标定依据 `references/sound-design.md`（口播片 BGM 0.3–0.4、SFX 0.4，能量靠 BGM 不靠音效）
+- **素材位置**：`video-generation/narration/`（= Remotion public/，**BGM 8 轨 + SFX 25 个**，2026-08-26 补 error/hook 场景）；选曲/变体/音量标定依据 `references/sound-design.md`（口播片 BGM 0.3–0.4、SFX 0.4，能量靠 BGM 不靠音效）
 - **内容感知选曲（2026-08-24）**：BGM 不再固定 calm——
   - courseware/graph/screencast：`make video` 按口播关键词**自动选情绪档**（收尾打印 `BGM <mood>`）
   - Remotion：config.ts 里 `import { suggestBgmMood, autoQuestionFrames, keywordFrames } from "@skill-src/core/sound-points"`，`sfx: { bgmMood: suggestBgmMood(U.map(u=>u.text)), questionFrames: autoQuestionFrames(U) }`；关键词规则两边同源（`config.py::BGM_MOOD_RULES` ↔ `sound-points.ts::MOOD_RULES`），改一边必须同步另一边
@@ -269,7 +402,11 @@ video-generation/                        ← 项目根：所有内容配置 + �
   | chiptune | bgm-chiptune | 8-bit 方波：程序员梗/终端/装机 |
   | lofi | bgm-lofi | Lo-fi 七和弦：温和长教程/随笔体验 |
 
-- **SFX 选配速查**（Remotion 走 `sfx.emphasis/reveal/...` 槽；courseware 自动给开场/转场/提问音，其余手动点位）：转场 glitch 配 `sfx-transition-glitch`、悬念切断 `sfx-transition-tapestop`（磁带急停）、硬切强调/重点结论 `sfx-impact`、数字/成本落地 `sfx-coin`、倒计时 `sfx-ticktock`、紧张铺垫 `sfx-heartbeat`、揭晓/揭秘 `sfx-harp-gliss`、里程碑 `sfx-ding`、代码逐行 `sfx-typewriter`、收尾定格 `sfx-outro-chord`
+- **SFX 场景×氛围矩阵（2026-08-26，openspec video-sfx-scenario-palette）**：SFX 与 BGM 共用 mood 轴，**按视频氛围自动选变体**（悬疑片 glitch 转场 + question-down 提问音，轻快教程 pop/swoosh + question-up）。12 语义场景（opening/question/transition/emphasis/reveal/milestone/error/typing/countdown/suspense/hook/outro）× 备选池，全表见 `references/sound-design.md` §五（文档 SSOT）：
+  - courseware/graph **零配置自动**：槽位变体 + cue 定点（提问/报错/成功/揭晓关键词扫口播，每类 ≤2、总数 ≤8）+ 尾卡签名句 outro 和弦；渲染收尾打印矩阵选择与点位表
+  - Remotion opt-in：`sfx: { ...suggestSfxSet(N.audio, U.map(u=>u.text)) }` 一行整套；单场景 `suggestSfx("transition", "tense")`
+  - 双源纪律：`config.py::SFX_SCENARIO_MATRIX` ↔ `sound-points.ts::SFX_SCENARIOS` 同源镜像，`make video-lint` 的 `check_sfx_matrix` 机检漂移
+- **SFX 选配速查**（手动微调用；自动选择走上面的矩阵）：悬念切断 `sfx-transition-tapestop`（磁带急停）、倒计时 `sfx-ticktock`、紧张铺垫 `sfx-heartbeat`、钩子埋点 `sfx-hook-riser`（上扬悬置）、报错/翻车 `sfx-error-buzz`（三全音下行）、代码逐行 `sfx-typewriter`——其余场景（转场/强调/揭晓/里程碑/收尾）优先让矩阵按 mood 选，别手锁一个变体
 - **验收（强制）**：`python scripts/verify_render.py <mp4> <fps> <起帧:名>...`——frame-diff 查场景动画 + volumedetect 查混音健康（mean −20~−30dB、max 不贴 0dB）。发布前抽听开场 1s（应有 chime）与中段任意 5s（应有 BGM 底垫）
 - 教训沉淀：**归档变更前必须 grep 实际代码确认接线存在**（渲染端 import/调用点），不能只看 tasks 勾选——本次 5 项 `[x]` 任务里 4 项接线实际不存在
 
@@ -282,7 +419,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - **手工覆盖**：`mascot: { moodTimeline: [{ frame: 540, mood: "wow" }, ...] }`——手工点后到下一手工点之间自动推断挂起；`autoMood: false` 全程 smile
 - **强调联动**：命中 `sfx.emphasisFrames` 的段自动切 point 姿态 1s（`sfx: { enabled: false }` 时不联动）；字幕含「记住/重点/关键是/结论」等词的段也 point
 - **关闭**：`mascot: { enabled: false }` 一键关；旧 config 无 mascot 段照常渲染（已回归验证：差异仅在形象区）
-- **遮挡调优**：默认 `position: "bottom-right"` + `height: 210`（2026-08-24 四档标定定稿：真实表格景+结论景 × 180/210/240/270 双景视觉模型复核，240 起喧宾夺主、180 头顶符号偏小），形象区约 right 48/bottom 36 起、宽 280 高 370（含头顶符号带）。字幕 pill 居中（≤x1340）不冲突；若场景右下角有核心内容（数据卡/结论字），调 `height: 180` 缩小或 `position: "bottom-left"` 换边
+- **遮挡调优（2026-08-25 换边定规，openspec video-mascot-placement）**：默认 `position: "bottom-left"` + `height: 240`，形象区约 left 48/bottom 36 起（含头顶符号带约 280×400）。依据：抖音/快手/视频号信息流右侧竖排互动栏（头像/关注/赞/评/转）直接覆盖横屏视频右缘（2026-08-25 实测机器人被抖音头像挡住），底部文案栏另占底缘——左下是四平台一致净空角，与「右缘避让 180px」门禁同源。240 为左侧净空区标定（右侧旧标定 210 的「240 抢戏」判定不迁移）；场景左下有核心内容（SkillStage 左栏末张要点卡）时单视频降 210，禁超 270。字幕 pill 居中不冲突；B站横屏播放互动在右下，左下同样安全
 - **验收（强制）**：`python scripts/verify_render.py <mp4> 60 --mascot-check <说话帧> <静默帧> [--mood <表情A帧> <表情B帧>]`——形象区帧差 ≥0.5%（讲话面板+浮动）、表情带 ≥0.3%；本 change 实测讲话 13.41%/表情带 68.70%/段边界反应 15.48%
 - **双份同步约束**：封面 `scripts/video/assets/mascot.svg` 与 `MascotFigure.tsx` 是同一形象两份实现，改几何必须两边同步（两文件头部注释互指）
 
@@ -295,6 +432,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ### 工程
 - **全本地零收费**：仅 edge-tts + Playwright + FFmpeg
+- **GPU 渲染排队（2026-08-27 定规，单卡 FIFO）**：任何视频生产批（`synth_indextts.py` 合成、`make video` 渲染链）开工前必须走排队器——`PYTHONIOENCODING=utf-8 py -3.11 scripts/video/_gpu_queue.py acquire <owner>`，整支完成后 `release <owner>`。机制：锁目录 `video-generation/.chain/gpu.lock`（mkdir 原子）+ 队列账本 `.chain/queue.jsonl`（WAIT/ACQUIRE/RELEASE/STEAL 留痕）；对不走锁的外部合成任务用 WSL pgrep 探测自动避让（先来先服务对它们同样生效）；死锁自救仅限「持锁 PID 已消亡且锁龄 >45 分钟」。**事故存档 2026-08-27**：本链 ep3 与另一会话 token-saving-skills 合成同挤一张 8GB 卡，迭代从 6s/it 飙到 22s/it 后 WSL 整体重启双杀两任务——此后多批次并行前一律先进队。
 - **Windows 编码**：文件 I/O 显式 `encoding="utf-8"`，子进程 `PYTHONIOENCODING=utf-8`
 - **edge-tts 间歇 NoAudioReceived**：`synth_with_boundaries` 必须带指数退避重试（服务端间歇抽风，非代码问题）。整批失败（make video Error 1）多为同一时段服务抽风——**直接重跑 make，一般 2-3 次内过**，先别怀疑内容
 - **Makefile video target 用 `$(PYTHON_PW)` 不是 `$(PYTHON)`**（2026-08-17 修）：`.venv` 无 playwright/edge-tts，Windows 用本机 Python311（`PYTHON_PW`），否则 `ModuleNotFoundError`
@@ -305,6 +443,8 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ```
 deck.json / deck-graph.json（内容）+ narrations/<slug>.json（口播 cards[]）
+        ↓ 【用户确认门禁】完整口播稿 + 分镜脚本呈用户审阅，明确确认后才能进入合成/渲染
+          （见「规则约束 → 渲染前用户确认」）
         ↓ make video slug=<slug> [mode=courseware|graph] [theme=dark|light]
 [TTS+WordBoundary] → [timeline 分句+字幕去标点]
         → [Playwright 逐帧渲染] → [xfade 视频拼接 + acrossfade 音频合并 + BGM/音效同图混入]
@@ -315,9 +455,9 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 ## 新文章复用
 
 ### courseware
-1. `video-generation/deck/<slug>/deck.json`（含 points + sub_points + footer）
+1. `video-generation/deck/<slug>/deck.json`（含 points + sub_points + footer；流程类内容用 `flow` 字段替代 sub_points，见「动画与特效强制规范」第 6 条——节点/连线/跑线/逐字标签按口播分句自动逐节点动画）
 2. 口播 `video-generation/narrations/<slug>.json`，格式 `{voice, rate, outline:[论点], cards:[文案]}`
-3. `make video slug=<slug>`
+3. `make video slug=<slug>`（动画零配置：分句时间轴自动生成每元素出生帧，无需任何 anim 配置）
 
 ### screencast（屏录感教程：对齐抖音「录屏+标注」爆款）
 1. `video-generation/deck/<slug>/deck.json`，每卡 `type:"tool"`：
@@ -376,7 +516,7 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 
 ### remotion（默认：清单/榜单/对比/数据可视化/教程步骤）
 1. 口播脚本 `.agents/skills/video-generation/scripts/narrate_<slug>.py`（参照 `narrate_ccswitch.py` / `narrate_after_million_loc.py`）：写口播句子 → 复用 `video.narrate` 生成 mp3 + `narration.ts` 到 `video-generation/remotion-videos/<slug>/`
-2. `video-generation/remotion-videos/<slug>/config.ts`：按内容类型选场景（`SkillStage` 阶段递进 / `LeaderboardChart` 榜单 / `ComparisonTable3D` 对比 / `DataReveal` 成本账），`span(from,to)` 从 narration 时间戳算每场景时长
+2. `video-generation/remotion-videos/<slug>/config.ts`：按内容类型选场景（`SkillStage` 阶段递进 / `LeaderboardChart` 榜单 / `ComparisonTable3D` 对比 / `DataReveal` 成本账），`span(from,to)` 从 narration 时间戳算每场景时长；字幕用 **`U.filter(s => !s.no_subtitle).map(...)`**（口播句首 `〖无字幕〗` 标记的单元不进字幕——CTA 句敏感期降险开关，见「互动与转化引导 → 管线支持」）
 3. Root.tsx 注册：`import { xxxConfig } from "@videos/<slug>/config"` + 加入 `allConfigs`
 4. `make video-remotion slug=<slug>`（内部 `cd remotion && VIDEO_ID=<slug> pnpm render`）→ 产物 `video-generation/build/<slug>/<slug>.mp4`，封面自动生成到**同目录** `video-generation/build/<slug>/<slug>_cover.png`
 
@@ -389,7 +529,12 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 | 文件 | 职责 |
 |------|------|
 | `build.py` | 主入口，courseware/graph/legacy 分发，graph 的 acrossfade 音频合并 |
-| `courseware.py` | 课件 HTML 模板（`render_frame`；顶部对 `card["type"]=="tool"` 分发到 screencast）|
+| `palette.py` | 权威画面色板 SSOT（token + 弱化态值 + 对比度配对声明 + 封面 :root 注入源 + 拟物豁免表，openspec video-color-retention）|
+| `lint_colors.py` | 色彩机检（对比度分级判定 + 色板外漂移扫描 + Remotion 同步；并入 `make video-lint`）|
+| `test_palette.py` | palette/lint_colors 单测（对比度计算/升档回归守卫/封面注入）|
+| `courseware.py` | 课件 HTML 模板（`render_frame`；全元素动画编排 + 对 `card["type"]=="tool"` 分发到 screencast）|
+| `flowchart.py` | flow 流程图原语（节点弹出/连线生长/跑线扫光/逐字标签，`point_births` 逐节点驱动）|
+| `motion.py` | 帧驱动动画数学库（缓动/count-up/typewriter/shimmer + 编舞助手 enter_tuple/settle_dip/glow_mult）|
 | `screencast.py` | 屏录感工具界面渲染（`_CONTENT` 各 tool builder + `render_frame`，自带 `python -m video.screencast` 自测出预览）|
 | `capture_shots.py` | 抓真实网页截图 + 热点百分比坐标（`realshot` 素材源，产物 `assets/<slug>/`）|
 | `cover_vscode.py` | 拟物化 VSCode 封面（复用 `_vscode` 窗口做主体，教程类封面）|
@@ -424,13 +569,65 @@ mp3, json_path = generate_narration_from_sentences(
 
 | 场景 | 音色 | 说明 |
 |------|------|------|
-| **解说/深度/悬疑叙事（默认）** | `zh-CN-YunjianNeural` | 低沉磁性男声（F0med 132Hz、质心 1205Hz，4 者中最接近对标），rate `0%`~`+8%` |
+| ⚠️ **正式视频一律不用** | （克隆链） | 见「发音」节顶部的克隆默认定规；下表仅克隆链不可用且用户已批准 fallback 时查用 |
+| **解说/深度/悬疑叙事（fallback 默认）** | `zh-CN-YunjianNeural` | 低沉磁性男声（F0med 132Hz、质心 1205Hz，4 者中最接近对标），rate `0%`~`+8%` |
 | 轻快教程/产品演示 | `zh-CN-YunxiNeural` | 阳光青年男声（F0med 186Hz），节奏快时配 `+10%`~`+15%` |
 | 新闻播报式/权威口径 | `zh-CN-YunyangNeural` | 播音腔男声，音色偏亮（质心 1543Hz），科普引用数据时可切 |
 | 培训/温和女声 | `zh-CN-XiaoxiaoNeural` | 女声兜底 |
 
 - 判据可复现：`ffmpeg` 抽 wav → 30ms 帧自相关估 F0 + rFFT 质心，对比样本落点（脚本思路见 `/tmp` 一次性分析，不必沉淀）。
 - 抖音头部「AI 解说」类多为剪映系音色（如解说小帅），edge-tts 无同款；**YunjianNeural 是可白嫖的最接近替代**。若对标的明显是真人配音，不做音色克隆，按上表选最近替代。
+
+## 默认口播配置：IndexTTS-2 克隆 + 严格标点断句（2026-08-25 定稿）
+
+发布视频（codex/claude 系列）的默认声音 = **IndexTTS-2 发布配置克隆**；edge-tts 降级为快速预览与 fallback。断句定规 = **只在逗号和句号停顿**，由管线强制，不依赖模型自觉。
+
+### 声音配置（与发布系列逐项一致，来源 video-pipeline-6-skills 定稿）
+
+| 项 | 值 |
+|---|---|
+| 参考音 | `~/refaudio/my_voice_seg.wav`（WSL） |
+| 情绪 | 随参考音（`--emo none`；calm 向量/扁平参考音是历史断句实验，弃用） |
+| interval_silence | 250 |
+| 后处理 | assemble 发布五步链：120ms 呼吸垫 → RMS -18dB → treble g=2 → deesser → alimiter 0.7 + -1dB |
+| 整体提速 | `tts_speed_shrink.py` atempo 1.06（时间戳等比缩放） |
+
+### 断句档位（三级分明，全部落在标点上）
+
+| 档 | 时长 | 机制 |
+|---|---|---|
+| 非标点位置 | >0.11s 一律手术清到 0.05s（听感连续） | pause_audit 手术 |
+| 逗号 `，、；：` | 原生 0.4-0.6s（参考音停顿习惯被克隆）→ 0.18s 档 | pause_audit 手术 |
+| 句号（句间） | 0.24s（120ms 垫×2，atempo 后 ~0.2s） | assemble 垫 |
+
+语速：合成期 best-of-N 按窗口 [4.6, 6.2] 字/s 优选（<12 字短句软窗 ≤7.5），发布链零变速 DSP。
+
+### 断句根源定论（实证存档，防止再走调参弯路）
+
+IndexTTS-2 整句推理时，句内停顿由 **AR 随机采样**决定：tokenizer 实跑证明逗号只是段内普通 token（`interval_silence` 对单段句子不生效）；`infer_v2.py:590` `do_sample=True` 硬编码；同机同配置同句重采，停顿位置每次不同；上游 [issue #572](https://github.com/index-tts/index-tts/issues/572) 同病未修。**参数修不动，只能管线强制（门禁选优 + 手术）。**
+
+### 命令链
+
+```bash
+# ① 合成 + 门禁选优 + 手术（WSL indextts env，项目根 /mnt/d/codes/blog-src）
+#   产物 sent/<slug>/（c{i}_s{j}.wav/.txt/.tts.txt/meta.json）+ pause_audit.json 审计表
+PYTHONIOENCODING=utf-8 python scripts/video/synth_indextts.py <slug> [--attempts 4] [--limit N]
+# ② 发布五步链拼装（Windows，产物 audio/<slug>/audio_XX.mp3 + boundaries_XX.json）
+PYTHONIOENCODING=utf-8 python scripts/video/tts_pipeline/assemble.py \
+  video-generation/narrations/<slug>.json video-generation/sent/<slug> video-generation/audio/<slug>
+# ③ 整体提速 1.06（Windows，产物 audio/<slug>_t/，时间戳等比）
+python scripts/video/tts_speed_shrink.py <slug>
+# ④ 独立复审（WSL 或有 faster-whisper 的环境，可单独跑）
+python scripts/video/pause_audit.py video-generation/sent/<slug>
+```
+
+### 已知坑
+
+- **`use_cuda_kernel=False` 必须显式传**：默认 True 触发 BigVGAN kernel JIT 编译，8GB 卡 >13min 无产出（2026-08-25 实测）
+- fp16 = webui 8GB 卡默认档（发布系列口径）；fp32 扩散极慢勿轻试
+- GPU 被 Seed-VC 等任务并行占用时只影响速度不影响停顿位置（停顿与算力无关——这本身是根源证据）
+- whisper 词级对齐失败自动退化字数比例映射（审计表 `align` 字段可查：whisper/prop）
+- 续跑会用现行门禁复核旧产物，不过自动重合成（改档位后重跑即全量生效）
 
 ## Remotion 数据可视化视频（第三种模式）
 
@@ -462,17 +659,19 @@ video-generation/
 
 > **项目根注入**：技能库外置为独立仓 + `.agents/skills` 是 junction/symlink 时，向上探测会落到 skills 仓自身。项目根一律优先读 `VIDEO_PROJECT_ROOT` 环境变量（blog-src 的 Makefile 已传 `$(CURDIR)`），TS（render/sync/remotion.config）与 Python（config.py）同规则；未传时才走向上探测 + 同级 blog-src 兜底。手动跑渲染前先 `export VIDEO_PROJECT_ROOT=<项目根>`。
 >
-> **依赖版本**：remotion 固定 **4.0.502**（Node 24 下浏览器可正常 spawn；4.0.8 会报 `spawn UNKNOWN`），勿升。
+> **依赖版本**：remotion 固定 **4.0.517**（2026-08-26 codewalk-probe 实测升级：Node 24 无头渲染正常；4.0.8 报 `spawn UNKNOWN` 的老坑不复现）。⚠️ 4.0.517 下 `Easing.bezier()`/`Easing.out()` 工厂产物喂 `interpolate` 报 "easing.length undefined"——缓动一律用纯函数 `(t:number)=>number` 封装。
 
 ## 产出完整性（2026-08-17 定规，强制）
 
 **每个视频的一次完整产出 = 成片 mp4 + 横屏封面 `_cover.png` + 竖屏封面 `_cover_v.png` + `metadata.txt`，四者缺一即产出不完整。**
 
-- `make video-remotion` / `make video` 渲染完成后，必须立即跟：`make video-cover slug=<slug>`（横竖双封面）+ 在 `video-generation/build/<slug>/` 写入 `metadata.txt`（标题/系列/期数/封面标题或关键词/标签/简介/话题，简介含结尾互动问题与原文链接）。
+- `make video-remotion` / `make video` 渲染完成后，必须立即跟：`make video-cover slug=<slug>`（横竖双封面）+ 在 `video-generation/build/<slug>/` 写入 `metadata.txt`（标题/系列/期数/封面标题或关键词/标签/简介/话题，简介含结尾互动问题；**通用简介不放外链**，博客链接只进 `简介_B站` 变体——抖音走回退继承，2026-08-26 事故）。
+- **封面必须按 v3/v4 规范全字段生成（2026-08-25 定规；字段名 2026-08-27 勘误，每条视频强制）**：metadata.txt 封面字段齐填——**合法键是 `封面hero`**（word/screenshot/number 三态，见上「封面必带大字强调」定规）+ `封面hero内容` + `封面效果`（burst/marker/glitch）+ `形象表情` + `封面关键词组`（dense 轰炸层 3-8 词，三色主次制）+ `封面要点`（✓ 信息行 ≤4 条，取自简介不编造）。⚠️ 本条目早期版本写的 `封面主角*`/`封面表情` 是无效键、静默丢弃，勿再照抄（DSH 六期与 transformer-matrix 中招实录见上）。hero + 特效 + 轰炸层是 2026-08-24 封面优化的定型组合，缺一即不符合要求；**所有封面必须有 hero 大字强调**（DSH「官方故意的」式断言大字），cover-check 对无 hero 封面直接 FAIL。❌ **禁止用降级手段过 cover-check**（删 hero 改纯标题、砍关键词组、绕过 hero 板）——竖版字形覆盖不足时按 v3 补字段（关键词组/要点行/hero 板）调参，不削特性；「cover-check 通过」不等于「封面合规」，两项都要过。发布前 checklist 增查一项：封面按 v3 规范生成（字段齐 + 双版 PASS）。
 - 渲染管线如中途失败/被取消，恢复后要确认没有残留僵尸渲染进程（node/ffmpeg）锁住输出文件——曾因此 Permission denied 连环失败。清场：`taskkill /F /IM node.exe` 后单实例重渲。
+- **口播声音来源验收（2026-08-25 定规，第一道）**：成片口播必须是用户克隆声——确认 `video-generation/audio/<slug>_t/audio_*.mp3 + boundaries_*.json` 在场、make video 日志出现「换声旁路」字样。edge-tts 声（narrations voice 字段生效、日志只有 edge-tts WordBoundary）= 未走默认链，**返工**（用户明示批准的 fallback 除外）。
 - 封面过 `make video-cover-check`，metadata 过 platform-compliance（标题/简介/话题），**音频过 `verify_render.py`**（BGM 底垫在场 + 混音不削波，见「声音层与转场」），三项都绿才算产出闭环。
 - **metadata-lint 机检（2026-08-24 定规，三检之后的第四道）**：`make metadata-lint slug=<slug>`——硬截断/词中断/结构红线（凭什么/打赢类）FAIL，最优长度/话题配比/断句丢钩子 WARN。发布管线 `--confirm` 时自动跑同一 lint，FAIL 拒发（`--force` 逃生留痕）。依据：`openspec/changes/metadata-optimization`。
-- **可读性双检（2026-08-24 定规，强制）**：发布前过 `make video-lint`（模板字号基准 + Remotion 场景字号，非零退出）+ `make video-preview slug=<slug>`（抖音信息流模拟图：黑边 + 右侧图标列 + 底部文案叠加，缩 390px 宽），模拟图里**正文层文字「一眼可读」**才发布。新 deck 要点密度过 `video-lint --deck <slug>`（≤3 条/卡、≤14 字/条；存量 deck 超限渲染时只警告）。基准与依据：`openspec/changes/video-landscape-readability`（正文 ≥48px/画面高 4.4%、标题 ≥72px、右缘避让 180px、crf 18、screencast 热点 1.6× 特写取景）。
+- **可读性双检（2026-08-24 定规，强制）**：发布前过 `make video-lint`（模板字号基准 + Remotion 场景字号 + **色彩对比度/色板登记机检**（2026-08-25 并入，见「色彩可读性」），非零退出）+ `make video-preview slug=<slug>`（抖音信息流模拟图：黑边 + 右侧图标列 + 底部文案叠加，缩 390px 宽），模拟图里**正文层文字「一眼可读」**才发布。新 deck 要点密度过 `video-lint --deck <slug>`（≤3 条/卡、≤14 字/条；存量 deck 超限渲染时只警告）。基准与依据：`openspec/changes/video-landscape-readability`（正文 ≥48px/画面高 4.4%、标题 ≥72px、右缘避让 180px、crf 18、screencast 热点 1.6× 特写取景）。
 
 ## 成片生命周期：build → archive（2026-08-24 定规，强制）
 
@@ -516,14 +715,17 @@ graph 模式约 1-2 分钟渲染（5 段 ~1800 帧），courseware 约 10-12 分
 
 ### v3/v4 增量定规（hero 三态 + 一图一主角，2026-08-24）
 
+> **封面必带大字强调（2026-08-27 用户定规，升格强制）**：后续**所有**视频封面必须产出 hero 大字槽，裸标题封面不再允许出现。定型样板 = DSH 系列断言式大字：「官方故意的」「差30倍」「当git存」「12秒」「就不跑」「都能换」——**3-5 字的结论词 / 关键数字 / 态度词**（punchline），禁用中性描述词（「插件系统介绍」类不上封面）。metadata 必填 `封面hero: word` + `封面hero内容`（数字冲击场景用 `number`，教程实拍特例可用 `screenshot`）；`封面效果` 默认 `burst`（贴纸描边+放射线+冲击波，信息流缩略下锚点最强），可按内容换 `glitch`（科技/揭秘向）/`marker`（手写标注向）。**机械门禁已并入 `make video-cover-check`**：slug 模式解析后 hero 为空直接 FAIL 并给补字段指引——「cover-check 通过」从此蕴含「大字强调在场」，零 hero 的放行通道关闭。像素验收按 v4 分档（hero 板态惊吓色 ≤8%）；check 个别指标压线时以 hero ROI 亮色 ≥1% 与主次字号比 ≥1.7 为准，不回退裸标题版。
+> ⚠️ 字段名以 `scripts/pub/meta.py::FIELD_ALIASES` 为准（`封面hero`/`封面hero内容`/`形象表情`）——DSH 六期 metadata 全写成旧名 `封面主角*` 靠关键词缺省链侥幸兜出大字、transformer-matrix 把大字文本直接写进 `封面hero:` 态字段静默失效真裸奔。cover-check 现对这两类写入直接报错/警告，别再抄历史文件的字段名。
+
 **v3——封面进入「hero 槽三态 + 轰炸层」参数化**（`cover.py` 读 metadata.txt v3 字段，横竖双版同一套特效语法）：
 
 | metadata 字段 | 作用 |
 |---|---|
-| `封面主角` | hero 三态：`screenshot`（HUD 窗框截图）/ `number`（大数字，≥主标题 1.2 倍 + 青 bloom 全图最亮）/ `word`（特效大字 punchline） |
-| `封面主角内容` | 截图素材路径 / 数字+单位 / punchline 缩语（word 态建议 ≤4 字） |
+| `封面hero` | hero 三态：`screenshot`（HUD 窗框截图）/ `number`（大数字，≥主标题 1.2 倍 + 青 bloom 全图最亮）/ `word`（特效大字 punchline） |
+| `封面hero内容` | 截图素材路径 / 数字+单位 / punchline 缩语（word 态建议 ≤4 字） |
 | `封面效果` | hero 轮换效果：`marker`（荧光划线+红圈+手绘箭头）/ `glitch`（青红双影错位）/ `burst`（贴纸描边+放射线+冲击波） |
-| `封面表情` | 终端小子表情（与视频 MascotCompanion 同表）：`huh/money/dead/wow/meh/smile` |
+| `形象表情` | 终端小子表情（与视频 MascotCompanion 同表）：`huh/money/dead/wow/meh/smile` |
 | `封面关键词组` | dense 轰炸层贴纸带，≤8 词三色主次制 |
 | `封面要点` | ≤3 条 ✓ 要点行（取自简介原文，不编造） |
 
@@ -628,7 +830,7 @@ make video-cover-check slug=<slug>
 | 惊吓色(红+黄)占比 | dense ≤12% / hero 板态 ≤8% / 其余 ≤2% | v4 分档:轰炸层与黄板给高上限,效果态只许点睛 |
 | hero ROI 亮色 | ≥1% | v4:hero 槽区域主角在场检测(黄板/大数字天然通过) |
 
-任何新封面生成后跑一遍,FAIL 说明标题单行 / 未高亮 / 无强调色,回 `resolve_cover_title` 排查。
+任何新封面生成后跑一遍,FAIL 说明标题单行 / 未高亮 / 无强调色 / **无 hero 大字槽（2026-08-27 门禁）**,回 `resolve_cover_title` 与「封面必带大字强调」定规排查;metadata 里写了废弃字段名（`封面主角*`/`封面表情`）或非法 hero/效果取值也会在此报出。
 
 ## 标题 / 简介 / 话题标签规范（2026-08-17 定规，写入 metadata.txt）
 
@@ -647,8 +849,8 @@ make video-cover-check slug=<slug>
 
 - **前置核心收获，禁罗列细节**：❌「45 万行 TypeScript、60+ 个包…」✅「帮你搞懂这 3 个核心：Agent 生命周期、工具执行管线、会话落盘机制」。第一句就是观众决定看不看的依据。
 - **给行动指令，禁信息堆砌**：✅「跟着视频走，八步搞定安装。提前避开 Node 版本、插件兼容这 3 个坑」——「跟着做能得到什么 + 避开什么」双承诺。
-- **结尾引导互动，禁戛然而止**：简介末段带提问 + 回应承诺（「你在安装时遇到过什么坑？评论区聊聊，我来帮你看看」），与「内容创作规范 → 价值与互动」的口播结尾呼应，双露出。
-- **可带走价值**：有对应博客文章的，简介末尾附原文链接（收藏钩子，已有规则在此重申）。
+- **结尾引导互动，禁戛然而止**：简介末段带提问 + 回应承诺（「你在安装时遇到过什么坑？评论区聊聊，我来帮你看看」——抖音简介不带「评论区」字样与动作指令词，见「互动与转化引导」矩阵），与「内容创作规范 → 价值与互动」的口播结尾呼应，双露出。
+- **可带走价值**：有对应博客文章的，**B站简介末尾附原文链接**（收藏钩子）；抖音/快手/视频号简介不放链接（2026-08-26 抖音外链违规事故，重申见「互动与转化引导」矩阵）。
 
 ### 话题标签：从「堆砌」到「精准组合」
 
@@ -671,6 +873,13 @@ make video-cover-check slug=<slug>
 标签: a, b, c              # 可选，逗号分隔
 简介: 第一行...            # 必填，缩进续行支持多段
     第二行续行...
+简介_抖音: ...             # 可选，平台专属简介（互动引导合规矩阵：抖音版无动作
+                           #   指令词/无「评论区」三字）；另有 简介_快手/简介_视频号/
+                           #   简介_B站/简介_公众号，缩进续行同简介
+置顶评论: ...              # 可选，发布后 1h 置顶的备稿（补充价值或作者站队，
+    续行...                #   无指令词；openspec video-engagement-cta）
+豁免_时长: 拆系列论证...   # 可选，成片 >150s 的豁免理由（openspec douyin-featured-selection：
+                           #   无此字段超线 lint FAIL 拒发；填理由放行并 WARN 留痕）
 话题: #tag1 #tag2          # 必填，空格分隔的热门话题；缩进续行
     #tag3
 ```
@@ -721,15 +930,51 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 - `--dtime` 定时距提交需 >4h；封面 `--cover` 本地横版路径自动上传
 - 投稿后字段核对：`/x/web/archives`（稿件列表）、`/x/vupre/web/archive/view?aid=`（详情，浏览器内 fetch；requests 直调 404）
 
-### 抖音先行 + 后台状态门禁（2026-08-20 定规，强制）
+### 全平台发布与逐平台状态确认（2026-08-27 修订：取消抖音先行顺序门禁）
 
-> 背景：ccswitch 抖音审核「不符合相关法规」后，其余平台若已同时发布会造成多平台无效副本。且自动化发布的「发布成功」日志 ≠ 后台状态正确（定时发布可能变「审核未通过/仅自己可见」）。
+> 背景：原「抖音先行 + 后台状态门禁」（2026-08-20，源自 ccswitch 抖音被拒导致多平台无效副本）要求先发抖音、确认其状态再发其余平台。2026-08-27 用户定规**取消发布顺序约束**：四平台不分先后，串行执行只为 cookie 会话与 link-map 写入安全；发布成功与否由**现存检查工具逐平台确认**，某平台被拒按「发布后复查闭环」层级处置，**不再前置阻断其他平台**。
 
-- **流程（发布顺序强制）**：
-  1. `make pub-video slug=xxx platforms=douyin confirm=yes schedule="…"` —— 只发抖音
-  2. `python scripts/pub/douyin_check_status.py "<标题关键词>"` —— 后台状态检查，**必须确认「定时发布」**（无「不适宜公开/仅自己可见/未通过」标记）
-  3. 状态确认后，再发其余平台：`make pub-video slug=xxx platforms=kuaishou,shipinhao confirm=yes schedule="…"`（快手建议直接走 v2）
-- **门禁**：状态检查返回非 0（未找到/状态异常）→ 禁止发布其余平台，先人工处理抖音后台。
+- **全平台缺省（2026-08-27 用户定规，优先级最高）**：发布一个视频 = **抖音/快手/B站/视频号四平台全发**，这是缺省动作不是可选项。**禁止「只发抖音、其余平台等数据起量再跟进」**——「待数据起量后跟进」「待跟进」这类挂起理由一律无效（2026-08-27 DSH ep1 事故：只发抖音挂了 12 小时+ 才被用户发现补齐；同类还有 transformer-matrix-internals 只发抖音、codex-desktop-tutorial 漏 B站/快手）。
+  - 仅两类例外可少平台，且必须显式声明理由并报告用户：① **内容级拒绝主题**按 AGENTS.md 2026-08-27 定规排掉具体平台（如第三方模型接入官方客户端教学不排抖音——注意这是「排掉某平台」，其余照发，绝不是「只发一个平台」）；② 用户明示指定平台子集。
+- **发布执行（无顺序约束）**：四平台同窗口挂齐，串行跑。快手走 v2（`py -3.11 scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM"`）；B站 `--platforms bilibili`（biliup dtime 平台侧定时）；抖音 `--platforms douyin`；视频号 `--platforms shipinhao`（定时控件失效期改 schtasks 兜底，见「挂定时后必须复核实际状态」）。
+- **发布成功确认（用现存检查工具，上传器日志不可信）**：每个平台发布/挂定时后，用对应检查工具确认实际状态——抖音 `py -3.11 -m scripts.pub.douyin_check_status "<标题关键词>"`、快手 `py -3.11 -m scripts.pub.kuaishou_check_status <关键词>`、视频号 `py -3.11 -m scripts.pub.shipinhao_delete_video --scan`、B站稿件列表（`.tmp/bili_archives_check.py`，浏览器内 fetch `/x/web/archives`，state=-40 定时中 / 0 通过可见）。判据与节奏见「挂定时后必须复核实际状态」与「发布后复查闭环」。**检查不过 ≠ 连坐**：只处理该平台（按复查闭环的层级处置），其余平台照发照查。
+- **收尾自检（发布会话结束前强制）**：核对 link-map `<slug>.pub_video.results` 四平台齐全；不齐 = 发布任务未完成，不许收尾归档。注意 `publish.py` 的 `save_to_linkmap` 每次运行会**整体覆盖** results 字段、快手 v2 单独写——串行发完后必须把四平台真实状态合并写回再收尾。
 - 配套工具：`scripts/pub/douyin_delete_verified.py`（带弹窗全文安全阀+删除后验证的删除）、`scripts/pub/douyin_scan_works.py`（只读扫描）。
 
-**主管线**（`scripts/pub/publish.py`，抖音/视频号/B站通道 + 公众号 mp API）自动处理：封面横竖双版生成（复用 `scripts/video/cover.py`）、**metadata lint 门禁**（`--confirm` 前跑，FAIL 拒发；lint 自身异常同样拒发，`--force` 逃生留痕）、标题裁剪、AI 声明、合集选择（抖音/视频号）、平台间隔风控缓冲（180-480s）、结果回收 link-map。**快手走 v2**（主管线 KSVideo 选择器过期待修）。⚠️ link-map 无文件锁——多平台并行发布时互相覆盖（2026-08-23 实证），串行发布或事后核对。
+### 挂定时后必须复核实际状态（2026-08-27 定规，全平台强制）
+
+> 背景：codex-desktop-tutorial 发布夜，视频号「定时 20:00」连续两次静默失败——`tencent_uploader_main.py::set_schedule_time_tencent` 的 label 定位选择器失效，定时没设置上但流程直接走到发表按钮，**实际立即发布（23:01 / 02:17 两次实锤），上传器日志仍报「✅ 发布成功」**。另有：中途 kill 发布进程 ≠ 没发布（进程死在上传等待阶段，页面侧可能已提交出片）。
+
+- **定规**：`--schedule` 挂完后（以及 kill 过发布进程后），**必须扫平台后台复核**：抖音 `douyin_check_status.py`（状态标记必须含「定时」且无「不适宜公开」）；视频号 `shipinhao_delete_video.py --scan`（看新条目时间戳——出现在当天上传时刻 = 立即发布实锤，正确定时应不在已发布列表）。上传器的成功日志不可信。
+- **兜底**：平台侧定时控件失效时，用 Windows 任务计划程序本地直发落 20:00 窗口（`schtasks /create /sc once /st 19:50` + bat 包装 `py -3.11 -m scripts.pub.publish`，参考 D:\tmp\sph_publish_1950.bat 与任务名 sph-publish-2000）——平台侧优先，此为坏路兜底，机器需开机。
+- 待修：tencent 定时选择器（`label.filter(has_text="定时").nth(1)` 失效，需对着当前 DOM 重写）；同晚视频号 AI 声明开关与合集下拉也超时失败，发布后需后台手动补。
+
+### 发布后复查闭环（2026-08-27 用户定规，强制）
+
+> 发布不是终点。平台审核有两类时点：发布前预审（分钟级）与**发布后追罚**（DSH 案例：过审发布 16 分钟后「减少推荐」）。每个平台、每次发布（含定时出片）都要在一段时间后复查，确认真正通过审核；未通过的按层级处置后重发，直到全部终态才算发布闭环完成。
+
+- **复查节奏**：发布/出片后 **20-30 分钟首查**（覆盖预审与早期追罚），**24 小时二查**（覆盖延迟追罚）。首查仍「审核中」→ 每 30-60 分钟追查直到出终态。
+- **各平台复查命令与通过判据**：
+  | 平台 | 命令 | 通过判据 |
+  |------|------|----------|
+  | 抖音 | `py -3.11 -m scripts.pub.douyin_check_status "<标题关键词>"` | 「定时发布/已发布」且无「不适宜公开/仅自己可见/未通过」 |
+  | 快手 | `py -3.11 -m scripts.pub.kuaishou_check_status <关键词>` | 已进入定时发布/已发布，无违规标记 |
+  | 视频号 | `py -3.11 -m scripts.pub.shipinhao_delete_video --scan` | 新条目在列表且 st=1、时间戳正确（不在列表 = 被拒或审核中，去后台看） |
+  | B站 | 浏览器内 fetch `/x/web/archives` 稿件列表（见 B站小节） | 稿件状态「通过/可见」，字段核对 |
+- **未通过的处置（先判层级，2026-08-27 定规）**：
+  1. **元信息层**（外链/违禁词/动作词）→ 按 platform-compliance 案例库改标题/简介/话题（或平台变体），删旧条目重发同视频，复查。
+  2. **内容层**（音频/画面主题被拒，「不适宜公开」）→ **不要改口径重投**（8-27 三度实证无效且消耗账号违规计数）：删被拒条目，报用户拍板——剪特供版（去掉敏感段）或放弃该平台；其余平台照常。
+  3. **追罚类**（已过审后「减少推荐」等）→ 按案例库定位根因（多为外链/指路句），改后删旧重发。
+- **记录**：复查结果写 `content/link-map.json` 对应 slug 的 `pub_video.review` 字段（时间 + 各平台终态），全平台终态（通过/已放弃）后本次发布才算完成。
+- **长程关注**：会话内用后台任务/定时脚本跟进；会话外用 Windows 任务计划（`schtasks`）挂复查命令落日志，下次会话先读日志收口。
+
+### 违规/未通过视频必须清理（2026-08-27 用户定规，强制）
+
+> 发布后发现违规（追罚/仅自己可见/不适宜公开）或审核未通过的视频，**必须从平台删除清理，账号不留违规内容**——挂着违规作品持续消耗账号权重（同主体 3 次中度违规全账号限流）。清理后按上一节分层处置决定是否重发。
+
+- **四平台清理工具**：抖音 `douyin_delete_verified.py "<标题关键词>"`；快手 `kuaishou_delete_video.py <关键词> [--confirm]`（2026-08-27 新增，删已发布；`kuaishou_delete_scheduled.py` 只管待发布）；B站 `bilibili_delete_video.py <bvid>`；视频号 `shipinhao_delete_video.py --keyword <词> --confirm`。bvid/photo_id 从 `content/link-map.json` 的 `bilibili_id`/`kuaishou_id` 取（publish 自动回收）。
+- **快手定位坑（2026-08-27 实锤）**：作品管理卡片文本只显示话题标签不显示标题——定位关键词用话题词（如 `#零基础教程` 里的 `零基础教程`），用标题词匹配 0 命中。
+- **B站登录坑（2026-08-27 实锤）**：`cookies/bilibili.json` 是 biliup 的 `cookie_info` 格式，**不是 Playwright storage_state**——直接 `new_context(storage_state=…)` 会「未登录」重定向扫码页；要手动转 `add_cookies`（`bilibili_delete_video.py::storage_state()` 已内置正确转换，复用它）。member API 端点对纯 requests 全 404（WAF 指纹），只能浏览器内 fetch。
+- **并发会话清目录坑（2026-08-27 实锤）**：`video-generation/build/<slug>/` 可能被并发会话整目录清掉（发布运行中 mp4 消失、metadata.txt 一起丢）——发布前后确认 mp4 在场；**重要 metadata 发布前备份一份到 build 外**（或从本 skill 记录重建）；音频 `audio/<slug>_t/` 与 deck/narrations 在 build 外，丢了 build 重渲即可恢复（约 25 分钟，换声旁路自动接管）。
+
+**主管线**（`scripts/pub/publish.py`，抖音/视频号/B站通道 + 公众号 mp API）自动处理：封面横竖双版生成（复用 `scripts/video/cover.py`）、**metadata lint 门禁**（`--confirm` 前跑，FAIL 拒发；lint 自身异常同样拒发，`--force` 逃生留痕；含**时长纪律**——ffprobe 成片 >150s 且无「豁免_时长」拒发，openspec douyin-featured-selection）、标题裁剪、AI 声明、合集选择（抖音/视频号）、平台间隔风控缓冲（180-480s）、结果回收 link-map。**快手走 v2**（主管线 KSVideo 选择器过期待修）。⚠️ link-map 无文件锁——多平台并行发布时互相覆盖（2026-08-23 实证），串行发布或事后核对。

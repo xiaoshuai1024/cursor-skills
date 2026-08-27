@@ -99,3 +99,104 @@ export function keywordFrames(units: SoundUnit[], keywords: string[], max = 4): 
   }
   return frames;
 }
+
+// ── SFX 场景×氛围矩阵（openspec video-sfx-scenario-palette，2026-08-26）──
+// 氛围轴复用 BgmMood → BGM 与 SFX 同一声音人格。
+// ⚠️ 与 scripts/video/config.py::SFX_SCENARIO_MATRIX 同源镜像，改一边必须同步另一边；
+//    文档 SSOT = references/sound-design.md §五矩阵表。
+
+/** 语义场景(素材=gen-sfx.py 产物,全在 video-generation/narration/) */
+export type SfxScenario =
+  | "opening" | "question" | "transition" | "emphasis" | "reveal" | "milestone"
+  | "error" | "typing" | "countdown" | "suspense" | "hook" | "outro";
+
+/** 场景用途速记(写 config 对照用) */
+export const SFX_SCENARIO_USAGE: Record<SfxScenario, string> = {
+  opening: "开场引子,第 0 帧",
+  question: "真·提问句(全片 2~4 个)",
+  transition: "动画转场场景(transitionEvery 节流)",
+  emphasis: "关键结论/重点词落地",
+  reveal: "揭晓/揭秘/数据图表出现",
+  milestone: "成功/跑通/里程碑",
+  error: "报错/翻车/失败",
+  typing: "代码逐行/打字",
+  countdown: "倒计时/时间线",
+  suspense: "悬念铺垫",
+  hook: "钩子埋点(上扬悬置,配钩子→回收映射表)",
+  outro: "签名句收尾定格(全片一次)",
+};
+
+/** 矩阵条目:文件名 + 适用 mood(查表顺序取首个命中,全未命中回退首项) */
+type SfxEntry = { file: string; moods: BgmMood[] };
+
+export const SFX_SCENARIOS: Record<SfxScenario, SfxEntry[]> = {
+  opening: [
+    { file: "sfx-opening-chime.wav", moods: ["calm", "walk", "focus", "lofi"] },
+    { file: "sfx-opening-riser.wav", moods: ["bright", "epic"] },
+    { file: "sfx-opening.wav", moods: ["tense", "chiptune"] },
+  ],
+  question: [
+    { file: "sfx-question.wav", moods: ["calm", "focus"] },
+    { file: "sfx-question-up.wav", moods: ["walk", "bright", "epic", "chiptune"] },
+    { file: "sfx-question-down.wav", moods: ["tense", "lofi"] },
+  ],
+  transition: [
+    { file: "sfx-transition-swoosh.wav", moods: ["calm", "walk", "focus", "bright", "epic", "lofi"] },
+    { file: "sfx-transition-glitch.wav", moods: ["tense", "chiptune"] },
+  ],
+  emphasis: [
+    { file: "sfx-emphasis.wav", moods: ["calm", "focus", "lofi"] },
+    { file: "sfx-impact.wav", moods: ["bright", "epic", "tense"] },
+    { file: "sfx-emphasis-tick.wav", moods: ["walk", "chiptune"] },
+  ],
+  reveal: [
+    { file: "sfx-reveal-bloom.wav", moods: ["calm", "focus", "lofi"] },
+    { file: "sfx-reveal.wav", moods: ["walk", "bright", "chiptune"] },
+    { file: "sfx-harp-gliss.wav", moods: ["tense", "epic"] },
+  ],
+  milestone: [
+    { file: "sfx-ding.wav", moods: [] },
+    { file: "sfx-coin.wav", moods: ["bright", "chiptune"] },
+  ],
+  error: [{ file: "sfx-error-buzz.wav", moods: [] }],
+  typing: [{ file: "sfx-typewriter.wav", moods: [] }],
+  countdown: [{ file: "sfx-ticktock.wav", moods: [] }],
+  suspense: [{ file: "sfx-heartbeat.wav", moods: [] }],
+  hook: [{ file: "sfx-hook-riser.wav", moods: [] }],
+  outro: [{ file: "sfx-outro-chord.wav", moods: [] }],
+};
+
+/** 场景×氛围 → 推荐音效文件名(矩阵首项兜底;mood 省略取兜底默认) */
+export function suggestSfx(scenario: SfxScenario, mood?: BgmMood | string): string {
+  const entries = SFX_SCENARIOS[scenario];
+  const hit = entries.find((e) => e.moods.includes(mood as BgmMood));
+  return (hit ?? entries[0]).file;
+}
+
+/** suggestSfxSet 返回结构:config.sfx 一行展开 */
+export interface SfxSet {
+  bgmMood: BgmMood;
+  bgm: string;
+  opening: string;
+  transition: string;
+  question: string;
+  emphasis: string;
+  reveal: string;
+}
+
+/** 口播文本 → 整套 SFX/BGM 推荐(先判情绪,再按矩阵选各场景变体)。
+ *  config.ts 用法:
+ *    sfx: { ...suggestSfxSet(N.audio, U.map(u => u.text)), volume: 0.4, bgmVolume: 0.35,
+ *           questionFrames: autoQuestionFrames(U), emphasisFrames: keywordFrames(U, ["记住", "结论"]) } */
+export function suggestSfxSet(...texts: string[]): SfxSet {
+  const mood = suggestBgmMood(...texts);
+  return {
+    bgmMood: mood,
+    bgm: BGM_MOOD_FILES[mood],
+    opening: suggestSfx("opening", mood),
+    transition: suggestSfx("transition", mood),
+    question: suggestSfx("question", mood),
+    emphasis: suggestSfx("emphasis", mood),
+    reveal: suggestSfx("reveal", mood),
+  };
+}

@@ -51,6 +51,10 @@ def normalize_for_tts(text: str) -> str:
     # TUI 大小写都要逐字母（口播常写小写 "dsh-tui"，
     # 小写 "tui" 会被读成一个整词音；实测 "T U I" 才逐字母）
     out = re.sub(r"(?<![A-Za-z])[tT][uU][iI](?![A-Za-z])", "T U I", out)
+    # 品牌名读法定规（2026-08-26）：「1024工程笔记」必须逐位读"一零二四"，
+    # edge-tts 默认把 1024 读成"一千零二十四"。只定向品牌短语，不碰其他
+    # 1024（如 "1024 tokens" 该读一千零二十四）。字幕不受影响（走原文）。
+    out = out.replace("1024工程笔记", "一零二四工程笔记")
     return out
 
 

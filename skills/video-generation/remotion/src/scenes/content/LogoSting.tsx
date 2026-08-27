@@ -13,6 +13,8 @@ import { getCurrentTheme } from "../../core/theme";
  * Props:
  * - title: 字标文本(主标题)
  * - subtitle: 副标题(白闪后淡入)
+ * - info: 信息行数组(白闪后逐条浮现,每条错峰 14 帧)——片尾收束时展示
+ *   仓库/原文/系列期数等可带走信息,避免定格空屏
  * - flashFrame: 白闪发生帧(相对场景),默认 18
  * - ringColor: 光环颜色,默认 theme.accent
  */
@@ -22,6 +24,7 @@ const easeOutExpo = (t: number) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
 interface LogoStingProps {
   title: string;
   subtitle?: string;
+  info?: string[];
   flashFrame?: number;
   ringColor?: string;
 }
@@ -29,6 +32,7 @@ interface LogoStingProps {
 const LogoSting: React.FC<LogoStingProps> = ({
   title,
   subtitle,
+  info,
   flashFrame = 18,
   ringColor,
 }) => {
@@ -101,6 +105,40 @@ const LogoSting: React.FC<LogoStingProps> = ({
           }}
         >
           {subtitle}
+        </div>
+      ) : null}
+      {/* 信息行:白闪后逐条浮现,每条错峰 14 帧(片尾可带走信息,避免定格空屏) */}
+      {info?.length ? (
+        <div
+          style={{
+            marginTop: 56,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 14,
+          }}
+        >
+          {info.map((line, i) => {
+            const t = Math.min(
+              1,
+              Math.max(0, (frame - flashFrame - 22 - i * 14) / 16),
+            );
+            return (
+              <div
+                key={i}
+                style={{
+                  fontSize: 32,
+                  color: i === 0 ? theme.colors.accent : theme.colors.textMuted,
+                  fontFamily: theme.fonts.chinese,
+                  opacity: t,
+                  transform: `translateY(${(1 - t) * 8}px)`,
+                  letterSpacing: 1,
+                }}
+              >
+                {line}
+              </div>
+            );
+          })}
         </div>
       ) : null}
       {/* 单帧白闪(在字标之上) */}

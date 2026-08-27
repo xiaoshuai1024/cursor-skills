@@ -54,7 +54,7 @@ def _to_ts(data: dict) -> str:
          "  voice: string;", "  rate: string;", "  fps: number;", "  total_seconds: number;", "  audio: string;",
          "  segments: Array<{", "    index: number;", "    text: string;",
          "    start_ms: number;", "    end_ms: number;",
-         "    start_frame: number;", "    end_frame: number;", "  }>;",
+         "    start_frame: number;", "    end_frame: number;", "    no_subtitle?: boolean;", "  }>;",
          "}", "", "export const narration: NarrationData = {"]
     L.append(f'  voice: {json.dumps(data["voice"], ensure_ascii=False)},')
     L.append(f'  rate: {json.dumps(data["rate"], ensure_ascii=False)},')

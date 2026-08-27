@@ -33,7 +33,7 @@ export interface Theme {
     background: string;
     /** 次背景色,用于渐变 / 暗蓝过渡,默认 #0a1929 */
     backgroundAlt: string;
-    /** 主强调色(霓虹/氖青),默认 #00d9ff */
+    /** 主强调色(品牌主青),默认 #22d3ee(与 palette.py SSOT 对齐) */
     accent: string;
     /** 主文字色,默认 #ffffff */
     text: string;
@@ -119,9 +119,10 @@ export type { MascotMood, MascotPose } from "../primitives/MascotFigure";
 export interface MascotConfig {
   /** 关闭整个形象层。默认 true */
   enabled?: boolean;
-  /** 形象高度 px(宽按 320/470 自动),默认 210(2026-08-24 四档标定定稿:240 起抢戏/180 符号偏小) */
+  /** 形象高度 px(宽按 320/470 自动),默认 240(左侧净空区标定,openspec video-mascot-placement;
+   *  右侧旧标定 210 不迁移:240 抢戏判定源于右下与内容贴脸,左侧无此冲突;场景左下有核心内容可降 210) */
   height?: number;
-  /** 贴角位置,默认 bottom-right */
+  /** 贴角位置,默认 bottom-left——四平台信息流右侧竖排互动栏遮挡右缘(抖音头像实测),左下为一致净空角 */
   position?: "bottom-right" | "bottom-left";
   /** 手工表情点帧(优先于自动推断;点后到下一手工点间自动推断挂起) */
   moodTimeline?: Array<{ frame: number; mood: import("../primitives/MascotFigure").MascotMood }>;
@@ -131,11 +132,11 @@ export interface MascotConfig {
   reactToSegments?: boolean;
 }
 
-/** 形象层默认值:未声明 config.mascot 即右下角 210px 常驻,表情自动推断 */
+/** 形象层默认值:未声明 config.mascot 即左下角 240px 常驻,表情自动推断(2026-08-25 换边+放大) */
 export const DEFAULT_MASCOT: MascotConfig = {
   enabled: true,
-  height: 210,
-  position: "bottom-right",
+  height: 240,
+  position: "bottom-left",
   autoMood: true,
   reactToSegments: true,
 };

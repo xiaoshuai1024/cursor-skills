@@ -248,7 +248,7 @@ export const contentVideos: ContentVideoEntry[] = [
   {
     id: "video-pipeline-6-skills",
     title: "",
-    durationInFrames: 11412,
+    durationInFrames: 8873,
     fps: 60,
     width: 1920,
     height: 1080,

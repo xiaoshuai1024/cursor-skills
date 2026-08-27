@@ -30,6 +30,17 @@ hugo --gc --minify          # 构建到 public/
 ./deploy.sh "备注"          # 推源码 + 部署 Pages
 ```
 
+### Step 1.5: 内容留存终检（2026-08-26 定规，openspec wechat-article-retention）
+
+推草稿前过 blog-writing `references/wechat-retention.md` 的留存清单（发布前留存检查清单一节）：
+
+- **打开层**：`wechat_title` 已定稿（≤25 字、钩子前 13 字，不拿博客 SEO 长标题直发）；`wechat_digest` 已定稿（前 40 字含痛点或硬数字）。两个字段都是 front matter 可选项，**prepare.py 自动读取**，缺省回退 `title`/`description`
+- **首屏/节奏/扫读/钩子兑现**：正文前 150 字可见问题定义+钩子且首屏内有一张图；二级标题间隔 ≤1200 字；代码块 ≤15 行；段首承重（扫读测试：只读小标题+段首句+加粗逻辑仍成立）；开头钩子承诺逐节有回收
+- **收藏触发与往期关联**：文中至少一处可收藏资产（速查/对比表/决策树），转化段点到它；文末放 2-3 篇相关旧文（relref，自动转平台链接）
+- **转化段不进源稿**：「点在看/关注」转化文案**不写在 content/posts 源文件**（博客版错位）——推荐流程 = `make wechat-draft-only` 存草稿 → 后台编辑器在结论段后补价值锚定式转化段（单动作；禁诱导分享/强制关注）→ 群发
+- **发布配置四查**（2026-08-26 定规）：①**作者**录入（`WECHAT_AUTHOR` 非空，表单 `author0` 自动带；空 = 草稿作者栏空白，补 env 再发）②**合集**挂对（`--album` 默认 AI，`前端技术`/`碎碎念`/`none` 按文章类目选，挂错后台改不了只能删草稿重来）③**原创声明**（`copyright_type0=1` 文字原创已默认；转载/重编文传 0）④**广告开关**（建草稿 API 不含流量主广告设置，群发前 mp 后台人工核对文中/文末广告与预期一致）
+- **48h 数据回看**：发布满 48h 看后台（送达/打开/读完/分享/在看/关注净增），结论一句话写 `link-map.json` 该 slug 备注，**对照完读率基准线归档**（2026-08-26 调研：<30% 推荐终止 / ≥50% 进中级池 / >65% 持续加推；转发率正常 1%-3%）——打开低修 `wechat_title`/`wechat_digest`，完读低修首屏/节奏，分开归因；连续两篇读完率低于历史中位 → 对最近一篇做首屏+节奏专项复盘（不建自动采集，人工回看）
+
 ### Step 2: 准备公众号内容
 ```bash
 make wechat-prepare slug=<slug>
@@ -59,7 +70,7 @@ make wechat-prepare slug=<slug>
 ### Step 3: 推送到草稿箱 + 自动发布
 ```bash
 make wechat-publish-mp slug=<slug>       # 存草稿 + 自动群发通知
-make wechat-draft-only slug=<slug>       # 只存草稿不发布(逃生舱,旧行为)
+make wechat-draft-only slug=<slug>       # 只存草稿(留存规范推荐路径:草稿阶段补转化段再群发,亦作逃生舱)
 ```
 
 Makefile 自动：`wechat-prepare`（刷新内容）→ `publish_mp.py`（全局 Python311）。**默认 headless 无窗口**（复用 `wechat-profile/` 会话，token/ticket 从首页 HTML 抠）；登录态失效或首次使用时才弹可见窗口扫码。`--no-headless` 可强制弹窗。`publish_mp.py` 流程：

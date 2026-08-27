@@ -23,3 +23,5 @@ wechat-profile/
 .douyin-topic/
 .tmp-verify/
 .video-analytics/
+# mstodo-topic 运行产物(含 token.json 令牌与 config client_id，勿提交)
+.mstodo-topic/

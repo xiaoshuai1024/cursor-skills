@@ -143,6 +143,12 @@ def main() -> None:
     violations += lint_css_fonts()
     violations += lint_remotion_fonts()
 
+    # 色彩机检一并执行（2026-08-25，openspec video-color-retention）：
+    # 对比度分级 + 色板登记漂移 + Remotion 同步，详见 video.lint_colors
+    from . import lint_colors
+
+    violations += lint_colors.run()
+
     # deck 要点密度：存量 deck 普遍超限（2026-08-24 前的债），默认不查；
     # 新内容发布前显式 --deck <slug> 机检（或 --all-decks 全量清债）。
     if "--deck" in args:
@@ -160,7 +166,7 @@ def main() -> None:
         for v in violations:
             print("  " + v)
         sys.exit(1)
-    print("✅ 可读性机检通过（字号基准 + Remotion 场景 + deck 要点密度）")
+    print("✅ 可读性机检通过（字号基准 + Remotion 场景 + 色彩对比度/色板登记 + deck 要点密度）")
 
 
 if __name__ == "__main__":

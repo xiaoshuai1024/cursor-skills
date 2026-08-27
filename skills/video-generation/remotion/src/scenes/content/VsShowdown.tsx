@@ -48,7 +48,7 @@ const VsShowdown: React.FC<VsShowdownProps> = ({ title, left, right, verdict, ve
         left: from === "left" ? 110 + (1 - slide) * dir * 260 : undefined,
         right: from === "right" ? 110 + (1 - slide) * dir * 260 : undefined,
         padding: "34px 38px", borderRadius: 20, minHeight: 560,
-        background: accent ? "rgba(0,217,255,0.06)" : "rgba(148,163,184,0.06)",
+        background: accent ? "rgba(34,211,238,0.06)" : "rgba(148,163,184,0.06)",
         border: `2.5px solid ${accent ? theme.colors.accent + "99" : theme.colors.textMuted + "66"}`,
         boxShadow: accent ? `0 0 60px ${theme.colors.accent}22` : "none",
         opacity: slide,
@@ -114,7 +114,7 @@ const VsShowdown: React.FC<VsShowdownProps> = ({ title, left, right, verdict, ve
           <div style={{
             position: "absolute", left: 360, right: 360, top: 920,
             padding: "20px 36px", borderRadius: 16, textAlign: "center",
-            background: "rgba(0,217,255,0.08)",
+            background: "rgba(34,211,238,0.08)",
             border: `2px solid ${theme.colors.accent}77`,
             fontSize: 34, fontWeight: 700, color: theme.colors.text,
             fontFamily: theme.fonts.chinese,

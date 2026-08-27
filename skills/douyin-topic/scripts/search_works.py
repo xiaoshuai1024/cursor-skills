@@ -7,7 +7,9 @@
 用法:
   py -3.11 -m search_works --login           # 仅扫码登录（一次性）
   py -3.11 -m search_works --keywords "AI编程,Claude Code,大模型" --top 20
-  py -3.11 -m search_works                    # 默认方向关键词，取 top 20 作品
+  py -3.11 -m search_works                    # 默认全方向关键词，取 top 20 作品
+  py -3.11 -m search_works --sort 1 --publish-time 1   # 最多点赞×一天内，全词表综合排序取前 20（默认）
+  py -3.11 -m search_works --sort 1 --publish-time 1 --top 0   # 同上但不限条数
 
 输出: .douyin-topic/works.json（title/author/aweme_id/播放量/封面）
 作品即具体视频，比话题更精确——本 skill 的 Phase 1 也以作品为决策单位。
@@ -17,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -53,7 +56,18 @@ UA = (
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 
-DEFAULT_KEYWORDS = ["AI编程", "Claude Code", "AI Agent", "大模型", "提示词", "Cursor", "程序员"]
+DEFAULT_KEYWORDS = [
+    # AI 编程 / 工具链
+    "AI编程", "vibecoding", "Claude Code", "Codex", "Cursor",
+    # Agent / 智能体 / 协议
+    "AI Agent", "Pi Agent", "智能体", "MCP",
+    # 大模型
+    "大模型", "DeepSeek", "Claude", "豆包", "Kimi",
+    # 提示词 / 工作流
+    "提示词", "AI工作流",
+    # 泛方向（前端/全栈/程序员/AI 科普）
+    "程序员", "前端", "AI工具", "人工智能",
+]
 
 
 def is_logged_in(ctx) -> bool:
@@ -82,7 +96,29 @@ def login_flow(ctx, page, timeout_s: int = 120) -> bool:
 
 _DURATION_RE = re.compile(r"^\d{1,2}:\d{2}(:\d{2})?$")
 _LIKES_RE = re.compile(r"^[\d.]+万?$")
-_DATE_RE = re.compile(r"^(\d+[天小时分]前|\d{4}-\d{2}-\d{2})$")
+
+# 技术方向过滤（--vertical）: 标题/作者命中方向词 且 不含噪声词才算方向内作品。
+# 启发式，非精确分类——榜单仅供初筛，最终推荐仍需人工过一遍。
+_VERTICAL_INCLUDE_RE = re.compile(
+    r"AI编程|vibecoding|氛围编程|claude|codex|cursor|opencode|agent|智能体|mcp|"
+    r"大模型|deepseek|gpt|豆包|kimi|通义|glm|提示词|prompt|skill|工作流|"
+    r"编程|程序员|开发者|开发|开源|github|前端|全栈|软件|token|算法|模型",
+    re.IGNORECASE,
+)
+_VERTICAL_EXCLUDE_RE = re.compile(
+    r"炒股|摆摊|美食|星座|塔罗|生日|演唱会|萌娃|直播录屏|芯片|玄戒|网络安全|黑客|"
+    r"电脑知识|电脑密码|班主任|备课|复合|挽回|医疗|问诊|医生|学分|社团|转行|半导体",
+    re.IGNORECASE,
+)
+
+
+def is_vertical(work: dict) -> bool:
+    # 只看标题不看作者名——账号名叫「豆包/Kimi/智能体xx」会大量误命中
+    text = work["title"]
+    if _VERTICAL_EXCLUDE_RE.search(text):
+        return False
+    return bool(_VERTICAL_INCLUDE_RE.search(text))
+_DATE_RE = re.compile(r"^(昨天|\d+[天小时分]前|\d{1,2}-\d{1,2}|\d{4}-\d{2}-\d{2})$")
 _EXCLUDE_BADGES = {"合集", "广告", "直播", "图文"}
 
 
@@ -207,8 +243,14 @@ def _await_captcha(page, wait_s: int = 60) -> bool:
 
 
 def search_all(keywords: list[str], top: int = 20, min_likes: int = 0,
-               exclude_badges: Optional[set[str]] = None) -> list[dict]:
-    """搜索多关键词 → 过滤(角标/最低点赞) → 按点赞降序取 top。"""
+               exclude_badges: Optional[set[str]] = None,
+               sort_type: int = 0, publish_time: int = 0) -> list[dict]:
+    """搜索多关键词 → 过滤(角标/最低点赞) → 按点赞降序取 top。
+
+    sort_type: 0 综合排序 / 1 最多点赞 / 2 最新发布（抖音搜索 URL 参数）
+    publish_time: 0 不限 / 1 一天以内 / 7 一周以内 / 182 半年以内
+    全部关键词搜完 → 合并去重 → 按点赞降序 → 输出前 top 条（top=0 不限条数）。
+    """
     from playwright.sync_api import sync_playwright
 
     exclude = exclude_badges if exclude_badges is not None else _EXCLUDE_BADGES
@@ -234,8 +276,11 @@ def search_all(keywords: list[str], top: int = 20, min_likes: int = 0,
             _await_captcha(page)
         except Exception:
             pass
-        for kw in keywords:
-            url = f"https://www.douyin.com/search/{kw}?type=video"
+        for idx, kw in enumerate(keywords):
+            url = (
+                f"https://www.douyin.com/search/{kw}?type=video"
+                f"&sort_type={sort_type}&publish_time={publish_time}"
+            )
             print(f"▶ 搜索「{kw}」…")
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=40000)
@@ -253,8 +298,8 @@ def search_all(keywords: list[str], top: int = 20, min_likes: int = 0,
                 seen.add(w["aweme_id"])
                 collected.append(w)
             print(f"   → 新增 {len(fresh)}/{len(works)} 条，累计 {len(collected)}")
-            if len(collected) >= top * 3:
-                break  # 留余量给过滤
+            if idx < len(keywords) - 1:
+                time.sleep(random.uniform(2.5, 6.0))  # 关键词间随机抖动，降风控
         ctx.close()
 
     # 过滤 + 按点赞降序
@@ -265,7 +310,7 @@ def search_all(keywords: list[str], top: int = 20, min_likes: int = 0,
         and w["title"]
     ]
     filtered.sort(key=lambda x: x["likes"], reverse=True)
-    return filtered[:top]
+    return filtered if not top else filtered[:top]
 
 
 def main() -> int:
@@ -275,6 +320,12 @@ def main() -> int:
     parser.add_argument("--min-likes", type=int, default=0, help="过滤：点赞数下限（原始数，如 10000=1万）")
     parser.add_argument("--min-wan", type=float, default=0.0, help="过滤：点赞数下限（万为单位，如 1=1万赞）")
     parser.add_argument("--login", action="store_true", help="仅扫码登录，不搜索")
+    parser.add_argument("--sort", type=int, default=0, choices=[0, 1, 2],
+                        help="搜索排序: 0综合 1最多点赞 2最新发布")
+    parser.add_argument("--publish-time", type=int, default=0, choices=[0, 1, 7, 182],
+                        help="发布时间筛选: 0不限 1一天内 7一周内 182半年内")
+    parser.add_argument("--vertical", type=int, default=0, choices=[0, 1],
+                        help="1=只保留技术方向相关作品(标题/作者启发式过滤, 供人工终选)")
     parser.add_argument("--out", default=None, help="works.json 输出路径")
     args = parser.parse_args()
     _utf8_stdio()
@@ -294,16 +345,26 @@ def main() -> int:
 
     min_likes = int(args.min_wan * 10000) if args.min_wan else args.min_likes
     keywords = [k.strip() for k in (args.keywords or "").split(",") if k.strip()] or DEFAULT_KEYWORDS
-    works = search_all(keywords, args.top, min_likes=min_likes)
+    works = search_all(keywords, args.top, min_likes=min_likes,
+                       sort_type=args.sort, publish_time=args.publish_time)
+    if args.vertical:
+        before = len(works)
+        works = [w for w in works if is_vertical(w)][:args.top] if args.top else [w for w in works if is_vertical(w)]
+        print(f"🔧 技术方向过滤: {before} → {len(works)} 条")
     out = Path(args.out) if args.out else OUTPUT_ROOT / "works.json"
     out.write_text(json.dumps({
         "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "count": len(works),
         "keywords": keywords,
         "min_likes": min_likes,
+        "sort_type": args.sort,
+        "publish_time": args.publish_time,
         "works": works,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n✅ 共抓取 {len(works)} 条作品（点赞≥{min_likes}，按点赞降序）→ {out}")
+    today_like = sum(1 for w in works if w["time"].endswith(("分钟前", "小时前")))
+    print(f"\n✅ 共抓取 {len(works)} 条作品（点赞≥{min_likes}，sort={args.sort}，publish_time={args.publish_time}，"
+          f"按点赞降序）→ {out}")
+    print(f"   其中卡片带「N分钟前/N小时前」时间标的 {today_like} 条（一天内筛选的直接证据）")
     # 标记已仿写作品（避免重复深挖同一部）
     ledger = Path(__file__).resolve().parent.parent / "imitated_ledger.json"
     imitated_ids: set[str] = set()
@@ -312,9 +373,13 @@ def main() -> int:
             imitated_ids = {i["aweme_id"] for i in json.loads(ledger.read_text(encoding="utf-8")).get("imitated", [])}
         except (json.JSONDecodeError, OSError):
             pass
-    for i, w in enumerate(works, 1):
+    shown = works[:50]
+    for i, w in enumerate(shown, 1):
         mark = " [✅已仿写]" if w["aweme_id"] in imitated_ids else ""
-        print(f"  {i:>2}. [{w.get('likes_raw') or '-'}] {w['title'][:42]} | @{w['author']} | {w['video_url']}{mark}")
+        t = f" {w['time']}" if w["time"] else ""
+        print(f"  {i:>2}. [{w.get('likes_raw') or '-'}]{t} {w['title'][:42]} | @{w['author']} | {w['video_url']}{mark}")
+    if len(works) > len(shown):
+        print(f"  … 其余 {len(works) - len(shown)} 条见 {out}")
     return 0
 
 

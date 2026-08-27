@@ -22,11 +22,11 @@ interface CodeBlockProps {
   fontSize?: number;
 }
 
-const COLORS: Record<string, { fg: string; bg: string }> = {
+const COLORS: Record<string, { fg: string; bg: string; mark?: string }> = {
   normal: { fg: "#e2e8f0", bg: "transparent" },
-  token: { fg: "#34d399", bg: "rgba(15,118,110,0.25)" },   // 绿
-  hardcoded: { fg: "#f87171", bg: "rgba(220,38,38,0.25)" }, // 红
-  comment: { fg: "#64748b", bg: "transparent" },
+  token: { fg: "#34d399", bg: "rgba(15,118,110,0.25)", mark: "✓ " },    // 绿=合规(双通道:色+✓)
+  hardcoded: { fg: "#f87171", bg: "rgba(220,38,38,0.25)", mark: "✗ " }, // 红=违规(双通道:色+✗)
+  comment: { fg: "#94a3b8", bg: "transparent" }, // 注释 2026-08-25 升档:#64748b(4.0:1)→textMuted(≈7:1)
 };
 
 export const CodeBlock: React.FC<CodeBlockProps> = ({
@@ -95,7 +95,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 paddingRight: 16,
                 fontWeight: line.type === "token" || line.type === "hardcoded" ? 700 : 400,
               }}>
-                {line.text || " "}
+                {c.mark}{line.text || " "}
               </span>
             </div>
           );

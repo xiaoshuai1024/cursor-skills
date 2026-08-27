@@ -14,6 +14,35 @@
 from __future__ import annotations
 import math
 
+try:
+    from .palette import (                    # 色板 SSOT（openspec video-color-retention）
+        ACCENT,
+        DIM_GRAPH_DARK,
+        GRAPH_BG_BOT,
+        GRAPH_BG_TOP,
+        GRAPH_LIGHT_BG_BOT,
+        GRAPH_LIGHT_BG_TOP,
+        LIGHT_ACCENT,
+        LIGHT_DONE,
+        LIGHT_INK,
+        LIGHT_MUTED,
+        TEXT,
+    )
+except ImportError:                            # 直接脚本运行（python graph.py）
+    from palette import (
+        ACCENT,
+        DIM_GRAPH_DARK,
+        GRAPH_BG_BOT,
+        GRAPH_BG_TOP,
+        GRAPH_LIGHT_BG_BOT,
+        GRAPH_LIGHT_BG_TOP,
+        LIGHT_ACCENT,
+        LIGHT_DONE,
+        LIGHT_INK,
+        LIGHT_MUTED,
+        TEXT,
+    )
+
 
 def _esc(text) -> str:
     if text is None:
@@ -22,18 +51,18 @@ def _esc(text) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-# ========== 主题色板 ==========
+# ========== 主题色板（token 槽位 import palette；rgba 衍生字面量由 lint_colors 漂移扫描） ==========
 _THEMES = {
     "dark": {
-        "bg_top": "#0a0e17",
-        "bg_bot": "#060a11",
+        "bg_top": GRAPH_BG_TOP,
+        "bg_bot": GRAPH_BG_BOT,
         "grid": "rgba(34,211,238,0.06)",
         "header_bg": "rgba(10,14,23,0.85)",
-        "series_color": "#22d3ee",
+        "series_color": ACCENT,
         "series_shadow": "rgba(34,211,238,0.6)",
-        "title_color": "#ffffff",
+        "title_color": TEXT,
         "title_shadow": "rgba(34,211,238,0.5)",
-        "text_color": "#ffffff",
+        "text_color": TEXT,
         "text_shadow": "rgba(34,211,238,0.8)",
         "center_fill": "radial-gradient(circle, rgba(34,211,238,0.25) 0%, rgba(34,211,238,0.08) 60%, transparent 100%)",
         "center_border": "rgba(34,211,238,0.7)",
@@ -48,7 +77,8 @@ _THEMES = {
         "sat_done_border": "rgba(34,211,238,0.5)",
         "sat_done_glow": "0 0 25px rgba(34,211,238,0.4)",
         "text_done": "rgba(255,255,255,0.65)",
-        "text_future": "rgba(255,255,255,0.25)",
+        # future 升档（2026-08-25）：@0.25 ≈2.1:1 户外不可见 → @0.45 ≈4.4:1（预告钩子要可见）
+        "text_future": DIM_GRAPH_DARK,
         "edge_color": "rgba(34,211,238,0.45)",
         "edge_active": "rgba(34,211,238,0.95)",
         "edge_active_glow": "drop-shadow(0 0 8px rgba(34,211,238,0.6))",
@@ -56,22 +86,22 @@ _THEMES = {
         "pulse_color": "rgba(34,211,238,0.5)",
         "subtitle_bg": "rgba(10,14,23,0.92)",
         "subtitle_border": "rgba(34,211,238,0.4)",
-        "subtitle_text": "#ffffff",
+        "subtitle_text": TEXT,
         "progress_track": "rgba(34,211,238,0.12)",
         "progress_fill": "linear-gradient(90deg, #06b6d4, #22d3ee)",
         "progress_glow": "0 0 20px rgba(34,211,238,1), 0 0 40px rgba(34,211,238,0.6)",
-        "particle_color": "#22d3ee",
+        "particle_color": ACCENT,
     },
     "light": {
-        "bg_top": "#f1f5f9",
-        "bg_bot": "#e2e8f0",
+        "bg_top": GRAPH_LIGHT_BG_TOP,
+        "bg_bot": GRAPH_LIGHT_BG_BOT,
         "grid": "rgba(37,99,235,0.07)",
         "header_bg": "rgba(241,245,249,0.85)",
-        "series_color": "#2563eb",
+        "series_color": LIGHT_ACCENT,
         "series_shadow": "rgba(37,99,235,0.4)",
-        "title_color": "#0f172a",
+        "title_color": LIGHT_INK,
         "title_shadow": "rgba(37,99,235,0.3)",
-        "text_color": "#0f172a",
+        "text_color": LIGHT_INK,
         "text_shadow": "rgba(37,99,235,0.5)",
         "center_fill": "radial-gradient(circle, #ffffff 0%, #e0e7ff 60%, #c7d2fe 100%)",
         "center_border": "rgba(37,99,235,0.8)",
@@ -85,8 +115,9 @@ _THEMES = {
         "sat_done_fill": "radial-gradient(circle, #ffffff 0%, #f1f5f9 60%, #e2e8f0 100%)",
         "sat_done_border": "rgba(37,99,235,0.55)",
         "sat_done_glow": "0 0 15px rgba(37,99,235,0.2)",
-        "text_done": "#475569",
-        "text_future": "#94a3b8",
+        "text_done": LIGHT_DONE,
+        # future 升档（2026-08-25）：#94a3b8 ≈2.3:1 → #64748b ≈3.9:1
+        "text_future": LIGHT_MUTED,
         "edge_color": "rgba(37,99,235,0.35)",
         "edge_active": "rgba(37,99,235,0.95)",
         "edge_active_glow": "drop-shadow(0 0 6px rgba(37,99,235,0.4))",
@@ -94,11 +125,11 @@ _THEMES = {
         "pulse_color": "rgba(37,99,235,0.35)",
         "subtitle_bg": "rgba(15,23,42,0.92)",
         "subtitle_border": "rgba(37,99,235,0.5)",
-        "subtitle_text": "#ffffff",
+        "subtitle_text": TEXT,
         "progress_track": "rgba(37,99,235,0.12)",
         "progress_fill": "linear-gradient(90deg, #2563eb, #60a5fa)",
         "progress_glow": "0 0 20px rgba(37,99,235,0.8), 0 0 40px rgba(37,99,235,0.4)",
-        "particle_color": "#2563eb",
+        "particle_color": LIGHT_ACCENT,
     },
 }
 

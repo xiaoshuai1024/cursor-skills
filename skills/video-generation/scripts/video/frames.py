@@ -17,6 +17,8 @@ from .courseware import render_frame
 FPS = 24
 HEAD_PAD = 0.3   # 配音前画面留白
 TAIL_PAD = 0.3   # 配音后画面留白
+EXIT_LEAD = 8    # 卡尾出场编舞提前量（帧）：末 8 帧内各元素错峰加速出场
+CUE_OUT_DUR = 4  # 分句字幕退场窗口（帧）
 
 
 def state_at(t_ms: float, timeline: dict, progress: float) -> dict:
@@ -24,6 +26,7 @@ def state_at(t_ms: float, timeline: dict, progress: float) -> dict:
 
     active_idx：取最后一个 start_ms <= t_ms 的要点（讲完后停留在最后一个要点高亮）；
     无要点(cover/cta)时为 -1。subtitle：t_ms 落在哪个 cue 就显示哪句，否则空。
+    cue 带 no_subtitle=True（〖无字幕〗标记句）时该窗口字幕为空（有声无字幕）。
     """
     active_idx = -1
     for pt in timeline["point_timings"]:
@@ -32,7 +35,8 @@ def state_at(t_ms: float, timeline: dict, progress: float) -> dict:
     subtitle = ""
     for cue in timeline["subtitle_cues"]:
         if cue["start_ms"] <= t_ms <= cue["end_ms"]:
-            subtitle = cue["text"]
+            if not cue.get("no_subtitle"):
+                subtitle = cue["text"]
             break
     return {"active_idx": active_idx, "subtitle": subtitle, "progress": progress}
 
@@ -62,16 +66,53 @@ def render_card_segment(
     total_ms = total_dur * 1000.0
     seg_start_ms = seg_progress_start * 1000.0
 
+    # 动画出生帧（openspec courseware-motion-linkage）：要点亮起 / 分句 cue
+    # 出现时刻 → 段内帧号。配音延迟 HEAD_PAD 开始，故出生帧含该偏移。
+    def _birth_frame(start_ms: float) -> int:
+        return max(0, int(round((HEAD_PAD * 1000.0 + start_ms) / 1000.0 * FPS)))
+
+    point_births = [
+        _birth_frame(pt["start_ms"]) for pt in timeline.get("point_timings", [])
+    ]
+    cue_births = [
+        (cue["start_ms"], cue["end_ms"], _birth_frame(cue["start_ms"]),
+         _birth_frame(cue["end_ms"]), cue["text"])
+        for cue in timeline.get("subtitle_cues", [])
+    ]
+    out_at = n_frames - EXIT_LEAD            # 卡尾出场编舞锚（元素错峰出场）
+
     last_html = None
     for fi in range(n_frames):
         t_s = fi / FPS
         audio_t_ms = max(0.0, (t_s - HEAD_PAD) * 1000.0)
         progress = min(max((seg_start_ms + t_s * 1000.0) / total_ms, 0.0), 1.0)
         # 进度条量化到 0.25%（4px 一档）：相邻帧 HTML 完全相同，直接复用上一帧 PNG，
-        # 避免每帧都走 Playwright 截图（课件画面静态，截图是渲染耗时大头）。
+        # 避免每帧都走 Playwright 截图（动画窗口外的静止段仍享受该优化）。
         progress = round(progress * 400.0) / 400.0
         state = state_at(audio_t_ms, timeline, progress)
         state["frame"] = fi          # 帧号（模板内帧驱动动效用：呼吸/浮入等）
+        state["point_births"] = point_births   # 每要点出生帧（主锚联动）
+        state["out_at"] = out_at               # 卡尾出场编舞锚
+        cue_birth = None
+        cue_out = None              # (text, age)：最近结束的 cue 在退场窗口内
+        for c_start, c_end, c_bf, c_ef, c_text in cue_births:
+            if c_start <= audio_t_ms <= c_end:
+                cue_birth = c_bf
+            elif audio_t_ms > c_end and cue_birth is None and cue_out is None:
+                age = fi - c_ef
+                if 0 <= age < CUE_OUT_DUR:
+                    cue_out = (c_text, age)
+        state["cue_birth"] = cue_birth          # 当前分句 cue 出生帧（字幕上滑）
+        state["cue_out"] = cue_out              # 分句字幕退场（加速上移淡出）
+        # 卡内镜头（openspec card-shots）：shots[].from_s → 当前镜头索引 + 出生帧 + 卡内时间
+        shot_idx, shot_birth = -1, None
+        for si, sh in enumerate(card.get("shots") or []):
+            bf = _birth_frame(float(sh.get("from_s", 0)) * 1000.0)
+            if bf <= fi:
+                shot_idx, shot_birth = si, bf
+        state["shot_idx"] = shot_idx            # 当前镜头索引（-1 = 未开始）
+        state["shot_birth"] = shot_birth        # 当前镜头出生帧（镜头层入场/行级 stagger 锚）
+        state["shot_t_ms"] = audio_t_ms         # 卡内口播时间（hl_steps 讲到哪行亮哪行）
         html = render_frame(card, state, C.COURSEWARE_W, C.COURSEWARE_H)
         frame_png = frames_dir / f"frame_{fi:05d}.png"
         if last_html is not None and html == last_html:

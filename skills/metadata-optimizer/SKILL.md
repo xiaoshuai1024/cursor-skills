@@ -34,6 +34,8 @@ description: 视频与文章的标题/简介/话题（发布元信息）生成�
 
 按 `references/formulas.md` 五档位（数字型/问句型/反差型/后果型/克制型），同档位不重复。每个候选标注：所用档位+技巧、适用平台、素材依据（哪个 fact card 要素）。强度三档（克制 L1/默认 L2/爆炸 L3），L3 仅当素材真有 breaking 级事实。
 
+**关键词规则（2026-08-27 定规）**：候选里的实体一律用**可搜索全称（热词）+ 利益/场景长尾词**组合（如「DeepSeek Harness 省钱纪律」），缩写只进简介兜底；超字数砍修饰语、不砍全称。规则、实证与 demo 见 `references/formulas.md`「关键词选择」节。
+
 ### ④ 脚本打分
 
 ```bash
@@ -49,8 +51,9 @@ python <skill目录>/scripts/score_title.py "候选1" "候选2" --platform douyi
 - `标题_抖音:` ≤30 字，钩子前 10 字
 - `标题_小红书:` 18-20 字，核心词前 10 字，不用感叹号
 - `标题_B站:` 20-40 字，含可搜索关键词，可带【】标签
+- `标题_公众号:` ≤25 字推送折叠线内，钩子/冲突点前 13 字，不复用博客 SEO 长标题；摘要变体（`wechat_digest`）前 40 字含痛点或硬数字
 
-连同主标题写进 `video-generation/build/<slug>/metadata.txt`（中文键，续行规则见 blog-src `scripts/pub/meta.py`）。文章侧对应写 front matter `description`（54-120 字三段式：痛点+给什么+数字背书——正文前 54 字会被默认抓去当摘要，不能不管）。
+视频侧连同主标题写进 `video-generation/build/<slug>/metadata.txt`（中文键，续行规则见 blog-src `scripts/pub/meta.py`）；**文章侧**公众号变体写源文件 front matter 可选字段 `wechat_title` / `wechat_digest`（缺省回退 `title` / `description`，发布链路 prepare.py 自动读取）。文章 front matter `description` 保持 54-120 字三段式（痛点+给什么+数字背书），且**前 40 字承担公众号推送打开转化**（正文前 54 字会被默认抓去当摘要，不能不管）。
 
 ### ⑥ lint 收口
 
@@ -63,6 +66,7 @@ FAIL（硬截断/词中断/结构红线）必须修到绿；WARN（最优长度/
 ## 简介与话题
 
 - **简介首句**用三拍：当前不适 → 更好愿景 → 行动路径（formulas.md「简介首句」）；结尾互动问题 + 原文链接（video-generation SKILL.md 已定规）。
+- **系列化一致性（2026-08-27 抖音后台建议落地）**：技术解析类持续做系列——系列名、合集、核心话题标签跨作品**严格一致**（同词同序），账号标签权重随系列集数累积，搜索流量占比持续上涨。命名格式统一（如「Codex 源码深读 EP.N · 主题」），候选标题优先复用系列主词；`话题:` 字段每期保留 1 个系列锚点词（lint 话题配比可识别）。单条爆款带不动账号权重，系列才带得动。
 
 ### 话题推荐（第 ⑤½ 步，写 `话题:` 字段前跑）
 

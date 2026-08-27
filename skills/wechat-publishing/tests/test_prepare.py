@@ -1,5 +1,6 @@
 import json
 import os
+import pytest
 import prepare
 
 
@@ -9,7 +10,12 @@ FIXTURE_HTML = os.path.join(
 FIXTURE_LINK_MAP = os.path.join(
     os.path.dirname(__file__), "..", "fixtures", "link-map.json"
 )
-LINK_MAP = json.load(open(FIXTURE_LINK_MAP, encoding="utf-8"))
+# fixtures/ 被 gitignore(仅原开发机存在);缺失时本文件用例整体跳过。
+# 不依赖夹具的用例(apply_wechat_overrides)在 test_wechat_overrides.py,始终可跑。
+try:
+    LINK_MAP = json.load(open(FIXTURE_LINK_MAP, encoding="utf-8"))
+except FileNotFoundError:
+    pytest.skip("fixtures/ 缺失(gitignore,仅原开发机存在)", allow_module_level=True)
 
 
 # ============ load_link_map ============
@@ -225,6 +231,10 @@ def test_prepare_raises_when_html_missing(tmp_path, monkeypatch):
     import pytest
     with pytest.raises(FileNotFoundError):
         prepare.prepare("not-exist-slug")
+
+
+# ============ apply_wechat_overrides(公众号变体) ============
+# 用例已移至 test_wechat_overrides.py(不依赖 fixtures,任何机器可跑)
 
 
 # ============ prepare_for_wechatsync(多平台生成)===========

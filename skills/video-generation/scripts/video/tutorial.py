@@ -22,13 +22,13 @@ from __future__ import annotations
 import math
 
 from .screencast import _shot_b64, _esc
-
-# 主色与主题 token（教程亮色系）
-BLUE = "#2563eb"
-BLUE_DARK = "#1d4ed8"
-GREEN = "#16a34a"
-INK = "#1e293b"
-MUTED = "#64748b"
+from .palette import (          # 色板 SSOT（openspec video-color-retention，2026-08-25）
+    LIGHT_ACCENT as BLUE,
+    LIGHT_ACCENT_DARK as BLUE_DARK,
+    TERM_GREEN as GREEN,
+    TUTORIAL_INK as INK,
+    LIGHT_MUTED as MUTED,
+)
 
 _CSS = """
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -92,7 +92,7 @@ body {
 .term { padding:20px 24px; font-family:Consolas,"JetBrains Mono",monospace;
   font-size:30px; line-height:1.8; color:#334155; }
 .term .row { padding:2px 12px; border-radius:8px; border-left:4px solid transparent; }
-.term .row.done { color:#94a3b8; }
+.term .row.done { color:#64748b; }  /* 终端done行 2026-08-25 升档:#94a3b8 ≈2.7:1 → ≈4.6:1 */
 .term .row.done::before { content:"✓ "; color:#16a34a; font-weight:700; }
 .term .row.active { background:#eff6ff; border-left-color:__BLUE__; color:__BLUE_DARK__; font-weight:700; }
 .term .ps { color:#16a34a; font-weight:700; }
@@ -157,6 +157,39 @@ body {
   box-shadow:0 6px 20px rgba(30,41,59,.08); max-width:1500px; }
 .progress-track { position:absolute; left:0; right:0; bottom:0; height:9px; background:#e6ebf2; }
 .progress-fill { height:100%; background:linear-gradient(90deg,__BLUE__,#60a5fa); }
+
+/* ---- 卡内镜头舞台（openspec card-shots 2026-08-26）：stage 区按口播节拍轮换素材 ---- */
+.shotlayer { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.shot-tag { margin-left:auto; background:#eff6ff; color:__BLUE_DARK__; border:1.5px solid #bfdbfe;
+  font-size:19px; font-weight:700; padding:3px 12px; border-radius:6px; letter-spacing:2px; }
+.shot-tree { width:94%; background:#fbfcfe; border:1.5px solid #e2e8f0; border-radius:12px; overflow:hidden; }
+.shot-tree .term { font-size:29px; }
+.trow { padding:2px 12px; white-space:pre; }
+.trow .dir { color:__BLUE_DARK__; font-weight:700; }
+.trow .note { color:#94a3b8; }
+.shot-trow { font-family:Consolas,"JetBrains Mono",monospace; font-size:29px; line-height:1.85;
+  white-space:pre-wrap; }
+.shot-trow.cmd { color:__BLUE_DARK__; font-weight:700; }
+.shot-trow.out { color:#334155; }
+.shot-trow.ok { color:#16a34a; }
+.shot-trow.err { color:#dc2626; }
+.shot-trow.dim { color:#64748b; }
+.shot-stat { display:flex; flex-direction:column; align-items:center; gap:20px; }
+.shot-stat .big { font-size:118px; font-weight:800; color:__BLUE__; line-height:1;
+  font-family:Consolas,"JetBrains Mono",monospace; letter-spacing:2px; }
+.shot-stat .label { font-size:36px; font-weight:700; color:#334155; }
+.shot-stat .sub { font-size:26px; color:#64748b; }
+.shot-table { width:94%; border-collapse:collapse; background:#fff; border:1.5px solid #e2e8f0;
+  border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(30,41,59,.07); }
+.shot-table th { font-size:29px; color:__BLUE_DARK__; background:#eff6ff; font-weight:700;
+  padding:18px 24px; border-bottom:2px solid #bfdbfe; text-align:left; }
+.shot-table td { font-size:29px; color:#334155; padding:17px 24px;
+  border-bottom:1px solid #eef2f7; }
+.shot-table tr.hlrow td { background:#eff6ff; color:__BLUE_DARK__; font-weight:700; }
+.shot-quote { display:flex; flex-direction:column; gap:24px; padding:0 40px; max-width:92%; }
+.shot-quote .mark { font-size:100px; line-height:.4; color:#bfdbfe; font-family:Georgia,serif; }
+.shot-quote .qtext { font-size:44px; font-weight:700; line-height:1.55; color:#1e293b; }
+.shot-quote .qsrc { font-size:23px; color:#94a3b8; font-family:Consolas,monospace; }
 """
 
 
@@ -202,8 +235,10 @@ def render_frame(card: dict, state: dict, width: int = 1920, height: int = 1080)
             f'<span class="n">{num}</span>{_esc(short)}</div>')
     steps_bar = f'<div class="steps">{"".join(pills)}</div>' if steps else ""
 
-    # ---- 主区（截图 / 终端 / 代码 / 流程图） ----
-    if kind == "code":
+    # ---- 主区（卡内镜头轮换 > 截图 / 终端 / 代码 / 流程图） ----
+    if card.get("shots"):
+        stage = _shots_stage(card, state, breathe)
+    elif kind == "code":
         stage = _code_stage(card, active_idx, enter_ty, enter_op)
     elif kind == "flow":
         stage = _flow_stage(card, active_idx, breathe, enter_ty, enter_op)
@@ -264,9 +299,9 @@ def render_frame(card: dict, state: dict, width: int = 1920, height: int = 1080)
                  f'<div style="font-size:28px;color:#64748b;font-weight:600;">'
                  f'{_esc(card.get("sub_big", ""))}</div></div>')
 
-    # ---- 要点区（全部可见，active 高亮；flow 卡全宽不显示） ----
+    # ---- 要点区（全部可见，active 高亮；纯 flow 卡全宽不显示，shots 模式恒显示） ----
     pt_html = ""
-    if points and kind != "flow":
+    if points and (card.get("shots") or kind != "flow"):
         items = []
         for i, pt in enumerate(points):
             if i < active_idx:
@@ -422,3 +457,142 @@ def _flow_stage(card: dict, active_idx: int, breathe: float, ty: float, op: floa
     return (f'<div class="stage" style="background:transparent;border:none;box-shadow:none;'
             f'transform:translateY({ty}px);opacity:{op}">'
             f'<div class="flowwrap">{"".join(svg)}{"".join(node_html)}</div></div>')
+
+
+# ---- 卡内镜头舞台（openspec card-shots 2026-08-26）----
+
+def _shots_stage(card: dict, state: dict, breathe: float) -> str:
+    """stage 区镜头轮换：按口播句边界切 shots，新镜头浮入 / 旧镜头淡出（帧驱动）。"""
+    shots = card.get("shots") or []
+    frame = int(state.get("frame", 10**6))
+    shot_idx = int(state.get("shot_idx", -1))
+    birth = int(state.get("shot_birth") or 0)
+    layers = []
+    for si, sh in enumerate(shots):
+        if shot_idx < 0 or si > shot_idx:
+            continue
+        if si == shot_idx:
+            age = frame - birth
+            if age < 0:
+                continue
+            e = 1 - (1 - min(1.0, age / 8.0)) ** 3
+            ty = round(16 * (1 - e), 1)
+            style = (f' style="opacity:{e:.3f};transform:translateY({ty}px)"'
+                     if e < 0.999 or ty else "")
+        else:                            # 刚被替换的镜头：6 帧上移淡出
+            age = frame - birth
+            if age >= 6:
+                continue
+            e = 1 - (1 - min(1.0, age / 6.0)) ** 3
+            if e >= 0.999:
+                continue
+            style = f' style="opacity:{1 - e:.3f};transform:translateY({-round(14 * e, 1)}px)"'
+        layers.append(f'<div class="shotlayer"{style}>'
+                      f'{_shot_content(sh, card, state, breathe)}</div>')
+    return f'<div class="stage">{"".join(layers)}</div>'
+
+
+def _row_style(frame: int, birth: int, i: int, dur: int = 6) -> str:
+    """行级 stagger 出生样式；终态空串（静止段 HTML 稳定 → PNG 复用优化保持）。"""
+    age = frame - (birth + 2 + 2 * i)
+    if 0 <= age < dur:
+        e = 1 - (1 - age / dur) ** 3
+        if e < 0.999:
+            return f' style="opacity:{e:.3f};transform:translateY({round(8 * (1 - e), 1)}px)"'
+    return ""
+
+
+def _hl_lines(shot: dict, state: dict) -> list[int]:
+    """当前高亮行：hl_steps 讲到哪行亮哪行（帧外静态 hl 兜底）。"""
+    hl = None
+    for t, line in (shot.get("hl_steps") or []):
+        if state.get("shot_t_ms", 0) >= float(t) * 1000.0:
+            hl = line
+    if hl is None:
+        hl = shot.get("hl", shot.get("data", {}).get("hl"))
+    if hl is None:
+        return []
+    return [hl] if isinstance(hl, int) else [int(x) for x in hl]
+
+
+def _shot_content(sh: dict, card: dict, state: dict, breathe: float) -> str:
+    kind = sh.get("kind", "code")
+    data = sh.get("data") or {}
+    frame = int(state.get("frame", 10**6))
+    birth = int(state.get("shot_birth") or 0)
+    if kind == "flow":
+        return _flow_stage(card, int(state.get("active_idx", -1)), breathe, 0, 1)
+    if kind == "stat":
+        return (f'<div class="shot-stat"><div class="big">{_esc(data.get("big", ""))}</div>'
+                f'<div class="label">{_esc(data.get("label", ""))}</div>'
+                f'<div class="sub">{_esc(data.get("sub", ""))}</div></div>')
+    if kind == "table":
+        head = "".join(f"<th>{_esc(h)}</th>" for h in data.get("head", []))
+        rows = ""
+        for r in data.get("rows", []):
+            cls, cells = (' class="hlrow"', r[1:]) if r and r[0] == "*" else ("", r)
+            rows += f"<tr{cls}>" + "".join(f"<td>{_esc(c)}</td>" for c in cells) + "</tr>"
+        return f'<table class="shot-table"><tr>{head}</tr>{rows}</table>'
+    if kind == "quote":
+        return ('<div class="shot-quote"><div class="mark">\u201c</div>'
+                f'<div class="qtext">{_esc(data.get("text", ""))}</div>'
+                f'<div class="qsrc">— {_esc(data.get("source", ""))}</div></div>')
+    if kind == "code":
+        lines = data.get("lines", [])
+        hls = _hl_lines(sh, state)
+        rows = []
+        for i, ln in enumerate(lines):
+            cls = "cl hl" if i in hls else "cl"
+            rows.append(f'<div class="{cls}"{_row_style(frame, birth, i)}>'
+                        f'<span class="no">{i + 1}</span>'
+                        f'<span>{_hl_line(str(ln))}</span></div>')
+        tag = _esc(data.get("tag", "源码"))
+        return (f'<div class="codewin"><div class="codebar">'
+                '<span class="dot" style="background:#fb7185"></span>'
+                '<span class="dot" style="background:#fbbf24"></span>'
+                '<span class="dot" style="background:#34d399"></span>'
+                f'<span class="codetab">{_esc(data.get("title", ""))}</span>'
+                f'<span class="shot-tag" style="margin-left:auto">{tag}</span></div>'
+                f'<div class="codebody">{"".join(rows)}</div></div>')
+    if kind == "tree":
+        rows = []
+        items = data.get("items", [])
+        for i, item in enumerate(items):
+            depth, typ, name = 0, "file", item
+            if isinstance(item, list):
+                typ, name = item[0], item[1]
+                depth = item[2] if len(item) > 2 else 0
+            elif isinstance(item, str) and item.startswith("**"):
+                typ, name = "note", item.strip("* ")
+            if typ == "note":
+                rows.append(f'<div class="trow"{_row_style(frame, birth, i)}>'
+                            f'<span class="note">{_esc(name)}</span></div>')
+            else:
+                glyph, span = ("\u25b8 ", "dir") if typ == "dir" else ("\u25aa ", "")
+                marked = (f'<span class="{span}">{_esc(glyph + name)}</span>'
+                          if span else _esc(glyph + name))
+                rows.append(f'<div class="trow"{_row_style(frame, birth, i)}>'
+                            f'{"    " * depth}{marked}</div>')
+        return (f'<div class="shot-tree"><div class="termbar">'
+                '<span class="dot" style="background:#fb7185"></span>'
+                '<span class="dot" style="background:#fbbf24"></span>'
+                '<span class="dot" style="background:#34d399"></span>'
+                f'<span class="termtitle">{_esc(data.get("title", "结构"))}</span>'
+                '<span class="shot-tag" style="margin-left:auto">结构</span></div>'
+                f'<div class="term">{"".join(rows)}</div></div>')
+    # term：终端演示（cmd/out/ok/err/dim 行色）
+    rows = []
+    for i, item in enumerate(data.get("lines", [])):
+        if isinstance(item, str):
+            text, cls = item, "out"
+        else:
+            text, cls = item.get("t", ""), item.get("c", "out")
+        rows.append(f'<div class="shot-trow {cls}"{_row_style(frame, birth, i)}>'
+                    f'{_esc(text)}</div>')
+    return (f'<div class="termwin"><div class="termbar">'
+            '<span class="dot" style="background:#fb7185"></span>'
+            '<span class="dot" style="background:#fbbf24"></span>'
+            '<span class="dot" style="background:#34d399"></span>'
+            f'<span class="termtitle">{_esc(data.get("title", "终端"))}</span>'
+            '<span class="shot-tag" style="margin-left:auto">终端</span></div>'
+            f'<div class="term">{"".join(rows)}</div></div>')

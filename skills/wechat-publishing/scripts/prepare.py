@@ -10,8 +10,10 @@ import re
 import subprocess
 import sys
 # Windows 控制台默认 GBK，打印 emoji/特殊字符会 UnicodeEncodeError；统一 UTF-8 输出
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+# pytest 下不能包装：capture 会替换 sys.stdout，包装其 .buffer 导致 I/O 冲突（测试全挂）
+if "pytest" not in sys.modules:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 from bs4 import BeautifulSoup
 from PIL import Image
 
@@ -57,6 +59,39 @@ def extract_meta(html_path: str) -> dict:
         "digest": digest,
         "author": config.DEFAULT_AUTHOR,
     }
+
+
+def apply_wechat_overrides(slug: str, meta: dict) -> dict:
+    """用 front matter 可选字段 wechat_title / wechat_digest 覆盖公众号标题/摘要。
+
+    留存规范(openspec wechat-article-retention):公众号标题不是博客 SEO 标题,
+    ≤25 字、钩子前 13 字;摘要前 40 字承担打开转化。字段缺省回退 title/description,
+    Hugo 忽略未知 front matter 字段,不影响构建。
+    """
+    src_path = os.path.join(config.PROJECT_ROOT, "content", "posts", f"{slug}.md")
+    if not os.path.exists(src_path):
+        return meta
+    with open(src_path, encoding="utf-8") as f:
+        text = f.read()
+    parts = text.split("+++", 2)
+    if len(parts) < 3:
+        return meta
+    front = parts[1]
+
+    def _field(key: str) -> str:
+        # 只认单行引号字符串;多行/无引号写法视为未填,走回退
+        m = re.search(rf'^{key}\s*=\s*["\'](.*?)["\']\s*$', front, re.M)
+        return m.group(1).strip() if m else ""
+
+    title = _field("wechat_title")
+    digest = _field("wechat_digest")[:120]  # mp 草稿 digest0 上限 120 字(ret 64703)
+    if title:
+        meta["title"] = title
+        print(f"📝 公众号标题变体生效: {title}")
+    if digest:
+        meta["digest"] = digest
+        print(f"📝 公众号摘要变体生效({len(digest)}字)")
+    return meta
 
 
 # 需剔除的装饰元素 class 列表(正则匹配 class 属性)
@@ -330,8 +365,8 @@ def prepare(slug: str) -> dict:
     out_dir = os.path.join(config.WECHAT_BUILD_DIR, slug)
     os.makedirs(out_dir, exist_ok=True)
 
-    # 1. 元数据
-    meta = extract_meta(html_path)
+    # 1. 元数据(公众号变体覆盖:front matter 可选字段 wechat_title/wechat_digest)
+    meta = apply_wechat_overrides(slug, extract_meta(html_path))
 
     # 2. 清洗 + 样式
     with open(html_path, encoding="utf-8") as f:
@@ -461,7 +496,7 @@ def prepare_for_wechatsync(slug: str) -> dict:
     out_dir = os.path.join(config.WECHAT_BUILD_DIR, slug)
     os.makedirs(out_dir, exist_ok=True)
 
-    meta = extract_meta(html_path)
+    meta = apply_wechat_overrides(slug, extract_meta(html_path))
     with open(html_path, encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
     content = clean_and_style(soup)

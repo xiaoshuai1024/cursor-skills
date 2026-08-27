@@ -12,6 +12,43 @@ from typing import List, Tuple
 # 中文断句标点。只在中标点处断句，故 ASCII 单词（Claude Code）不会被切断。
 _SENTENCE_PUNCT = "，。！？、：；"
 
+# 无字幕标记（openspec video-engagement-cta）：口播稿里给某句加 〖无字幕〗 前缀，
+# 该句正常配音但不出字幕——用于抖音「动作引导只走口播、字幕停在互动问题」的露出面合规。
+# 与 narrate.py 的 NOSUB_MARK 同源双份（两模块互不 import），改一处必须同步另一处。
+NOSUB_MARK = "〖无字幕〗"
+_SENT_END = "。！？；"
+
+
+def extract_nosub(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """剥掉全部 〖无字幕〗 标记，返回 (剥后文本, 屏蔽字符区间列表)。
+
+    标记作用于「标记处到本句句末（。！？；或文本结尾）」；区间坐标相对剥后文本
+    （标记本身不占位）。TTS 合成与 boundary 映射都用剥后文本，音频不含标记。
+    """
+    ranges: list[tuple[int, int]] = []
+    parts: list[str] = []
+    out_pos = 0
+    i = 0
+    while True:
+        j = text.find(NOSUB_MARK, i)
+        if j == -1:
+            parts.append(text[i:])
+            break
+        parts.append(text[i:j])
+        out_pos += j - i
+        k = j + len(NOSUB_MARK)
+        end = len(text)
+        for ch in _SENT_END:
+            e = text.find(ch, k)
+            if e != -1:
+                end = min(end, e + 1)
+        seg = text[k:end]
+        parts.append(seg)
+        ranges.append((out_pos, out_pos + len(seg)))
+        out_pos += len(seg)
+        i = end
+    return "".join(parts), ranges
+
 # 字幕显示去标点（知识视频惯例：避免画面杂乱）；口播原文标点不动，只去显示字幕
 _SUBTITLE_STRIP = "，。！？、；：　“”‘’（）【】《》…—·"
 _SUBTITLE_TABLE = str.maketrans("", "", _SUBTITLE_STRIP)
@@ -101,7 +138,10 @@ def build_card_timeline(
          几个要点），每个要点亮起时刻 = 分配给它的第一句的 start_ms。
 
     返回 {"subtitle_cues": [...], "point_timings": [...]}。
+    cue 可能带 no_subtitle=True（源文本含 〖无字幕〗 标记的句子）——渲染层跳过
+    该 cue 的字幕显示，时间轴与要点分配不受影响。
     """
+    narration_text, nosub_ranges = extract_nosub(narration_text)
     sentences = split_sentences(narration_text)
     spans = _map_boundaries_to_chars(narration_text, boundaries)
 
@@ -116,13 +156,17 @@ def build_card_timeline(
         ]
         if not in_range:
             continue
-        subtitle_cues.append(
-            {
-                "text": stext,
-                "start_ms": min(x[0] for x in in_range),
-                "end_ms": max(x[1] for x in in_range),
-            }
-        )
+        cue = {
+            "text": stext,
+            "start_ms": min(x[0] for x in in_range),
+            "end_ms": max(x[1] for x in in_range),
+        }
+        # 问句标记要在去标点前判（build.py 的提问音点位依赖它；字幕文本之后会剥标点）
+        if stext.rstrip().endswith(("？", "?")):
+            cue["is_question"] = True
+        if any(a0 < s_end and s_start < a1 for a0, a1 in nosub_ranges):
+            cue["no_subtitle"] = True
+        subtitle_cues.append(cue)
 
     # 句分配给要点：余数给前面几个
     point_timings: list[dict] = []

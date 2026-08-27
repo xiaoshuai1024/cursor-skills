@@ -17,6 +17,10 @@ GitHub Releases / 成本对比 / 国产阵营清单），`active_idx` 驱动界�
   [进度条]
 
 使用：frames.py → courseware.render_frame 分发到本模块（type=="tool"）。
+
+色板：颜色以 palette.py（SSOT）为准；本文件拟物窗口色多为仿真对象真实色
+（VS Code / Mac 红绿灯等，见 palette.EXEMPT 豁免表），品牌色字面量由
+lint_colors.py 漂移扫描（openspec video-color-retention，2026-08-25）。
 """
 from __future__ import annotations
 

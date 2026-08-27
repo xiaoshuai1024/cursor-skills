@@ -28,6 +28,9 @@
     sfx-ding.wav               清亮叮(里程碑/通知) ~0.6s
     sfx-typewriter.wav         打字机咔嗒(代码逐行/字幕) ~0.15s
     sfx-outro-chord.wav        终止式软和弦(收尾定格) ~1.4s
+  场景补缺 2 个(2026-08-26,openspec video-sfx-scenario-palette):
+    sfx-error-buzz.wav         三全音下行双音(报错/翻车/失败) ~0.45s
+    sfx-hook-riser.wav         上扬悬置不落地(钩子埋点) ~0.6s
 
 用法:
   python gen-sfx.py [输出目录]
@@ -496,6 +499,50 @@ def gen_outro_chord() -> list[float]:
     return out
 
 
+def gen_error_buzz() -> list[float]:
+    """报错音:E4→Bb3 三全音(增四度,听觉惯例的"不协和/警报"音程)下行双音,
+    基频正弦 + 小分量方波(压低通防刺耳),短促收尾,报错/翻车/失败场景,~0.45s。"""
+    dur = 0.45
+    raw = []
+    for i in range(int(RATE * dur)):
+        t = i / RATE
+        v = 0.0
+        # 第一音 E4(329.63Hz) 0-0.18s
+        if t < 0.20:
+            env = min(1.0, t / 0.006) * math.exp(-t * 9.0)
+            v += 0.26 * env * (_note(329.63, t, (1.0, 0.2)))
+            v += 0.07 * env * math.copysign(1.0, math.sin(2 * math.pi * 329.63 * t))
+        # 第二音 Bb3(233.08Hz) 0.16s 起,三全音下坠,衰减更慢(余韵"坏感")
+        if t >= 0.16:
+            dt = t - 0.16
+            env = min(1.0, dt / 0.006) * math.exp(-dt * 6.5)
+            v += 0.30 * env * (_note(233.08, dt, (1.0, 0.22)))
+            v += 0.09 * env * math.copysign(1.0, math.sin(2 * math.pi * 233.08 * dt))
+        raw.append(v)
+    return _lowpass_2pole(raw, 2200.0)
+
+
+def gen_hook_riser() -> list[float]:
+    """钩子埋点音:400→900Hz 上扫 + 指数抬升,尾部戛止不落地(无钟声收尾),
+    制造"话没说完"的悬置感——区别于 opening-riser(缓升+低音落点),~0.6s。"""
+    dur = 0.6
+    n = int(RATE * dur)
+    noise = _noise(dur, 20260826)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        # 能量随进度指数抬升(0.25→1.0),耳朵感到"要出事了"
+        lift = 0.25 + 0.75 * (t / dur) ** 2.2
+        v = 0.30 * lift * _sweep(400, 900, t)
+        # 气流感:高通式轻噪,幅度同样抬升
+        v += 0.10 * lift * noise[i] * (t / dur)
+        # 尾部 20ms 快速截止(戛止,不解决)
+        if t > dur - 0.02:
+            v *= (dur - t) / 0.02
+        out.append(v)
+    return out
+
+
 # ── 无版权轻音乐垫底(多轨,30-45s,确定性合成)────────────────────────
 # 每轨: 软拨弦 arp(八分音符) + 慢起 pad + 正弦低音 + 主音旋律点 + 可选轻 shaker。
 # 全部纯 stdlib,无版权风险。键位/和弦按"轻音乐"口粮设计,整体音量低于人声。
@@ -670,6 +717,7 @@ def main() -> None:
     os.makedirs(out_dir, exist_ok=True)
     specs = {
         # 短音效:旧 3 个(向后兼容) + 2026-08-20 扩充 10 个 + 2026-08-24 抖音风格 10 个
+        # + 2026-08-26 场景补缺 2 个(error/hook,openspec video-sfx-scenario-palette)
         "sfx-opening.wav": gen_opening(),
         "sfx-opening-chime.wav": gen_opening_chime(),
         "sfx-opening-riser.wav": gen_opening_riser(),
@@ -693,6 +741,8 @@ def main() -> None:
         "sfx-reveal.wav": gen_reveal(),
         "sfx-reveal-bloom.wav": gen_reveal_bloom(),
         "sfx-outro-chord.wav": gen_outro_chord(),
+        "sfx-error-buzz.wav": gen_error_buzz(),
+        "sfx-hook-riser.wav": gen_hook_riser(),
         # 无版权轻音乐垫底:4 轻 + 4 抖音风格(悬疑/史诗/8-bit/Lo-fi),
         # bgm-bed 保留为 calm 别名(旧配置兼容)
         "bgm-light-calm.wav": gen_bgm_track("bgm-light-calm.wav"),

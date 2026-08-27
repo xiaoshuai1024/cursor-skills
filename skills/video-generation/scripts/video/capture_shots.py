@@ -162,6 +162,33 @@ SHOTS: list[Shot] = [
         ],
         settle_ms=2200,
     ),
+    # 8. Codex 官网下载页（codex-desktop-tutorial 教程版）：hero 下载按钮
+    Shot(
+        key="codex-download",
+        url="https://openai.com/codex/",
+        hotspots=[
+            {"text": "Download", "label": "Download for Windows"},
+        ],
+        settle_ms=3500,
+    ),
+    # 9. CcSwitch 仓库首屏：star 计数（codex-desktop-tutorial S3/S6）
+    Shot(
+        key="ccsw-repo",
+        url="https://github.com/farion1231/cc-switch",
+        hotspots=[
+            {"sel": "#repo-stars-counter-star", "label": "129k Star"},
+        ],
+        settle_ms=2200,
+    ),
+    # 10. DeepSeek 定价页（codex-desktop-tutorial S6 算账）
+    Shot(
+        key="deepseek-pricing",
+        url="https://api-docs.deepseek.com/quick_start/pricing",
+        hotspots=[
+            {"text": "deepseek-chat", "label": "V4 Flash 定价"},
+        ],
+        settle_ms=2500,
+    ),
 ]
 
 

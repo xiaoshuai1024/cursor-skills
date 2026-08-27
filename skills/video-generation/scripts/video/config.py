@@ -83,18 +83,90 @@ def bgm_path(mood: str | None = None) -> Path | None:
     return None
 
 
-def sfx_paths() -> dict[str, Path] | None:
+def sfx_paths(mood: str | None = None) -> dict[str, Path] | None:
     """courseware/graph 装配时自动点缀的音效（开场 + 稀疏转场 + 提问，存在才加）。
-    narration/ 开场/转场齐才返回 dict（提问音可选），否则 None。"""
-    opening = NARRATION_ASSETS_DIR / "sfx-opening-chime.wav"
-    transition = NARRATION_ASSETS_DIR / "sfx-transition-swoosh.wav"
-    question = NARRATION_ASSETS_DIR / "sfx-question-up.wav"
+    narration/ 开场/转场齐才返回 dict（提问音可选），否则 None。
+    mood 给了按场景矩阵选变体（openspec video-sfx-scenario-palette）；
+    None 走各场景兜底默认 = 变更前的固定三件（chime/swoosh/question-up）。"""
+    opening = NARRATION_ASSETS_DIR / suggest_sfx("opening", mood)
+    transition = NARRATION_ASSETS_DIR / suggest_sfx("transition", mood)
+    question = NARRATION_ASSETS_DIR / suggest_sfx("question", mood)
     if opening.exists() and transition.exists():
         out = {"opening": opening, "transition": transition}
         if question.exists():
             out["question"] = question
         return out
     return None
+
+
+# ── SFX 场景×氛围矩阵（openspec video-sfx-scenario-palette，2026-08-26）──
+# scenario → [(文件, 适用 mood 框架…), …]；查表顺序取首个命中 mood 的条目，
+# 全未命中回退首项（兜底默认）。氛围轴复用 BGM 8 档 → BGM 与 SFX 同一声音人格。
+# ⚠️ 与 remotion core/sound-points.ts::SFX_SCENARIOS 同源镜像，改一边必须同步另一边；
+#    文档 SSOT = references/sound-design.md §五矩阵表。
+SFX_SCENARIO_MATRIX: dict[str, list[tuple[str, tuple[str, ...]]]] = {
+    # 开场引子:讲解系柔钟声 / 进取系缓升落地 / 张力系扫频+钟声抓注意
+    "opening": [
+        ("sfx-opening-chime.wav", ("calm", "walk", "focus", "lofi")),
+        ("sfx-opening-riser.wav", ("bright", "epic")),
+        ("sfx-opening.wav", ("tense", "chiptune")),
+    ],
+    # 提问:讲解系中性双音 / 进取系上行引好奇 / 张力系下行收束反思
+    "question": [
+        ("sfx-question.wav", ("calm", "focus")),
+        ("sfx-question-up.wav", ("walk", "bright", "epic", "chiptune")),
+        ("sfx-question-down.wav", ("tense", "lofi")),
+    ],
+    # 转场:讲解/进取系融合 swoosh / 张力系数字故障
+    "transition": [
+        ("sfx-transition-swoosh.wav", ("calm", "walk", "focus", "bright", "epic", "lofi")),
+        ("sfx-transition-glitch.wav", ("tense", "chiptune")),
+    ],
+    # 重点结论:讲解系软 ping / 进取·张力系低频重击 / 轻快系极短 tick
+    "emphasis": [
+        ("sfx-emphasis.wav", ("calm", "focus", "lofi")),
+        ("sfx-impact.wav", ("bright", "epic", "tense")),
+        ("sfx-emphasis-tick.wav", ("walk", "chiptune")),
+    ],
+    # 揭晓/数据:讲解系软和弦 bloom / 轻快系 whoosh-open / 张力系竖琴刮奏
+    "reveal": [
+        ("sfx-reveal-bloom.wav", ("calm", "focus", "lofi")),
+        ("sfx-reveal.wav", ("walk", "bright", "chiptune")),
+        ("sfx-harp-gliss.wav", ("tense", "epic")),
+    ],
+    # 里程碑/成功:清亮叮兜底,进取/8-bit 用金属双音(数字落地)
+    "milestone": [
+        ("sfx-ding.wav", ()),
+        ("sfx-coin.wav", ("bright", "chiptune")),
+    ],
+    # 报错/翻车:三全音下行双音(全档兜底);tapestop 悬念切断是手动备选不进自动矩阵
+    "error": [("sfx-error-buzz.wav", ())],
+    "typing": [("sfx-typewriter.wav", ())],      # 代码/打字,全档单一
+    "countdown": [("sfx-ticktock.wav", ())],     # 倒计时/时间线
+    "suspense": [("sfx-heartbeat.wav", ())],     # 悬念铺垫
+    "hook": [("sfx-hook-riser.wav", ())],        # 钩子埋点(上扬悬置不落地)
+    "outro": [("sfx-outro-chord.wav", ())],      # 签名句收尾,全片一次
+}
+
+
+def suggest_sfx(scenario: str, mood: str | None = None) -> str:
+    """场景×氛围 → 推荐音效文件名（矩阵首项为兜底默认）。"""
+    entries = SFX_SCENARIO_MATRIX.get(scenario)
+    if not entries:
+        raise ValueError(f"未知 SFX 场景: {scenario}（合法值: {sorted(SFX_SCENARIO_MATRIX)}）")
+    for file, moods in entries:
+        if mood in moods:
+            return file
+    return entries[0][0]
+
+
+# ── 内容感知定点音效 cue 关键词（courseware/graph 扫口播 subtitle cue；
+#    每类 error/milestone/reveal ≤2、hook ≤1、提问 ≤3，全片定点总数 ≤8，
+#    超限按 error > question > hook > milestone > reveal 砍）──
+ERROR_CUES = ["报错", "失败", "翻车", "错误", "异常", "崩溃", "error", "failed"]
+MILESTONE_CUES = ["成功", "跑通", "搞定", "通过", "完成", "装好"]
+REVEAL_CUES = ["答案", "真相", "其实是", "原因就是"]
+HOOK_CUES = ["彩蛋", "下条视频", "下期", "敬请期待"]
 
 
 # ── 内容 → BGM 情绪（抖音知识区口径；与 remotion core/sound-points.ts 同规则，两边同步改）──

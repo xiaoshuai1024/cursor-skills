@@ -54,7 +54,7 @@ sfx: {
 }
 ```
 
-- **开场音**：所有视频加。0.5–1.0s 完成「引子 + 落点」，最抓注意。轻讲解选 `-chime`（无扫频噪声更柔），钩子型选 `sfx-opening.wav`。
+- **开场音**：所有视频加。0.5–1.0s 完成「引子 + 落点」，最抓注意。轻讲解选 `-chime`（无扫频噪声更柔），钩子型选 `sfx-opening.wav`（2026-08-26 起优先走 §五矩阵按 mood 自动选，手选仅作微调）。
 - **转场音**：只配给用动画转场的场景，且**不要每场都响**——用 `transitionEvery` 控制稀疏度。参考片快剪约每 5 场景一次动画转场且无转场音；口播快剪设 `transitionEvery: 3~5`，只让重点场景切换带 whoosh。
 - **提问音**：只放真·提问句（口播里问句对应的字幕帧），`questionFrames` 手工点帧。**数量克制**：一篇视频 2–4 个提问音足够，多了成电子琴乱弹。反思/收束句用 `-down`。
 - **强调/揭示音**（`sfx-emphasis` / `sfx-emphasis-tick` / `sfx-reveal` / `sfx-reveal-bloom`）：给关键词落地、数字滚动、图表/结论出现配点缀，同样走 `questionFrames` 那套帧定位，音量 0.4 以下。
@@ -81,17 +81,69 @@ sfx: {
 
 用法：Remotion `sfx.emphasis/reveal` 槽 + `emphasisFrames/revealFrames`（`keywordFrames` 算帧）；数量纪律不变——全片点缀总数 ≤8，多了成电子琴。
 
-## 五、素材再生成
+## 五、场景×氛围选型矩阵（SSOT，2026-08-26，openspec video-sfx-scenario-palette）
+
+> BGM 选曲早已内容感知（§四），SFX 同样按内容氛围选变体——**BGM 与 SFX 共用一条 mood 轴，形成统一声音人格**（悬疑片 = tense BGM + glitch 转场 + question-down 提问音）。本表是矩阵的文档 SSOT；代码两份镜像：`scripts/video/config.py::SFX_SCENARIO_MATRIX` ↔ `remotion/src/core/sound-points.ts::SFX_SCENARIOS`，**改一边必须同步另一边**（`make video-lint` 的 `check_sfx_matrix` 机检漂移）。
+
+### 5.1 矩阵（查表顺序取首个命中 mood 的条目，全未命中回退加粗首项）
+
+| 场景 | 用途 | calm/walk/focus/lofi（讲解系） | bright/epic（进取系） | tense/chiptune（张力系） |
+|------|------|------------------------------|---------------------|----------------------|
+| opening | 开场引子 | **`opening-chime`**（柔钟声） | `opening-riser`（缓升落地） | tense→`opening`（扫频+钟声）；chiptune 同 |
+| question | 提问（2~4 个） | calm/focus→**`question`**（中性双音）；lofi→`question-down` | walk/bright/epic→`question-up`（上行引好奇）；chiptune 同 | tense→`question-down`（收束反思） |
+| transition | 转场（every 3~5） | **`transition-swoosh`**（融合系） | `transition-swoosh` | tense/chiptune→`transition-glitch`（数字故障） |
+| emphasis | 重点结论 | **`emphasis`**（软 ping） | `impact`（低频重击） | tense→`impact`；chiptune→`emphasis-tick` |
+| reveal | 揭晓/数据 | **`reveal-bloom`**（软和弦） | `reveal`（whoosh-open） | tense/epic→`harp-gliss`（竖琴刮奏） |
+| milestone | 成功/跑通 | **`ding`**（全档兜底） | bright→`coin`（数字落地）；epic→`ding` | `ding`；chiptune→`coin` |
+| error | 报错/翻车 | **`error-buzz`**（三全音下行，全档兜底） | `error-buzz` | `error-buzz`（tense 手动备选 `transition-tapestop`） |
+| typing | 代码/打字 | **`typewriter`**（全档单一） | | |
+| countdown | 倒计时 | **`ticktock`**（全档单一） | | |
+| suspense | 悬念铺垫 | **`heartbeat`**（全档单一） | | |
+| hook | 钩子埋点 | **`hook-riser`**（上扬悬置不落地，全档单一） | | |
+| outro | 签名句收尾 | **`outro-chord`**（终止式和弦，全片一次） | | |
+
+2026-08-26 新增素材：`sfx-error-buzz.wav`（E4→Bb3 三全音下行双音，报错语义直达）、`sfx-hook-riser.wav`（上扬戛止，区别于 opening-riser 的落地）。
+
+### 5.2 自动点位（Playwright courseware/graph，零配置）
+
+管线自动扫口播 subtitle cue 定点触发（`build.py::scan_cue_sfx_points`）：
+
+| cue 关键词 | 场景音 | 上限 |
+|-----------|--------|------|
+| 问句（？/? 结尾或 is_question） | question | 3 处 |
+| 报错/失败/翻车/错误/异常/崩溃/error/failed | error | 2 处 |
+| 成功/跑通/搞定/通过/完成/装好 | milestone | 2 处 |
+| 答案/真相/其实是/原因就是 | reveal | 2 处 |
+| 彩蛋/下条视频/下期/敬请期待 | hook（埋点悬置音） | 1 处 |
+| （尾卡 `总时长-1.5s`，非 cue） | outro | 1 处（全片一次） |
+
+定点总数 ≤8，超限按 **error > question > hook/milestone > reveal** 砍。点位在输出时间轴上计算（已扣 xfade 转场重叠——2026-08-26 修正旧实现的 i×0.8s 漂移）。
+
+### 5.3 Remotion 用法（opt-in，一行整套）
+
+```ts
+import { suggestSfxSet, autoQuestionFrames, keywordFrames } from "@skill-src/core/sound-points";
+sfx: {
+  ...suggestSfxSet(N.audio, U.map(u => u.text)),   // bgmMood/bgm/opening/transition/question/emphasis/reveal 整套
+  volume: 0.4, bgmVolume: 0.35,
+  questionFrames: autoQuestionFrames(U),
+  emphasisFrames: keywordFrames(U, ["记住", "结论"]),
+}
+```
+
+`DEFAULT_SFX` 不动（存量 config 零变化）；单场景查询用 `suggestSfx("transition", "tense")`。
+
+## 六、素材再生成
 
 ```bash
 # 在 blog 仓(VIDEO_PROJECT_ROOT 决定输出到 public 目录 video-generation/narration/)
 cd .agents/skills/video-generation/remotion
 VIDEO_PROJECT_ROOT=$PWD/../../../.. PYTHONIOENCODING=utf-8 python scripts/gen-sfx.py
-# 产物: 短音效 23 个 + BGM 8 轨 + bgm-bed 别名
+   # 产物: 短音效 25 个(2026-08-26 +error-buzz/hook-riser) + BGM 8 轨 + bgm-bed 别名
 # 全部纯 stdlib 确定性合成,无版权风险,重跑结果一致
 ```
 
-## 六、复盘（为什么这套设计是对的）
+## 七、复盘（为什么这套设计是对的）
 
 - 参考片能量=连续 BGM，不是音效——所以**先有 BGM 垫底**，否则视频听感空洞（目前管线默认无 BGM）。
 - 参考片 2.5s 一换场景——我们的默认 5s 场景配多原语动画，**信息密度不比它低**，但纯视觉验证片（motion-showcase）用它验证「动画+转场+音效」三件套。

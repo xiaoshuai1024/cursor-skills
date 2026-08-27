@@ -35,6 +35,13 @@ DEFAULT_RATE = "+8%"
 DEFAULT_FPS = 60
 DEFAULT_MAX_UNIT = 24   # 意群单元字数上限（接近字幕单行容量，避免切碎完整句）
 
+# 无字幕标记（openspec video-engagement-cta）：句首加 〖无字幕〗 的句子正常配音，
+# 但该句拆出的全部单元在 narration.json/ts 里带 no_subtitle=True——抖音「动作引导
+# 只走口播、字幕停在互动问题」的露出面合规。与 timeline.py 的 NOSUB_MARK 同源双份
+# （两模块互不 import），改一处必须同步另一处。timeline 版作用于句中任意位置，
+# 本版只认句首（narrate 的输入是完整句列表，句首即整句语义最清晰）。
+NOSUB_MARK = "〖无字幕〗"
+
 import re as _re
 
 # 断句标点：中文句逗顿冒分 + 问叹号。问句必须单独成意群——
@@ -87,6 +94,27 @@ def split_units(sentences: list[str], max_unit: int = DEFAULT_MAX_UNIT) -> list[
     return units
 
 
+def split_flagged_sentences(
+    sentences: list[str], max_unit: int = DEFAULT_MAX_UNIT
+) -> tuple[list[str], list[bool]]:
+    """剥句首 〖无字幕〗 标记并智能断句，返回 (units, unit_nosub_flags)。
+
+    flags 与 units 等长：标记句拆出的所有单元 True。split_units 按句独立处理
+    （无跨句合并），逐句调用结果与整表调用一致。
+    """
+    units: list[str] = []
+    flags: list[bool] = []
+    for sent in sentences:
+        s = sent.strip()
+        marked = s.startswith(NOSUB_MARK)
+        if marked:
+            s = s[len(NOSUB_MARK):].lstrip()
+        for u in split_units([s], max_unit=max_unit):
+            units.append(u)
+            flags.append(marked)
+    return units, flags
+
+
 def generate_narration(
     units: list[str],
     out_dir: Path,
@@ -94,13 +122,19 @@ def generate_narration(
     rate: str = DEFAULT_RATE,
     fps: int = DEFAULT_FPS,
     audio_name: str = "narration.mp3",
+    unit_nosub: list[bool] | None = None,
 ) -> tuple[Path, Path]:
     """逐单元合成 + concat 拼接 + 单元级时间戳。
 
     units: 口播单元列表（建议调用方先按标点拆成 ≤18 字的意群）。
+    unit_nosub: 与 units 等长的无字幕标志（〖无字幕〗句），对应 segment 加
+      no_subtitle=True；None 表示无标记句（存量行为不变）。
     返回 (mp3_path, json_path)。时间戳与音频严格一致。
     """
     import os
+
+    if unit_nosub is not None and len(unit_nosub) != len(units):
+        raise ValueError(f"unit_nosub 长度 {len(unit_nosub)} != units 长度 {len(units)}")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     mp3_path = out_dir / audio_name
@@ -117,14 +151,17 @@ def generate_narration(
         dur = probe_duration(seg)
         start_ms = cursor_ms
         end_ms = cursor_ms + dur * 1000
-        segments.append({
+        seg_data = {
             "index": i,
             "text": unit,
             "start_ms": round(start_ms),
             "end_ms": round(end_ms),
             "start_frame": round(start_ms / 1000 * fps),
             "end_frame": round(end_ms / 1000 * fps),
-        })
+        }
+        if unit_nosub and unit_nosub[i]:
+            seg_data["no_subtitle"] = True
+        segments.append(seg_data)
         cursor_ms = end_ms
         seg_files.append(seg)
         print(f"  单元 {i + 1:02d}/{len(units)}  {start_ms / 1000:5.2f}-{end_ms / 1000:5.2f}s  {unit[:24]}")
@@ -178,11 +215,17 @@ def generate_narration_from_sentences(
 ) -> tuple[Path, Path]:
     """一站式：完整句子 → 智能断句(split_units) → 合成 + 时间戳。
 
-    多数场景用这个，不用自己调 split_units。
+    多数场景用这个，不用自己调 split_units。句首带 〖无字幕〗 的句子正常配音，
+    拆出的单元在 json/ts 里带 no_subtitle=True（抖音动作引导有声无字幕）。
     """
-    units = split_units(sentences, max_unit=max_unit)
-    print(f"[narrate] {len(sentences)} 句 → 拆成 {len(units)} 个意群单元")
-    return generate_narration(units, out_dir, voice=voice, rate=rate, fps=fps, audio_name=audio_name)
+    units, flags = split_flagged_sentences(sentences, max_unit=max_unit)
+    n_marked = sum(flags)
+    print(f"[narrate] {len(sentences)} 句 → 拆成 {len(units)} 个意群单元"
+          + (f"（无字幕标记单元 {n_marked} 个）" if n_marked else ""))
+    return generate_narration(
+        units, out_dir, voice=voice, rate=rate, fps=fps,
+        audio_name=audio_name, unit_nosub=flags,
+    )
 
 
 def _main() -> None:

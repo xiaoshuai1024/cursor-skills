@@ -19,6 +19,8 @@ make analytics-deep slugs=a,b     # 只跑指定 slug（转写有缓存）
 make analytics-report             # 标准化 → 诊断 → 报告
 ```
 
+**冲精选期采集纪律**（2026-08-27，openspec douyin-featured-selection）：① deep 采集对**新发视频默认全量跑**（历史仅 4/25 覆盖，回验样本不足）；② 每条视频发布满 **48h** 跑一次 `analytics-deep + analytics-report`，对照「精选自查基准线」写进 directives；③ **月度精选复盘**——每月 18-20 日（官方发上月精选作者榜单）跑一次 report，对照榜单记录本号差距与可仿写点，同步更新 `douyin-topic/references/jingxuan-benchmarks.md` 案例档案；④ 20:00 发布窗口回测——累计 10 支 20:00 档后与中午档历史对比完播/池级，结论回写 video-generation skill「发布窗口」节。
+
 报告落 `.video-analytics/reports/`：
 
 | 文件 | 内容 |
@@ -72,6 +74,7 @@ make analytics-report             # 标准化 → 诊断 → 报告
 ## 诊断口径
 
 - **双基准**：自身历史分位数 P25/P50/P75（n≥5 启用，第一基准）→ 行业阈值兜底（`references/metrics-benchmark.md`）；n<5 强制标「样本不足仅供参考」
+- **精选自查基准线（2026-08-27，openspec douyin-featured-selection）**：48h 回看——平均观看时长 >30s 且完播 >5% 为**达标**、>10% 为**强信号**；未达标自动归因到 directives（时长超标 → 豁免门禁口径；前段流失 → 15s 硬信息/H1/H5 指令）。⚠️ 这是**内部自查线非官方门槛**——官方无任何量化口径，精选按惊喜感/获得感/共鸣感定性评选，此线只用于迭代完播
 - **数据成熟**：发布满 24h 且播放 ≥50 才算率值；未满 24h 标「数据未熟」
 - **抖音流量池**：72h 播放对照梯度 [300 / 3k / 2w / 10w / 50w]，落位 + 差多少 + 晋级指标
 - **诊断树**：卡第 1 级=冷启动问题（封面/标题/发布时间）；播放过千互动率 <5%=流量承接弱（压时长提密度）；单项率低=对应 CTA 缺失
