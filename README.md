@@ -33,6 +33,7 @@ douyin-topic                                                        ✅
 mstodo-topic                                                        ✅
 comment-auto-reply                                                  ✅
 video-analytics                                                     ✅
+video-pipeline-tracker                                              ✅
 ```
 
 ---
@@ -113,6 +114,7 @@ video-analytics                                                     ✅
 |------------|------|
 | [comment-auto-reply](skills/comment-auto-reply/) | 评论承接（手动单命令）：采集 B站/抖音近 14 天未回复一级评论 → 规则分诊（无信息量跳过/技术提问 LLM 草稿/负面转人工）→ 逐条确认 → 自建通道发送（B站公开 API / 抖音评论管理页 DOM）+ 回读验证；配套置顶评论发布器（一级评论发送+合规闸+截图留证） |
 | [video-analytics](skills/video-analytics/) | 多平台运营数据分析：四平台创作者后台只读采集 → 增量快照 → 单视频漏斗诊断 → 横向因子对比 → 「证据→诊断→动作」建议 → 选题关键词反哺 |
+| [video-pipeline-tracker](skills/video-pipeline-tracker/) | 视频生产全生命周期状态台账：单一事实源 state.json（10 态 stage + blocked 标志 + history 追溯）+ vpt CLI（stage/queue/sync/report）+ 自动重生 Markdown 看板（进行中/队列日历含每日一篇冲突标记/归档近况/平台数据），多任务窗口共享 |
 
 **依赖**：Python 3 + patchright/playwright；各平台登录态（cookie 持久化，扫码一次长期复用；B站走 biliup-rs 双轨）。
 
@@ -140,6 +142,7 @@ mstodo-topic 拉待办清单 → 三维分析出报告（合适项附大纲/口�
   → metadata-optimizer 出平台标题变体 → platform-compliance 扫违禁词
   → 四平台定时发布（每日一篇 20:00）→ 归档
   → comment-auto-reply 置顶评论 + 24h 回评
+  → video-pipeline-tracker 全程记录 stage（看板 data/video-pipeline/dashboard.md）
   → video-analytics 48h 数据回看 → 结论反哺下一轮选题
 ```
 
