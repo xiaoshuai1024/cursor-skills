@@ -4,22 +4,22 @@
   "groupings": [
     {
       "title": "选题 / Discovery",
-      "description": "技术选题发现：多源拉取技术社区热文（掘金/CSDN/InfoQ/知乎）、抖音选题拆解，按方向过滤+热度排序。",
-      "skills": ["tech-topic", "douyin-topic"]
+      "description": "技术选题发现：多源拉取技术社区热文（掘金/CSDN/InfoQ/知乎）、抖音选题拆解、微软待办收件箱三维分析，按方向过滤+热度/潜力排序，产出大纲与口播分镜。",
+      "skills": ["tech-topic", "douyin-topic", "mstodo-topic"]
     },
     {
-      "title": "写作 / Writing",
-      "description": "内容生产：博客写作全流程、去 AI 味、图文卡片设计。",
-      "skills": ["blog-writing", "de-ai-smell", "image-text-cards"]
+      "title": "写作与合规 / Writing & Compliance",
+      "description": "内容生产与发布前双闸：博客写作全流程、去 AI 味词表扫描、图文卡片设计；标题/简介/话题分档打分与平台变体、多平台违禁词机检。",
+      "skills": ["blog-writing", "de-ai-smell", "image-text-cards", "metadata-optimizer", "platform-compliance"]
     },
     {
       "title": "发布 / Publishing",
-      "description": "公众号 mp 后台 API 直推（草稿+定时群发+封面+代码高亮）。",
-      "skills": ["wechat-publishing"]
+      "description": "公众号 mp 后台 API 直推（草稿+定时群发+封面+代码高亮）；视频四平台（抖音/快手/B站/视频号）定时发布与队列管理。",
+      "skills": ["wechat-publishing", "video-generation"]
     },
     {
       "title": "视频 / Video",
-      "description": "技术博客→横屏视频（remotion 数据可视化/课件/知识图谱）。",
+      "description": "技术博客→横屏视频：remotion 数据可视化、courseware 课件（含屏录感+真实热点标注）、graph 知识图谱；IndexTTS-2 克隆配音与四道机检门禁。",
       "skills": ["video-generation"]
     },
     {
@@ -28,9 +28,14 @@
       "skills": ["drawio", "excalidraw", "app-screenshot"]
     },
     {
+      "title": "运营闭环 / Operations",
+      "description": "多平台运营闭环：评论区自动承接（分诊+草稿+回读验证+置顶评论发布器）、四平台数据回看与漏斗诊断反哺选题。",
+      "skills": ["comment-auto-reply", "video-analytics"]
+    },
+    {
       "title": "工具 / Tools",
-      "description": "爬虫反检测最佳实践、仓库文档治理。",
-      "skills": ["crawl", "code-doc-maker"]
+      "description": "爬虫反检测最佳实践、仓库文档治理、Agent 高绩效教练（方法论路由+可判定红线+降压协议）。",
+      "skills": ["crawl", "code-doc-maker", "pua"]
     }
   ]
 }
