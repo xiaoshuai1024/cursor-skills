@@ -267,6 +267,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 4. **素材真实性**：code/term 镜头素材必须来自真实仓库文件（如 DSH 片用本地 deepseek-harness 仓的 AGENTS.md、agent.cordis.yml、包名清单），分镜表备注溯源路径；终端演示可重构命令序列但机制必须真实存在，不得虚构源码行。
 5. **写 deck 流程步**：每卡产出「分镜表」（时间轴 | kind | 素材内容 | 对应口播句），随 deck.json 一起交付。
 6. **实现**：`tutorial.py::_shots_stage/_shot_content`（亮色系渲染器）+ `courseware.py`（深色系同套支持）+ `frames.py`（每帧算 `shot_idx/shot_birth/shot_t_ms`）。动画：新镜头 8 帧浮入 + 前镜头 6 帧淡出 + 行级 2 帧/行 stagger，帧驱动铁律不变，静止段 HTML 等值（PNG 复用优化保持）。
+7. **from_s 两段式（2026-08-28 定规，配 `_align_shots.py`）**：写稿时 from_s 用「卡内逐句累计 ÷5.5 字/秒」估算即可；**合成后必须跑** `PYTHONIOENCODING=utf-8 py -3.11 scripts/video/_align_shots.py <slug>`，把每卡镜头切点贴到真实句边界（读 `audio/<slug>_t/boundaries_XX.json`，找离估算最近且不早于前一镜 +0.8s 的起点）。禁止拿估算值直接渲染——估算与真实边界偏差实测 0.1-0.5s/句。
 
 ### 价值与互动：可带走 + 留讨论钩子（强制）
 
@@ -319,6 +320,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
   - **完整口播稿**：逐句全文（含开头问句、钩子/回收/SFX/BGM/转场内联标记、结尾四段），不是摘要或大纲
   - **完整分镜脚本**：逐卡/逐场景列出（画面内容与要点、动画设计、BGM 情绪档、音效触发点、转场类型三列）
 - **确认后才渲染**：用户明确回复确认后才能开合成/渲染；用户提修改 → 改完**重新呈完整稿复审**，循环直到确认。IndexTTS 克隆合成耗时长且改稿即作废，务必在确认后跑。
+- **整批授权口径（2026-08-28 补充）**：用户对一批视频给出明确的「依次产出/写完直接渲染」指令时，视同该批的确认门禁通过，不再逐支停下来等审；但批内任何一集的口播或分镜在此之后发生内容改动，该集仍按完整复审规则重来。
 - **❌ 禁止**：跳过确认直接渲染；只呈摘要/要点清单就当已确认；先渲染后补审；把 checklist 自查通过当作用户确认。
 - **例外（免复审）**：渲染技术失败重试、管线/代码 bug 修复、内容零变更的重渲（如纯补封面）无需重新确认；但口播或分镜**改了任何一处内容**，必须重新过审再渲染。
 
@@ -350,7 +352,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 > ### ⚠️ 默认口播 = IndexTTS-2 用户声克隆，不是 edge-tts（2026-08-25 定规，违者返工）
 >
-> **每条正式视频的口播必须走克隆链**（用户声音，AGENTS.md「视频声音管线」为权威）：WSL `scripts/video/synth_indextts.py <slug> --attempts 4 --emo none`（参考音 `~/refaudio/my_voice_seg.wav`，逐句 best-of-N 门禁选优）→ `tts_pipeline/assemble.py`（发布五步链：120ms 垫 / RMS -18dB / treble g=2 / deesser / alimiter）→ `tts_speed_shrink.py --tempo 1.06` → 产物落 `video-generation/audio/<slug>_t/` → `make video` 换声旁路自动接管（`audio/<slug>_t/audio_*.mp3 + boundaries_*.json` 在则跳过 edge-tts）。本节及「音色选择」的 edge-tts 内容**仅是克隆链不可用时的 fallback**，fallback 必须先向用户说明并获准，不得默认使用。`narrations/<slug>.json` 的 `voice/rate` 字段只在 fallback 生效——渲染前 checklist 必查一项：**口播是否为用户克隆声**。
+> **每条正式视频的口播必须走克隆链**（用户声音，AGENTS.md「视频声音管线」为权威）：WSL `scripts/video/synth_indextts.py <slug> --attempts 4 --emo dyn`（2026-08-28 定档 D，openspec tts-emotion-dynamics：逐句角色情绪向量值已烙入 `emotion_map.py`，`--emo-scale` 仅作 ±0.1 微调；参考音 `~/refaudio/my_voice_seg.wav`，逐句 best-of-N 门禁选优）→ `tts_pipeline/assemble.py`（发布五步链：120ms 垫 / RMS -18dB / treble g=2 / deesser / alimiter）→ `tts_speed_shrink.py --tempo 1.06` → 产物落 `video-generation/audio/<slug>_t/` → `make video` 换声旁路自动接管（`audio/<slug>_t/audio_*.mp3 + boundaries_*.json` 在则跳过 edge-tts）。本节及「音色选择」的 edge-tts 内容**仅是克隆链不可用时的 fallback**，fallback 必须先向用户说明并获准，不得默认使用。`narrations/<slug>.json` 的 `voice/rate` 字段只在 fallback 生效——渲染前 checklist 必查一项：**口播是否为用户克隆声**。
 
 - edge-tts 中文语音**不支持 SSML 音素控制**（标签会被当文本读出）
 - **缩写逐字母 vs 单词音的权衡**（核心经验）：
@@ -359,6 +361,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
   - ✅ **结论**：`normalize_for_tts` 白名单**只留会被读成"无法识别中文错音"的词**，其他缩写当单词读。当前白名单 = `{DOM, AI}`。
   - ⚠️ **AI 必须逐字母**（claude-plugins 视频踩坑，两次复发）：男声 `YunxiNeural` 实测原始 "AI" 被当单词读成拼音音"爱/哀"（不自然），"A I" 才是技术圈标准读法。故 AI 进白名单 → normalize 展开成 "A I"。**旧的"AI 自动逐字母、保持原样"结论是错的**，WordBoundary 探针已推翻。验证方法：合成后看 WordBoundary 是否把 AI 拆成 A、I 两个独立词。
   - ⚠️ **TUI 大小写通吃 + 探针必须用口播原文（2026-08-17 踩坑）**：dsh-TUI 读音错误两轮才修好——第一轮只把 `TUI` 加进白名单，但白名单正则 `[A-Z]{2,5}` 只匹配大写，而口播写的是小写 `dsh-tui`，normalize 根本没命中，用户复听仍错。**修法：normalize 里追加大小写不敏感规则（`[tT][uU][iI]` → "T U I"）**；且**探针测试必须用口播文件里的原文（含小写）**，不能只测大写形式——探针通过 ≠ 口播通过。
+  - ⚠️ **多音字「行」作量词被读成 xíng（2026-08-28 用户实听定规，勿再犯）**：口播里「日志多少**行** / 那**行**报错 / 代码一**行**没丢 / 通知**行**」的「行」（háng）克隆声一律误读成 xíng，index-tts 无拼音标注通道、参数修不动。**写稿期规避**：量词场合一律改「条」（那行→那条）或删量词（代码一行没丢→代码没丢）；「行」只允许出现在 xíng 语义（行不行/行动）或固定词（行业/银行）里。口播稿定稿前 grep `那行|一行|通知行|多少行` 自查（humor-pilot-exitcode 实翻车三处）。
   - ❌ 不要靠整体提速（rate +20%）补偿字母停顿——会让中文语调变机械。英文慢的根因是加空格，不是语速。
 - **rate 用 `+8%`**（自然区间，验证过）。男声 `zh-CN-YunxiNeural`（科普/技术默认），女声 `zh-CN-XiaoxiaoNeural`（培训）。
 - ❌ 不要用中文谐音替换（如 "AI"→"诶爱"）：实测反而切成两个独立词
@@ -434,7 +437,10 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ### 工程
 - **全本地零收费**：仅 edge-tts + Playwright + FFmpeg
-- **GPU 渲染排队（2026-08-27 定规，单卡 FIFO）**：任何视频生产批（`synth_indextts.py` 合成、`make video` 渲染链）开工前必须走排队器——`PYTHONIOENCODING=utf-8 py -3.11 scripts/video/_gpu_queue.py acquire <owner>`，整支完成后 `release <owner>`。机制：锁目录 `video-generation/.chain/gpu.lock`（mkdir 原子）+ 队列账本 `.chain/queue.jsonl`（WAIT/ACQUIRE/RELEASE/STEAL 留痕）；对不走锁的外部合成任务用 WSL pgrep 探测自动避让（先来先服务对它们同样生效）；死锁自救仅限「持锁 PID 已消亡且锁龄 >45 分钟」。**事故存档 2026-08-27**：本链 ep3 与另一会话 token-saving-skills 合成同挤一张 8GB 卡，迭代从 6s/it 飙到 22s/it 后 WSL 整体重启双杀两任务——此后多批次并行前一律先进队。
+- **GPU 渲染排队（2026-08-28 重做，Redisson 式看门狗锁，openspec gpu-queue-lock-watchdog）**：任何视频生产批（`synth_indextts.py` 合成、`make video` 渲染链）开工前必须**整链包裹**进排队器——`PYTHONIOENCODING=utf-8 py -3.11 scripts/video/_gpu_queue.py run <owner> -- <整条命令>`（生产链脚本已内置 exec 自包裹，直接跑脚本即可），**禁止一次性 `acquire` 后裸跑**。机制：锁目录 `video-generation/.chain/gpu.lock`（临时目录写齐 token/lease_ts 后 rename 原子落位）+ 持锁进程内看门狗线程每 60s 续写租约（TTL 180s，自我守护）+ **停摆过期接管**（进程死→看门狗随死→最长约 3 分钟内等待者接管；接管前强制过 WSL 合成探测门槛——死 holder 的孤儿合成仍在占卡时不许抢；rename 独占+证据留痕）+ token 令牌化释放（错令牌 RELEASE-SKIP，误删不了新锁）；续期连续 3 次失败或 token 易主 → LEASE-LOST fail-closed 终止工作链。队列账本 `.chain/queue.jsonl`（WAIT/WAIT-STILL/ACQUIRE/RELEASE/STEAL/RENEW-FAIL/LEASE-LOST/RESTORE 全程留痕）；`gpuq status` 随时查持锁者与租约剩余；`acquire/renew/release` 仅手动调试用（租约=单 TTL，超时未续约会被接管）。对不走锁的外部合成任务 WSL pgrep 探测避让不变（先来先服务；探测连续 3 个周期失败按放行降级）。**事故存档 2026-08-27**：本链 ep3 与另一会话 token-saving-skills 合成同挤一张 8GB 卡，迭代从 6s/it 飙到 22s/it 后 WSL 整体重启双杀两任务——多批次并行前一律进队。**事故存档 2026-08-28（v4 判活失效→重做根因）**：tasklist 判活解析方向反了（有匹配时输出反不含 `: `）+ 一次性 acquire 拿锁即退致 owner.pid 恒死，「45 分钟死锁自救」退化成 45 分钟最大租约（账本实锤：humor-pilot 07:39:40 ACQUIRE → 08:24:50 被 STEAL），render 阶段无探测兜底可复刻 ep3 挤卡——遂重做为看门狗锁；锁语义自测 `py -3.11 scripts/video/test_gpu_queue.py`（隔离临时目录，不碰真实锁）。
+- **批量生产链（2026-08-28 沉淀）**：多支视频串行产出一律走 `bash scripts/video/_run_series_chain.sh`（slug 列表在脚本头，按需改）——每支自动执行 synth(WSL)→assemble→shrink→align→render→cover→covercheck，全程状态落 `video-generation/.chain/status.jsonl`，失败不阻塞后续（标 failed 继续跑完），配合排队器天然与外部任务共存。单支重跑照抄链内 run_step 顺序即可。
+- **视频生产看板（2026-08-28 定规，openspec video-board）**：`data/video-pipeline/board.html` 实时看板——GPU 队列横幅（持锁者/租约剩余/等待者/近 24h STEAL·LEASE-LOST 告警）、渲染中卡片（7 步骤链状态点 + synth 句进度/render 段进度 + 步骤耗时）、排队/阻塞、已渲染库存、20:00 排期（同日冲突标记）+ 四平台状态、近两日播放/涨粉/完播数据（timeseries.db）、归档表；机器读同目录 `board.json`。**实时**：`make video-board-serve` 起看板服务（8765，后台每 3s 重生成 + 页面 3s 轮询、变更才重载、头部有立即刷新按钮），链步骤与 gpuq 锁事件也各自触发重生成（事件后感知 ≤5s）；直开 file:// 退化为 5s 整页重载兜底，手动一次性出板 `make video-board`。看板是旁路：单源缺失降级不炸板、钩子异常不阻塞生产链，`GPUQ_NO_BOARD_HOOK=1` 可禁重生成钩子（自测用）。
+- **字数→时长系数（2026-08-28 实测标定）**：成片秒数 ≈ 口播中文字数 ÷5.5 × **1.25–1.31**（含 TTS 停顿垫、句间 0.24s、xfade 折算）；预算 120–180s 主力档 ⇒ 口播 **620–950 字**。合成前后偏差实测 ±3%，**门禁以 ffprobe 实测成片时长为准**（metadata-lint 直读 mp4），字数只是预算工具。
 - **Windows 编码**：文件 I/O 显式 `encoding="utf-8"`，子进程 `PYTHONIOENCODING=utf-8`
 - **edge-tts 间歇 NoAudioReceived**：`synth_with_boundaries` 必须带指数退避重试（服务端间歇抽风，非代码问题）。整批失败（make video Error 1）多为同一时段服务抽风——**直接重跑 make，一般 2-3 次内过**，先别怀疑内容
 - **Makefile video target 用 `$(PYTHON_PW)` 不是 `$(PYTHON)`**（2026-08-17 修）：`.venv` 无 playwright/edge-tts，Windows 用本机 Python311（`PYTHON_PW`），否则 `ModuleNotFoundError`
@@ -589,7 +595,7 @@ mp3, json_path = generate_narration_from_sentences(
 | 项 | 值 |
 |---|---|
 | 参考音 | `~/refaudio/my_voice_seg.wav`（WSL） |
-| 情绪 | 随参考音（`--emo none`；calm 向量/扁平参考音是历史断句实验，弃用） |
+| 情绪 | 逐句角色向量 `--emo dyn`（2026-08-28 定档 D，openspec tts-emotion-dynamics）：幅值表烙在 `scripts/video/emotion_map.py`——hook 好奇上扬 / punch 金句小得意 / reveal 揭底兴奋 / body 贴原声 / settle 收尾温和；负向维度（angry/sad/afraid/disgusted/melancholic）恒 0，calm 仅 ≤0.05 微量；**scale 1.0 全值经盲听判「起伏过大」已弃用，发布档不得高于定档 D**，`--emo-scale` 只许 ±0.1 微调；`--emo none`（纯随参考音）为平淡旧口径，仅探针对照用 |
 | interval_silence | 250 |
 | 后处理 | assemble 发布五步链：120ms 呼吸垫 → RMS -18dB → treble g=2 → deesser → alimiter 0.7 + -1dB |
 | 整体提速 | `tts_speed_shrink.py` atempo 1.06（时间戳等比缩放） |
@@ -622,6 +628,16 @@ python scripts/video/tts_speed_shrink.py <slug>
 # ④ 独立复审（WSL 或有 faster-whisper 的环境，可单独跑）
 python scripts/video/pause_audit.py video-generation/sent/<slug>
 ```
+
+### 改稿必清缓存（2026-08-28 事故定规，最高优先级）
+
+**synth 的续跑幂等检查只看「产物在不在」，不看「文字变没变」**：改完 narrations 直接重跑，旧 sent 目录会让它整体跳过重合成，assemble 拿旧音频配新分镜——实测产出过一支 380s 的错误成片（新稿 774 字）。改口播后必须先清产物再进链：
+
+```bash
+rm -rf video-generation/sent/<slug> video-generation/audio/<slug> video-generation/audio/<slug>_t
+```
+
+改稿即作废（定规）在此落实为：**清缓存是改稿流程的一部分**，不是可选步骤。
 
 ### 已知坑
 
@@ -672,6 +688,7 @@ video-generation/
 - 渲染管线如中途失败/被取消，恢复后要确认没有残留僵尸渲染进程（node/ffmpeg）锁住输出文件——曾因此 Permission denied 连环失败。清场：`taskkill /F /IM node.exe` 后单实例重渲。
 - **口播声音来源验收（2026-08-25 定规，第一道）**：成片口播必须是用户克隆声——确认 `video-generation/audio/<slug>_t/audio_*.mp3 + boundaries_*.json` 在场、make video 日志出现「换声旁路」字样。edge-tts 声（narrations voice 字段生效、日志只有 edge-tts WordBoundary）= 未走默认链，**返工**（用户明示批准的 fallback 除外）。
 - 封面过 `make video-cover-check`，metadata 过 platform-compliance（标题/简介/话题），**音频过 `verify_render.py`**（BGM 底垫在场 + 混音不削波，见「声音层与转场」），三项都绿才算产出闭环。
+- **严禁无封面发布（2026-08-28 用户定规，最高优先，覆盖一切降级路径）**：任何平台、任何形式的发布（立即/定时/跨平台补发）必须有**自定封面在片**作为发布前置条件。封面生成失败、封面弹窗打不开、上传器报「封面设置失败跳过」一律**视同发布失败阻断流程**——禁止「跳过封面继续发布」「交给推荐封面兜底」类降级（推荐封面常取片头暗帧 = 实际无封面，历史上多个视频因此裸奔上线）。封面设置失败的视频：重试上传；仍失败则发布后**立即**用编辑页补图（`douyin_fix_cover.py` / `kuaishou_fix_cover.py`），平台侧复核到封面在列才算该平台发布完成。
 - **metadata-lint 机检（2026-08-24 定规，三检之后的第四道）**：`make metadata-lint slug=<slug>`——硬截断/词中断/结构红线（凭什么/打赢类）FAIL，最优长度/话题配比/断句丢钩子 WARN。发布管线 `--confirm` 时自动跑同一 lint，FAIL 拒发（`--force` 逃生留痕）。依据：`openspec/changes/metadata-optimization`。
 - **可读性双检（2026-08-24 定规，强制）**：发布前过 `make video-lint`（模板字号基准 + Remotion 场景字号 + **色彩对比度/色板登记机检**（2026-08-25 并入，见「色彩可读性」），非零退出）+ `make video-preview slug=<slug>`（抖音信息流模拟图：黑边 + 右侧图标列 + 底部文案叠加，缩 390px 宽），模拟图里**正文层文字「一眼可读」**才发布。新 deck 要点密度过 `video-lint --deck <slug>`（≤3 条/卡、≤14 字/条；存量 deck 超限渲染时只警告）。基准与依据：`openspec/changes/video-landscape-readability`（正文 ≥48px/画面高 4.4%、标题 ≥72px、右缘避让 180px、crf 18、screencast 热点 1.6× 特写取景）。
 
@@ -938,8 +955,10 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 
 - **全平台缺省（2026-08-27 用户定规，优先级最高）**：发布一个视频 = **抖音/快手/B站/视频号四平台全发**，这是缺省动作不是可选项。**禁止「只发抖音、其余平台等数据起量再跟进」**——「待数据起量后跟进」「待跟进」这类挂起理由一律无效（2026-08-27 DSH ep1 事故：只发抖音挂了 12 小时+ 才被用户发现补齐；同类还有 transformer-matrix-internals 只发抖音、codex-desktop-tutorial 漏 B站/快手）。
   - 仅两类例外可少平台，且必须显式声明理由并报告用户：① **内容级拒绝主题**按 AGENTS.md 2026-08-27 定规排掉具体平台（如第三方模型接入官方客户端教学不排抖音——注意这是「排掉某平台」，其余照发，绝不是「只发一个平台」）；② 用户明示指定平台子集。
-- **发布执行（无顺序约束）**：四平台同窗口挂齐，串行跑。快手走 v2（`py -3.11 scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM"`）；B站 `--platforms bilibili`（biliup dtime 平台侧定时）；抖音 `--platforms douyin`；视频号 `--platforms shipinhao`（定时控件失效期改 schtasks 兜底，见「挂定时后必须复核实际状态」）。
+- **发布执行（无顺序约束）**：四平台同窗口挂齐，串行跑。快手走 v2（`py -3.11 scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM"`）；B站 `--platforms bilibili`（biliup dtime 平台侧定时）；抖音 `--platforms douyin`；视频号 `--platforms shipinhao`（**2026-08-28 实测定规**：平台侧定时只认 ~24h 内近档——当天档可挂成功（五级卡「将于8-28 20:00发表」实证），跨日档表单态全对但提交被**静默降级为立即发表**（9-1×3、8-30 41h×1 四次实验实锤）；跨日档一律 schtasks 到点直发兜底）。
 - **发布成功确认（用现存检查工具，上传器日志不可信）**：每个平台发布/挂定时后，用对应检查工具确认实际状态——抖音 `py -3.11 -m scripts.pub.douyin_check_status "<标题关键词>"`、快手 `py -3.11 -m scripts.pub.kuaishou_check_status <关键词>`、视频号 `py -3.11 -m scripts.pub.shipinhao_delete_video --scan`、B站稿件列表（`.tmp/bili_archives_check.py`，浏览器内 fetch `/x/web/archives`，state=-40 定时中 / 0 通过可见）。判据与节奏见「挂定时后必须复核实际状态」与「发布后复查闭环」。**检查不过 ≠ 连坐**：只处理该平台（按复查闭环的层级处置），其余平台照发照查。
+- **发布后 checklist 增查：封面在列确认（2026-08-28 用户定规，严禁无封面发布）**：发布确认不只查「作品在列」，还要查**作品卡片带 v3/v4 自定封面**（抖音 manage 卡片缩略图 / 快手 check_status 卡片封面 / B站稿件封面 / 视频号 scan）。发现无封面或黑帧封面：立即用 `douyin_fix_cover_v2.py <关键词> <横版> <竖版> <expect令牌>`（expect 令牌必须取自目标卡片**抖音侧**标题/简介的独特字串，防误中其他卡片——2026-08-28 TS教父关键词误中肝了一天事故）或 `kuaishou_fix_cover.py` 编辑页补挂，平台侧复核到封面在列才算闭环，并在 link-map 该 slug 的 pub_video 记 `cover_fixed_at`。上传器「封面已设置」日志不可信（弹窗静默失败先例：视频号 4:3 横版 dialog hidden 14 次流程仍继续）。
+- **抖音改封面用 v2 流程（2026-08-28 实战定规，v1 已废弃）**：`scripts/pub/douyin_fix_cover_v2.py`——编辑页「设置封面」区有**横封面4:3 与竖封面3:4 两个独立卡槽**，App/主页网格展示的是**竖封面**（只换横版 = 用户视角「没换封面」，v1 全军覆没的根因：弹窗默认开在「设置横封面」页，竖版图被传进横封面板）。v2 关键点：① 锚缩略图 img hover → 点可见的 `div[class*="hover-show"]`「编辑封面」浮层；② **弹窗标题必须校验**是目标卡槽（设置竖封面/设置横封面）再传图；③ 上传槽 = modal 内**最后一个** `input.semi-upload-hidden-input`（第 1 个是「AI生成参考图」槽，传错槽「完成」照样关弹窗=假成功）；④ **卡槽 img src 前后变化是唯一真验证**，「弹窗已关」「提交成功」都不算数；⑤ 双卡槽都 src 变化才提交修改（任一失败即中止，省修改额度——每作品限改 5 次）。
 - **收尾自检（发布会话结束前强制）**：核对 link-map `<slug>.pub_video.results` 四平台齐全；不齐 = 发布任务未完成，不许收尾归档。注意 `publish.py` 的 `save_to_linkmap` 每次运行会**整体覆盖** results 字段、快手 v2 单独写——串行发完后必须把四平台真实状态合并写回再收尾。
 - 配套工具：`scripts/pub/douyin_delete_verified.py`（带弹窗全文安全阀+删除后验证的删除）、`scripts/pub/douyin_scan_works.py`（只读扫描）。
 
@@ -949,7 +968,7 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 
 - **定规**：`--schedule` 挂完后（以及 kill 过发布进程后），**必须扫平台后台复核**：抖音 `douyin_check_status.py`（状态标记必须含「定时」且无「不适宜公开」）；视频号 `shipinhao_delete_video.py --scan`（看新条目时间戳——出现在当天上传时刻 = 立即发布实锤，正确定时应不在已发布列表）。上传器的成功日志不可信。
 - **兜底**：平台侧定时控件失效时，用 Windows 任务计划程序本地直发落 20:00 窗口（`schtasks /create /sc once /st 19:50` + bat 包装 `py -3.11 -m scripts.pub.publish`，参考 D:\tmp\sph_publish_1950.bat 与任务名 sph-publish-2000）——平台侧优先，此为坏路兜底，机器需开机。
-- 待修：tencent 定时选择器（`label.filter(has_text="定时").nth(1)` 失效，需对着当前 DOM 重写）；同晚视频号 AI 声明开关与合集下拉也超时失败，发布后需后台手动补。
+- ~~待修：tencent 定时选择器~~ **2026-08-28 已重写修复**：旧 `label.nth(1)` 只搜主 frame + `query_selector_all` 穿不透 Shadow DOM（面板全在主 frame Shadow DOM 里，v4-v9 探针实证）。新实现（`tencent_uploader_main.py::set_schedule_time_tencent`）：全 frame locator 探测定时 radio → 日历选日（跨月翻页+日期回读验证）→ 时/分转盘点选（虚拟列表 hover+滚轮推进、按列 x 坐标分左右防串列）→ 主输入框全串 `YYYY-MM-DD HH:MM` 终验；`submit_publish` 加终防线：scheduled 策略下未验证挂上即拒绝点发表，宁可失败不可误发。配套：原创分成提示弹窗（Shadow DOM）改 locator 显式点「直接发表」（AI 内容不声明原创）；`error_capture` 修复「不超过」误命中「超过」。**残余限制**：跨日（>~24h）定时平台侧静默降级立即发表（定规见「发布执行」），跨日档必须 schtasks 直发；AI 声明开关与 4:3 横版封面 UI 超时跳过仍在（出片后后台手动补）。
 
 ### 发布后复查闭环（2026-08-27 用户定规，强制）
 
