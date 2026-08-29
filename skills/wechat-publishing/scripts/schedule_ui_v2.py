@@ -183,15 +183,38 @@ def main() -> None:
             if close_stray(page):
                 continue
             if not clicked:
-                # 再给一次机会:关弹窗后按钮通常下一轮才渲染
-                try:
-                    el = page.get_by_text("发表", exact=True).first
-                    if el.is_visible():
-                        continue
-                except Exception:
-                    pass
-                print("!! 无可见「发表」")
-                break
+                # 兜底:底部「发表」按钮可能不是 button/a(诊断实证按钮枚举里没有它),
+                # get_by_text 全部不可见时,找文本恰为「发表」的最内层元素坐标真实点击
+                pos = page.evaluate(
+                    """() => {
+                      const els = [...document.querySelectorAll('*')].filter(e =>
+                        e.childElementCount === 0 &&
+                        (e.innerText || '').trim() === '发表');
+                      if (!els.length) return null;
+                      const el = els[els.length - 1];
+                      el.scrollIntoView({block: 'center'});
+                      const r = el.getBoundingClientRect();
+                      return {x: r.x + r.width / 2, y: r.y + r.height / 2};
+                    }"""
+                )
+                if pos:
+                    page.mouse.click(pos["x"], pos["y"])
+                    clicked = True
+                    time.sleep(2)
+                    if page.locator(".mass-send__td").count():
+                        opened = True
+                        print(f">> 主弹窗已打开 (坐标兜底 attempt {attempt})")
+                        break
+                if not clicked:
+                    # 再给一次机会:关弹窗后按钮通常下一轮才渲染
+                    try:
+                        el = page.get_by_text("发表", exact=True).first
+                        if el.is_visible():
+                            continue
+                    except Exception:
+                        pass
+                    print("!! 无可见「发表」")
+                    break
         if not opened:
             ctx.close()
             sys.exit("!! 未打开主弹窗")

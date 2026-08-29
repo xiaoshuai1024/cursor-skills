@@ -542,6 +542,16 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 
 > 新增场景组件放 `remotion/src/scenes/content/` + 在 `content/index.ts` 注册（参照 `SkillStage.tsx`：flex 布局 + 字幕安全带 paddingBottom 60px + 卡片按场景帧逐张浮现）。
 
+## 口播稿审稿台（narration-console，2026-08-29 增补，与成片预览合并）
+
+口播稿成稿后（talkshow 炸场档或普通档），跑 `make narration-console` 生成 **web 审稿控制台**——首页（稿件卡：字数/时长@1.06/卡数/台账 stage/对标摘要 + **全线生产排期表**）+ 每支**详情页**。产物 `video-generation/build/narration-console/`（index.html + `<slug>.html`，生成器 `scripts/video/narration_console.py`）。
+
+- **静态区**（file:// 也能看）：对标档案表（原片/作者/四维数据/时长发布/原片本质/钩子结构/仿写角度）、钩子→回收映射（15s 兑现位列）、禁区条、选题三问、分卡口播（BGM·音效·转场 chips + 大字号照读 + 每卡字数）、梗工作台 ≥3 版对照（默认展开）、字数时长实测声明、台账 stage、关联文章
+- **动态区**（需预览服务数据）：排期与四平台状态（实时 state.json）、封面横竖、成片在线播放（Range 流式）、发布数据（board.json metrics）；无 API 时显示降级提示，不影响静态审阅
+- **查看入口**：`make video-preview-serve`（8901 端口）→ `http://<局域网IP>:8901/narration-console/`——preview_server 同时提供 `/narration-console/` 静态路由与 `/api/state` `/api/board` `/api/list` 数据 API；预览首页 header 有「口播稿审稿台 →」入口，审稿台各页可跳回成片卡片墙
+- **稿件 md 结构段约定**：`「slug」`档位行、`## 对标档案`（表格七行）、`## 钩子 → 回收映射`、`## 禁区`、`## 选题三问`、`### 卡N｜`、`## 梗工作台`、`## 字数与时长`（**必须写实测字数**，口径=卡内汉字、语速 3.2 字/s、atempo 1.06 折算成片时长，对照 EP08 验收基准 141s）
+- 改稿后重跑 `make narration-console` 即更新；`ARGS="其他稿.md"` 可接任意新稿
+
 ## 脚本位置（.agents/skills/video-generation/scripts/video/）
 
 脚本已封装进本 skill 目录。`make video` 内部 `cd` 到 `scripts/` 跑 `python -m video.build`。
@@ -742,7 +752,8 @@ video-generation/
 
 #### 后台/子环境渲染五坑（gpuq/后台任务实录，全部已修）
 1. **gpuq/子进程 PATH 被裁剪**：链脚本内禁裸调 `wsl`/`py`/`make`——一律绝对路径（`/c/Windows/System32/wsl.exe`、`/c/Windows/py.exe`、或直接 `python.exe -m video.build` 内联绕开 make）。模板级修法见 `_run_eng_series_chain.sh` 开头的 Git Bash 重执行守卫（检测 `MSYSTEM`，WSL bash 环境自动 exec 到 Git Bash；守卫变量引用用 `${VAR:-}` 防 set -u 报 unbound）。
-2. **python 文本模式补丁 .sh 会写出 CRLF** → bash 报 `invalid option`/`$'': command not found` 拒跑。补丁脚本写文件必须 `io.open(p,'w',encoding='utf-8',newline='
+2. **python 文本模式补丁 .sh 会写出 CRLF** → bash 报 `invalid option`/`$'
+': command not found` 拒跑。补丁脚本写文件必须 `io.open(p,'w',encoding='utf-8',newline='
 ')`（同 blog-writing「drawio 禁 heredoc」坑族）。
 3. **gpuq 锁内再嵌 gpuq = 自锁死锁**（外层 holder=自己，内层 WAIT 自己，ttl 到期互踢）。正确姿势：后台直接 `bash 链脚本 <slug…>`，外层循环自行逐集 gpuq；给 gpuq 传的 --episode 子命令只含单集步骤。
 4. **pgrep -f 自匹配**：`wsl bash -c "pgrep -f 'synth_indextts.py'"` 会匹配到自身命令行 → 永远「gpu busy」死循环。模式加括号技巧 `'[s]ynth_indextts.py'`。
