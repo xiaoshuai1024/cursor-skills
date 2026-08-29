@@ -1,5 +1,5 @@
 {
-  "_comment": "抖音选题方向关键词表(可编辑)。主线: 前端→全栈→AI 开发。两系列用途: 热度系列=热榜∩关键词; 涨粉系列=C源逐词搜索方向内话题。加词直接改这里,无需改代码。",
+  "_comment": "抖音选题方向关键词表(可编辑)。主线: 前端→全栈→AI 开发。两系列用途: 热度系列=热榜∩关键词; 涨粉系列=C源逐词搜索方向内话题。加词直接改这里,无需改代码。weights/series_keywords 为 video-analytics 反哺通道(2026-08-29 接入): filter_score 把话题词按 series_keywords 归属到内容系列,再按 weights 缩放选题分(多系列命中取命中词最多者,并列取低权重=歧义不加成); 数值由 analytics-report 的 feedback-keywords 建议经人工确认后修改。",
   "hot_list_match": [
     "AI", "程序员", "大模型", "GPT", "OpenAI", "DeepSeek", "Claude", "Cursor",
     "Codex", "代码", "编程", "AIGC", "提示词", "智能体", "Agent", "模型",
@@ -16,5 +16,15 @@
     "大模型": ["大模型", "GPT", "OpenAI", "DeepSeek", "Claude", "AIGC", "多模态", "AI 工具"],
     "研发工程": ["程序员", "代码", "低代码", "全栈", "自动化", "DevOps", "CI/CD", "单元测试", "开源", "GitHub"],
     "趋势职场": ["降本增效", "数字员工", "AI 替代", "效率提升", "开发者", "技术"]
+  },
+  "weights": {
+    "AI 研发实战": 1.5,
+    "DSH 源码深读": 1.5,
+    "Claude Code vs Codex 源码对比": 0.5
+  },
+  "series_keywords": {
+    "AI 研发实战": ["AI编程", "Claude Code", "工作流", "数字员工", "实战", "AI Agent"],
+    "DSH 源码深读": ["DeepSeek", "DSH", "Harness", "插件", "源码"],
+    "Claude Code vs Codex 源码对比": ["Codex", "对比"]
   }
 }

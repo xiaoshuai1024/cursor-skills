@@ -19,7 +19,7 @@ make analytics-deep slugs=a,b     # 只跑指定 slug（转写有缓存）
 make analytics-report             # 标准化 → 诊断 → 报告
 ```
 
-**冲精选期采集纪律**（2026-08-27，openspec douyin-featured-selection）：① deep 采集对**新发视频默认全量跑**（历史仅 4/25 覆盖，回验样本不足）；② 每条视频发布满 **48h** 跑一次 `analytics-deep + analytics-report`，对照「精选自查基准线」写进 directives；③ **月度精选复盘**——每月 18-20 日（官方发上月精选作者榜单）跑一次 report，对照榜单记录本号差距与可仿写点，同步更新 `douyin-topic/references/jingxuan-benchmarks.md` 案例档案；④ 20:00 发布窗口回测——累计 10 支 20:00 档后与中午档历史对比完播/池级，结论回写 video-generation skill「发布窗口」节。
+**冲精选期采集纪律**（2026-08-27，openspec douyin-featured-selection）：① deep 采集对**新发视频默认全量跑**（历史仅 4/25 覆盖，回验样本不足）；② 每条视频发布满 **48h** 跑一次 `analytics-deep + analytics-report`，对照「精选自查基准线」写进 directives；③ **月度精选复盘**——每月 18-20 日（官方发上月精选作者榜单）跑一次 report，对照榜单记录本号差距与可仿写点，同步更新 `douyin-topic/references/jingxuan-benchmarks.md` 案例档案；④ 20:00 发布窗口回测——累计 10 支 20:00 档后与中午档历史对比完播/池级，结论回写 video-generation skill「发布窗口」节；⑤ **结论沉淀**（2026-08-29）——48h 回验与月度复盘的账号级结论追加 `references/findings-log.md`（`reports/` 与 `.video-analytics/` 均 gitignore 不进 git，跨期结论只认 references 落盘；新结论与旧结论冲突时并列保留并标注修订）。
 
 报告落 `.video-analytics/reports/`：
 
@@ -41,6 +41,7 @@ make analytics-report             # 标准化 → 诊断 → 报告
 | 抖音 | `summarize`（单视频，随 `make analytics-deep`）| 单视频涨粉数、播转粉率 |
 | B站 | 公开 `relation/stat`（免登录）+ 日快照差分 | 粉丝总数、净增（无掉粉明细则不造数） |
 | B站 | `archive_diagnose`（单视频）| 涨粉、播转粉率（含同类 UP 主对照，not_ready 时置空） |
+| 视频号 | `statistic/fans_trend`（首页裸 fetch，随 `make analytics` 每日，2026-08-29 接入）| 粉丝总数、7 日涨/掉/净增序列、涨粉来源拆解（推荐/主页/分享…）；单视频涨粉走列表 `follow_count` |
 
 ## 播放过程分析（锚点推断法）
 
@@ -58,7 +59,7 @@ make analytics-report             # 标准化 → 诊断 → 报告
 | B站 | HTTP API + SESSDATA（免浏览器）| `member.bilibili.com/x2/creative/web/archives/sp` | 播放/赞/币/藏/弹幕/评/转；观看时长 P2 |
 | 抖音 | patchright + 页内 fetch 翻页 | `creator.douyin.com/janus/douyin/creator/pc/work_list`（GET+max_cursor）| 播放/赞/评/藏/转/时长；完播率/CTR 走「导出 Excel」通道 P2 |
 | 快手 | patchright 滚动加载 XHR 拦截 | `cp.kuaishou.com/rest/cp/works/v2/video/pc/photo/list`（带 `__NS_sig3` 签名不可直连）| 播放/赞/评/时长；定时件发布后才有 workId |
-| 视频号 | patchright | `channels.weixin.qq.com/.../post_list` | 登录态敏感，失效时报错降级（重新扫码恢复）|
+| 视频号 | patchright | 首页点「内容管理」→ 页内 fetch POST `micro/content/cgi-bin/mmfinderassistant-bin/post/post_list`（2026-08-29 接口改版迁移，旧 `mmfinderassistant-bin/post_list` 404；列表 UI 是按钮翻页滚动无效，页内 fetch pageSize=20 数页拉全量；**列表级自带播放/互动/完播率/平均观看秒/单视频涨粉**）| 登录态敏感，失效时报错降级（重新扫码恢复）|
 
 单平台失败不阻塞其他平台，错误记 `errors.json`、报告标注缺失。
 

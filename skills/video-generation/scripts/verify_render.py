@@ -133,7 +133,101 @@ def mascot_check(video: Path, fps: int, args: list[str]) -> None:
     sys.exit(0 if ok else 1)
 
 
+def caption_check(video: Path, fps: int, args: list[str]) -> None:
+    """字幕区动态验收（openspec openmontage-knowledge-port 第二批，参考 OpenMontage visual_qa）：
+
+    python scripts/verify_render.py <mp4> <fps> --caption-check <帧A> <帧B> [--zone x0,y0,x1,y1]
+      ① 活性：两帧字幕区差 ≥ 0.5%（意群字幕在翻，不是冻住的一张图）
+      ② 对比（主题无关双峰判据）：区内亮(≥235)或暗(≤50)像素至少一项 ≥5%——
+       文字/背景亮度分离才算可读；全区中间调 = 对比度塌了（WARN 级）
+       默认区 = 底部中央字幕 pill 带，布局不同用 --zone x0,y0,x1,y1 覆盖
+    """
+    global FPS
+    FPS = fps
+    zone = None
+    if "--zone" in args:
+        i = args.index("--zone")
+        zone = tuple(int(v) for v in args[i + 1].split(","))
+        args = args[:i] + args[i + 2:]
+    if len(args) < 2:
+        print(__doc__)
+        sys.exit(2)
+    fa_f, fb_f = int(args[0]), int(args[1])
+    TMP.mkdir(parents=True, exist_ok=True)
+
+    fa = TMP / "cap_a.png"
+    fb = TMP / "cap_b.png"
+    extract_frame(video, fa_f, fa)
+    extract_frame(video, fb_f, fb)
+    W, H = Image.open(fa).size
+    box = zone or (W // 4, H - 190, W * 3 // 4, H - 50)
+
+    d = region_diff(fa, fb, box)
+    ok1 = d >= 0.5
+    v1 = "OK 字幕在翻" if ok1 else "✗ FAIL（字幕区无差异：字幕层没渲染或两帧同字幕）"
+    print(f"  活性  帧 {fa_f} vs {fb_f}  字幕区 diff={d:.2f}%  {v1}")
+
+    # 对比度双峰判据（主题无关）：可读字幕 = 区内文字与其背景亮度分离
+    #（暗底白字→近白像素多；浅底黑字→近黑像素多）。全区都挤在中间调 = 字幕
+    # 文字和背景糊在一起（对比度塌了）。绝对亮/暗占比只作主题信息打印。
+    img = Image.open(fa).convert("L").crop(box)
+    px = img.load()
+    bw, bh = img.size
+    n = bw * bh
+    bright = sum(1 for y in range(bh) for x in range(bw) if px[x, y] >= 235)
+    dark = sum(1 for y in range(bh) for x in range(bw) if px[x, y] <= 50)
+    sb, sd = bright / n * 100, dark / n * 100
+    ok2 = (sb >= 5.0) or (sd >= 5.0)
+    theme = "浅底" if sb >= sd else "深底"
+    v2 = (f"OK 文字/背景亮度分离（{theme}，亮 {sb:.1f}% / 暗 {sd:.1f}%）" if ok2
+          else f"⚠ WARN（亮 {sb:.1f}% / 暗 {sd:.1f}%，全区中间调：字幕与背景对比度塌了或字幕未渲染）")
+    print(f"  对比  {v2}")
+
+    print("\n" + ("✅ 字幕区验收通过" if (ok1 and ok2) else "❌ 字幕区验收未过"))
+    sys.exit(0 if (ok1 and ok2) else 1)
+
+
+def transition_check(video: Path, fps: int, args: list[str]) -> None:
+    """转场/切点验收（openspec openmontage-knowledge-port 第二批，参考 OpenMontage visual_qa）：
+
+    python scripts/verify_render.py <mp4> <fps> --transition-check <切点帧C> [...]
+      每个切点取 C-3（切前，退 3 帧容忍 ±1 帧取整漂移）/ C+8（转场中或切后）/ C+18 三帧：
+      d1=diff(切前,中) < 1.0% → FAIL（切点未生效：两侧同画面连播/转场帧没渲染）
+      d2=diff(中,后) < 0.3% → WARN（切点生效但切后素材近静止：低动态素材/死帧）
+    """
+    global FPS
+    FPS = fps
+    if not args:
+        print(__doc__)
+        sys.exit(2)
+    cuts = [int(a) for a in args]
+    TMP.mkdir(parents=True, exist_ok=True)
+
+    def fp(f: int) -> Path:
+        out = TMP / f"trans_f{f}.png"
+        extract_frame(video, f, out)
+        return out
+
+    ok = True
+    for c in cuts:
+        # pre 退 C-3：分段锁帧有 ±1 帧取整漂移，C-2 可能已越过切点造成 d1 采样失真
+        d1 = diff_pct(fp(c - 3), fp(c + 8))
+        d2 = diff_pct(fp(c + 8), fp(c + 18))
+        # d1 = 「切点是否生效」的判据；d2 低不是切点问题，是切后镜头素材低动态/死帧 → WARN
+        if d1 < 1.0:
+            ok = False
+            v = "✗ FAIL（切点未生效：两侧同画面连播）"
+        elif d2 < 0.3:
+            v = "⚠ WARN（切点生效，但切后素材近静止：低动态素材/死帧，卡点片观感受损）"
+        else:
+            v = "OK"
+        print(f"  切点 {c}: 切前→中 diff={d1:.2f}%  中→后 diff={d2:.2f}%  {v}")
+    print("\n" + ("✅ 转场验收通过" if ok else "❌ 转场验收未过"))
+    sys.exit(0 if ok else 1)
+
+
 def main() -> None:
+    global FPS
     if len(sys.argv) < 4:
         print(__doc__)
         sys.exit(2)
@@ -141,6 +235,12 @@ def main() -> None:
     FPS = int(sys.argv[2])
     if sys.argv[3] == "--mascot-check":
         mascot_check(video, FPS, sys.argv[4:])
+        return
+    if sys.argv[3] == "--caption-check":
+        caption_check(video, FPS, sys.argv[4:])
+        return
+    if sys.argv[3] == "--transition-check":
+        transition_check(video, FPS, sys.argv[4:])
         return
     scenes = []
     for arg in sys.argv[3:]:

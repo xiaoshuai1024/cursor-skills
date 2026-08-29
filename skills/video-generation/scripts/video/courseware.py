@@ -178,6 +178,8 @@ def _shot_hl_lines(shot: dict, state: dict) -> list[int]:
             hl = line
     if hl is None:
         hl = shot.get("hl")
+    if hl is None:  # deck 惯例把 hl 写在 data 里（dsh 系列全如此），此前被静默忽略
+        hl = (shot.get("data") or {}).get("hl")
     if hl is None:
         return []
     return [hl] if isinstance(hl, int) else [int(x) for x in hl]
@@ -190,8 +192,28 @@ def _shot_html(shot: dict, card_flow, state: dict) -> str:
         from . import flowchart
         return flowchart.render_flow(card_flow or {}, state)
     if kind == "stat":
+        frame_s = int(state.get("frame", 10 ** 6))
+        birth_s = int(state.get("shot_birth") or 0)
+        big = _esc(data.get("big", ""))
+        ann = data.get("annotate")
+        if ann:
+            from . import rough_note
+            # annotate 支持 "circle" 简写或 {style,color,at_s}（at_s=起笔对齐口播）
+            if isinstance(ann, dict):
+                ann_style = str(ann.get("style", "circle"))
+                ann_color = str(ann.get("color", data.get("annotate_color") or "cyan"))
+                ann_at = float(ann.get("at_s", 0.0))
+            else:
+                ann_style = str(ann)
+                ann_color = str(data.get("annotate_color") or "cyan")
+                ann_at = 0.0
+            svg = rough_note.note_svg_drawn(
+                ann_style, f"{data.get('title') or data.get('big', '')}:stat",
+                ann_color, frame_s, birth_s, at_s=ann_at)
+            if svg:
+                big = f'<span class="anno-wrap">{big}{svg}</span>'
         return ('<div class="shot-stat">'
-                f'<div class="big">{_esc(data.get("big", ""))}</div>'
+                f'<div class="big">{big}</div>'
                 f'<div class="label">{_esc(data.get("label", ""))}</div>'
                 f'<div class="sub">{_esc(data.get("sub", ""))}</div></div>')
     if kind == "table":
@@ -207,53 +229,10 @@ def _shot_html(shot: dict, card_flow, state: dict) -> str:
                 '<div class="mark">\u201c</div>'
                 f'<div class="qtext">{_esc(data.get("text", ""))}</div>'
                 f'<div class="qsrc">— {_esc(data.get("source", ""))}</div></div>')
-    if kind == "illus":
-        # openspec video-gen-assets：生成式插画镜头（图片 base64 内嵌，规避
-        # set_content 场景 file:// 子资源拦截；有界入场后静止，PNG 复用优化保持）
-        import base64 as _b64
-        from pathlib import Path as _Path
-        src = data.get("src", "")
-        img_html = '<div class="illus-empty">NO ASSET</div>'
-        if str(src).startswith("data:"):
-            img_html = f'<img class="illus-img" alt="" src="{src}"/>'
-        else:
-            try:
-                img_p = _Path(src)
-                if not img_p.is_absolute():
-                    # 相对路径按项目根解析——不能走 __file__（skills 是 symlink，
-                    # 向上找不到项目根），复用 config._find_project_root 的结论
-                    from .config import PROJECT_ROOT as _proj_root
-                    img_p = _proj_root / src
-                if img_p.exists():
-                    enc = _b64.b64encode(img_p.read_bytes()).decode()
-                    img_html = (f'<img class="illus-img" alt="" '
-                                f'src="data:image/png;base64,{enc}"/>')
-            except OSError:
-                pass
-        cap = data.get("cap", "")
-        frame_i = int(state.get("frame", 10 ** 6))
-        birth_i = int(state.get("shot_birth") or 0)
-        age_i = frame_i - (birth_i + 8)   # 层浮入结束后进入镜头运动
-        img_st = ""
-        if 0 <= age_i < 10:
-            ease = ease_out_cubic(age_i / 10.0)
-            scale = 1.12 - 0.05 * ease
-            img_st = f' style="transform:scale({scale:.4f})"'
-        elif 10 <= age_i < 46:
-            # 有界慢推运镜：26 帧内 scale 1.07→1.10 + 左上向漂移 ≤14px，
-            # 窗口外静止（帧驱动铁律/PNG 复用保持）
-            pan_t = ease_in_out_sine(min((age_i - 10) / 26.0, 1.0))
-            scale = 1.07 + 0.03 * pan_t
-            tx, ty = -14.0 * pan_t, 8.0 * pan_t
-            img_st = (f' style="transform:translate({tx:.2f}px,{ty:.2f}px)'
-                      f' scale({scale:.4f})"')
-        cap_html = f'<div class="illus-cap">{_esc(cap)}</div>' if cap else ""
-        return (f'<div class="shot-illus">'
-                f'<div class="illus-wrap"{img_st}>{img_html}</div>'
-                f'{cap_html}</div>')
     # 带窗口 chrome 的素材（code / tree / term）
     fname = _esc(data.get("title", ""))
-    tag = _esc({"code": "源码", "tree": "结构", "term": "终端"}.get(kind, kind))
+    tag = _esc({"code": "源码", "code_mm": "源码", "tree": "结构",
+                "term": "终端"}.get(kind, kind))
     body = _shot_body_html(kind, data, shot, state)
     return (f'<div class="shot-win"><div class="shot-titlebar">'
             '<div class="shot-dot" style="background:#f87171"></div>'
@@ -264,30 +243,53 @@ def _shot_html(shot: dict, card_flow, state: dict) -> str:
             f'<div class="shot-body">{body}</div></div>')
 
 
+def _code_lines_html(lines: list, hls: list[int], frame: int, birth: int,
+                     colorize: bool = False, lang: str = "ts") -> str:
+    """code 镜头静态行渲染。colorize=True 时行内 token 上色（code_mm 专用，
+    与形变窗 token 配色一致）；普通 code 镜头保持纯色（存量视频零回归）。"""
+    from . import magic_move
+    out = []
+    for i, ln in enumerate(lines):
+        cls = "cl"
+        if i in hls:
+            cls += " hl"
+        elif str(ln).strip().startswith("#"):
+            cls += " cmt"
+        # 行级 stagger 出生（2 帧/行），终态空属性 → 静止段 HTML 稳定
+        age = frame - (birth + 2 + 2 * i)
+        st = ""
+        if 0 <= age < 6:
+            e = ease_out_cubic(age / 6.0)
+            st = (f"opacity:{e:.3f};" if e < 0.999 else "") + \
+                 (f"transform:translateY({12.0 * (1.0 - e):.2f}px);" if e < 0.999 else "")
+        st_attr = f' style="{st.rstrip(";")}"' if st else ""
+        if colorize:
+            # .cl 是 flex+gap:18px——token 序列必须包进单个内层 span，
+            # 否则每个 token 成为独立 flex item 平白吃到 18px 间隙
+            toks = "".join(
+                f'<span class="tok{(" " + c) if c else ""}">{_esc(t)}</span>'
+                for t, c in magic_move.tokenize_line(str(ln), lang))
+            body = f'<span class="code-toks">{toks}</span>'
+        else:
+            body = f'<span>{_esc(ln)}</span>'
+        out.append(f'<div class="{cls}"{st_attr}><span class="ln">{i + 1}</span>'
+                   f'{body}</div>')
+    return "".join(out)
+
+
 def _shot_body_html(kind: str, data: dict, shot: dict, state: dict) -> str:
     frame = int(state.get("frame", 10**6))
     birth = int(state.get("shot_birth") or 0)
     if kind == "code":
-        lines = data.get("lines", [])
-        hls = _shot_hl_lines(shot, state)
-        out = []
-        for i, ln in enumerate(lines):
-            cls = "cl"
-            if i in hls:
-                cls += " hl"
-            elif str(ln).strip().startswith("#"):
-                cls += " cmt"
-            # 行级 stagger 出生（2 帧/行），终态空属性 → 静止段 HTML 稳定
-            age = frame - (birth + 2 + 2 * i)
-            st = ""
-            if 0 <= age < 6:
-                e = ease_out_cubic(age / 6.0)
-                st = (f"opacity:{e:.3f};" if e < 0.999 else "") + \
-                     (f"transform:translateY({12.0 * (1.0 - e):.2f}px);" if e < 0.999 else "")
-            st_attr = f' style="{st.rstrip(";")}"' if st else ""
-            out.append(f'<div class="{cls}"{st_attr}><span class="ln">{i + 1}</span>'
-                       f'<span>{_esc(ln)}</span></div>')
-        return "".join(out)
+        return _code_lines_html(data.get("lines", []),
+                                _shot_hl_lines(shot, state), frame, birth)
+    if kind == "code_mm":
+        from . import magic_move
+        lang = str(data.get("lang") or "ts")
+        return magic_move.render_shot(
+            data, state, birth,
+            lambda lines, hls, fr, b: _code_lines_html(lines, hls, fr, b,
+                                                       colorize=True, lang=lang))
     if kind == "tree":
         out = []
         for i, item in enumerate(data.get("items", [])):
@@ -490,6 +492,25 @@ body {
 .shot-body .tline.err { color: #f87171; }
 .shot-body .tline.ok { color: #4ade80; }
 .shot-body .tline.dim { color: #64748b; }
+/* ---- magic-move token 形变 + rough 手绘强调（openspec shot-motion-upgrade 2026-08-28）----
+   颜色全部取自既有课件色（lint_colors 零漂移）：token kw 青/str 绿/num 黄/cmt 灰 */
+.mm-wrap { position: relative; font-size: 27px; line-height: 1.62; white-space: pre;
+  color: #cbd5e1; font-family: ui-monospace, Consolas, monospace; }
+.mm-gut { position: absolute; left: 0; top: 0; width: 40px; text-align: right;
+  color: #475569; font-size: 27px; line-height: 1.62; }
+.mm-tok { position: absolute; white-space: pre; line-height: 1.62; font-size: 27px; }
+.mm-tok.kw { color: #22d3ee; }
+.mm-tok.str { color: #4ade80; }
+.mm-tok.num { color: #fbbf24; }
+.mm-tok.cmt { color: #64748b; }
+.shot-body .cl .tok.kw { color: #22d3ee; }
+.shot-body .cl .tok.str { color: #4ade80; }
+.shot-body .cl .tok.num { color: #fbbf24; }
+.shot-body .cl .tok.cmt { color: #64748b; }
+.anno-wrap { position: relative; display: inline-block; }
+.anno-svg { position: absolute; left: -4%; top: -14%; width: 108%; height: 128%;
+  overflow: visible; pointer-events: none; }
+.point .anno-svg { left: -16px; top: -12px; width: calc(100% + 32px); height: calc(100% + 24px); }
 .shot-stat { flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 18px; }
 .shot-stat .big { font-size: 128px; font-weight: 800; color: #22d3ee; line-height: 1;
@@ -513,20 +534,6 @@ body {
 .shot-quote .qtext { font-size: 42px; line-height: 1.55; color: #ffffff; font-weight: 600;
   text-shadow: 0 0 20px rgba(34,211,238,0.3); }
 .shot-quote .qsrc { font-size: 24px; color: #64748b; font-family: ui-monospace, Consolas, monospace; }
-/* illus 镜头（openspec video-gen-assets）：生成式插画 + 说明行 */
-.shot-illus { flex: 1; min-height: 0; display: flex; flex-direction: column;
-  border-radius: 16px; background: rgba(10,14,26,0.92);
-  border: 1px solid rgba(34,211,238,0.4);
-  box-shadow: 0 0 60px rgba(34,211,238,0.18), inset 0 0 40px rgba(34,211,238,0.05);
-  overflow: hidden; padding: 18px; gap: 12px; }
-.illus-wrap { flex: 1; min-height: 0; border-radius: 10px; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; }
-.illus-img { width: 100%; height: 100%; object-fit: cover; transform-origin: center; }
-.illus-cap { flex: none; font-size: 24px; color: #94a3b8; text-align: center;
-  letter-spacing: 2px; padding: 2px 6px 4px; }
-.illus-empty { width: 100%; height: 100%; display: flex; align-items: center;
-  justify-content: center; color: rgba(148,163,184,0.5); font-size: 26px;
-  letter-spacing: 6px; border: 2px dashed rgba(248,113,113,0.5); border-radius: 10px; }
 .footer-bar { margin-top: 10px; font-size: 24px; font-style: italic; color: #22d3ee;
   text-align: center; opacity: 0.9; height: 32px; line-height: 32px; overflow: hidden;
   white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 0 20px rgba(34,211,238,0.7), 0 0 40px rgba(34,211,238,0.3); }
@@ -650,11 +657,25 @@ def render_frame(card: dict, state: dict, width: int = 1920, height: int = 1080)
         return _doc(css, body, state)
 
     # 左栏要点（三态 + 入场 stagger / active 弹入 / done 交叉过渡 / 卡尾出场）
+    ann_cfg = card.get("annotate") or {}
     point_items = []
     for idx, pt in enumerate(points_raw):
         cls = "point done" if idx < active_idx else ("point active" if idx == active_idx else "point")
         st = _point_style(frame, idx, active_idx, births, out_at)
-        point_items.append(f'        <div class="{cls}"{_attr(st)}>{_esc(pt)}</div>')
+        inner = _esc(pt)
+        if ann_cfg.get("point") == idx and ann_cfg.get("style"):
+            from . import rough_note
+            # 起笔延 4 帧：等要点文字入场落位，再划线（出生帧本身已对齐口播）
+            pb = (births[idx] if idx < len(births) else 0) + 4
+            svg = rough_note.note_svg_drawn(
+                str(ann_cfg["style"]), f"{card.get('title', '')}:pt{idx}",
+                str(ann_cfg.get("color") or "cyan"),
+                frame, pb, stroke_w=4,
+                at_s=float(ann_cfg.get("at_s", 0.0)))
+            if svg:
+                cls += " annotated"
+                inner = f'{inner}{svg}'
+        point_items.append(f'        <div class="{cls}"{_attr(st)}>{inner}</div>')
     points_block = "\n".join(point_items)
 
     # 右栏：shots 镜头舞台优先（openspec card-shots：按口播节拍轮换素材），
@@ -840,6 +861,31 @@ def _mascot_html(state: dict) -> str:
     talking = isinstance(frame, int) and isinstance(cue_birth, int)
     mood = _infer_mood(sub) or "smile"
 
+    # 包袱表情标记（2026-08-29 talkshow 炸场：card.moods 钉表情 + 气泡，覆盖关键词推断）
+    mark = state.get("mood_mark")
+    bubble_html = ""
+    laughing = False
+    if mark:
+        m = str(mark.get("mood") or "")
+        if m == "laugh":                       # 大笑：wow 脸 + 大幅抖动 + 哈哈气泡
+            laughing = True
+            mood = "wow"
+        elif m in ("huh", "money", "dead", "wow", "meh", "smile"):
+            mood = m
+        age_m = state.get("mood_mark_age")
+        b = str(mark.get("bubble") or "")
+        if b and isinstance(age_m, (int, float)) and 0 <= age_m < 0.9:
+            tt = min(1.0, age_m / 0.28)
+            sc = 0.5 + 0.5 * tt + 0.12 * max(0.0, 1.0 - age_m / 0.9)
+            bubble_html = (
+                f'<div style="position:absolute;left:55%;bottom:{_MASCOT_H - 20}px;'
+                f'transform:translateX(-50%) scale({sc:.2f});transform-origin:50% 100%;'
+                f'background:#22d3ee;color:#0a0e1a;font-size:30px;font-weight:900;'
+                f'padding:5px 16px;border-radius:14px;white-space:nowrap;'
+                f'box-shadow:0 0 26px rgba(34,211,238,0.85);z-index:5;'
+                f'font-family:inherit;">{b}</div>'
+            )
+
     ty, rot, sq = 0.0, -3.0, 1.0
     if talking:
         age = frame - cue_birth
@@ -850,6 +896,10 @@ def _mascot_html(state: dict) -> str:
             ty = -26 * (1 - e)
             rot = -3 + 5 * (1 - e)
             sq = 1.0 - 0.10 * (1 - t) * (1 if t > 0.7 else 0.5)
+        elif laughing:                         # 大笑：幅度加倍的快速抖动（量化 2 帧）
+            fq = frame // 2
+            ty = 8.0 * math.sin(fq / 1.9)
+            rot = -3 + 4 * math.sin(fq / 2.7)
         else:                                  # 讲话浮动：量化 3 帧，±4px
             fq = frame // _QUANT
             ty = 4.0 * math.sin(fq / 3.8)
@@ -880,7 +930,8 @@ def _mascot_html(state: dict) -> str:
         f'<div style="position:absolute;left:48px;bottom:36px;z-index:40;pointer-events:none;'
         f'transform-origin:50% 90%;transform:translateY({ty:.1f}px) rotate({rot:.1f}deg) scaleY({sq:.3f});'
         f'filter:drop-shadow(0 6px 10px rgba(0,0,0,0.55)) drop-shadow(0 0 18px rgba(34,211,238,0.28));">'
-        f'<div style="height:{_MASCOT_H}px;width:{int(_MASCOT_H * 320 / 470)}px;overflow:visible;">{svg}</div></div>'
+        f'<div style="height:{_MASCOT_H}px;width:{int(_MASCOT_H * 320 / 470)}px;overflow:visible;">{svg}</div>'
+        f'{bubble_html}</div>'
     )
 
 

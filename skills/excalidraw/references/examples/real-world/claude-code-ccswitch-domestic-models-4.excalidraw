@@ -1,0 +1,237 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "local-author",
+  "elements": [
+    {
+      "id": "gtitle",
+      "type": "text",
+      "x": 140,
+      "y": 24,
+      "width": 600,
+      "height": 40,
+      "strokeColor": "#1e1e1e",
+      "text": "CcSwitch 添加国产 provider：5 步",
+      "fontSize": 26,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "g1",
+      "type": "rectangle",
+      "x": 180,
+      "y": 110,
+      "width": 520,
+      "height": 60,
+      "backgroundColor": "#ffffff",
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "① 顶部应用切换器：选 Claude Code（不是 Desktop）"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "a1",
+      "type": "arrow",
+      "x": 440,
+      "y": 170,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "points": [
+        [0, 0],
+        [0, 42]
+      ],
+      "start": {
+        "id": "g1"
+      },
+      "end": {
+        "id": "g2"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "g2",
+      "type": "rectangle",
+      "x": 180,
+      "y": 212,
+      "width": 520,
+      "height": 60,
+      "backgroundColor": "#ffffff",
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "② 右上角 +：打开「添加供应商」面板"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "a2",
+      "type": "arrow",
+      "x": 440,
+      "y": 272,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "points": [
+        [0, 0],
+        [0, 42]
+      ],
+      "start": {
+        "id": "g2"
+      },
+      "end": {
+        "id": "g3"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "g3",
+      "type": "rectangle",
+      "x": 180,
+      "y": 314,
+      "width": 520,
+      "height": 60,
+      "backgroundColor": "#ffffff",
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "③ 预设下拉：选 DeepSeek（名称端点自动填充）"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "a3",
+      "type": "arrow",
+      "x": 440,
+      "y": 374,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "points": [
+        [0, 0],
+        [0, 42]
+      ],
+      "start": {
+        "id": "g3"
+      },
+      "end": {
+        "id": "g4"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "g4",
+      "type": "rectangle",
+      "x": 180,
+      "y": 416,
+      "width": 520,
+      "height": 60,
+      "backgroundColor": "#ffffff",
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "④ 粘贴 API Key，点「添加」（可 Fetch Models 拉模型）"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "a4",
+      "type": "arrow",
+      "x": 440,
+      "y": 476,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "points": [
+        [0, 0],
+        [0, 42]
+      ],
+      "start": {
+        "id": "g4"
+      },
+      "end": {
+        "id": "g5"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "g5",
+      "type": "rectangle",
+      "x": 180,
+      "y": 518,
+      "width": 520,
+      "height": 60,
+      "backgroundColor": "#ffffff",
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "⑤ 卡片点「启用」→ 配置写入本机，即时生效"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    },
+    {
+      "id": "gcap",
+      "type": "text",
+      "x": 180,
+      "y": 610,
+      "width": 520,
+      "height": 36,
+      "strokeColor": "#868e96",
+      "text": "完整配置参考官方手册：github.com/farion1231/cc-switch → docs/user-manual",
+      "fontSize": 15,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T23:00:00.000Z",
+      "updatedAt": "2026-08-02T23:00:00.000Z",
+      "version": 1
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null
+  }
+}

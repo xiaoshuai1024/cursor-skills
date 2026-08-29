@@ -52,8 +52,9 @@ make wechat-prepare slug=<slug>
 3. `convert_images()`：SVG → PNG（公众号不支持 SVG），**首图额外按 9:5 裁出 `cover.png`**
 4. `replace_internal_links()`：内链按平台替换（`link-map.json` 已记录的用平台链接，否则回退博客站）
 5. **`_process_code_blocks()`**：代码块 `<pre>` → `<section>` + 逐行 `<p>`，Hugo chroma class → Monokai inline 颜色（映射表见下）。**背景色写法见「代码块背景」坑**。
-6. 文末注入原文链接段落
-7. 按平台生成 `wechat-ready-{weixin,juejin}.html` + `wechat-ready.html`
+6. **`strip_leading_cover()`（2026-08-29 定规，仅 weixin 版）**：正文开头的封面重复图剥掉——博客端源稿普遍以 `<img cover.png>` 题图开头，公众号封面正是从这同一张图裁出；平台侧推送卡片与文章详情页首屏已展示过封面，正文再以同一张图开头就是同图重复，还把首屏 150 字钩子往下挤（wechat-retention：标题+封面吃掉首屏一半）。判据=文档第一张图且沿祖先链无任何前置兄弟；首图嵌在正文间的总览图不剥。juejin 版不剥。**必须在 convert_images 之后执行——封面裁切取的是剥前的首图**
+7. 文末注入原文链接段落
+8. 按平台生成 `wechat-ready-{weixin,juejin}.html` + `wechat-ready.html`
 
 产物在 `.wechat-build/<slug>/`（gitignore）。
 
@@ -89,7 +90,7 @@ Makefile 自动：`wechat-prepare`（刷新内容）→ `publish_mp.py`（全局
 
 ## 封面自动化（2026-08-01 起，已验证）
 
-`prepare.py` 已从首图生成 `cover.png`（`COVER_SIZE=(1800,1000)`，9:5）。`publish_mp.py` 上传它并填封面字段，无需后台手动补。
+`prepare.py` 已从首图生成 `cover.png`（`COVER_SIZE=(1800,1000)`，9:5）。`publish_mp.py` 上传它并填封面字段，无需后台手动补。首图本身源自博客正文的题图，**weixin 版正文会把这张开头重复图剥掉**（见发布流程 Step 2 第 6 步），封面只在推送卡片/详情页首屏出现一次，不随正文重复展示。
 
 **关键坑：upload_material 响应里素材 ID 的字段名是 `content`，不是 `fileid`/`id`。** 响应结构：
 ```json

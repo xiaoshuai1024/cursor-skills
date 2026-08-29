@@ -54,7 +54,12 @@ on render).
 2. **Build the scene JSON.** Use `references/element-templates.md` for
    copy-paste templates of each element type (rectangle, ellipse, diamond,
    arrow, text). Start from `references/examples/flowchart.excalidraw` as a
-   working skeleton.
+   working skeleton. **Before laying out coordinates from scratch, check
+   `references/examples/real-world/`** — 16 production diagrams from published
+   articles (timelines, mental models, ladders, pipelines, gates), indexed by
+   diagram type in `real-world/index.md`. Copy the closest match as your
+   skeleton and edit it; their coordinates, spacing, and arrow routing are
+   field-tested.
 
 3. **ALIGNMENT HARD RULE (do not skip):** For any text with a non-null
    `containerId`, set `x`/`y` to the **CENTER of the container**
@@ -150,3 +155,4 @@ red `#ffc9c9`, purple `#eebefa`. See the palette table in element-templates.md.
 | `scripts/install.sh` | One-time dependency installer |
 | `references/element-templates.md` | JSON templates for every element type |
 | `references/examples/flowchart.excalidraw` | Working example scene |
+| `references/examples/real-world/` | 16 production diagrams from published articles (index inside) |

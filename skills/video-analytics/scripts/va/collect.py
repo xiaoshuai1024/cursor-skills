@@ -111,10 +111,14 @@ BROWSER_TARGETS = {
         "paginate": None,  # __NS_sig3 签名，只能滚动加载
     },
     "shipinhao": {
-        "url": "https://channels.weixin.qq.com/platform/post/list",
-        "match": ["mmfinderassistant-bin/post_list", "mmfinderassistant-bin/finder/list"],
+        "url": "https://channels.weixin.qq.com/platform",
+        "match": ["mmfinderassistant-bin/post/post_list", "mmfinderassistant-bin/post_list",
+                  "mmfinderassistant-bin/finder/list"],
         "extract": "shipinhao",
-        "paginate": None,
+        # 2026-08-29 接口改版：列表迁到 content 子应用 POST post/post_list（页内 fetch 可翻页，
+        # pageSize 20 两页拉全量），旧 mmfinderassistant-bin/post_list 从此 404
+        "paginate": "shipinhao",
+        "nav_click": "内容管理",  # 列表子应用挂在首页菜单下，需点击进入
     },
 }
 
@@ -159,6 +163,13 @@ async def collect_browser(which: str) -> list[dict]:
         page.on("response", lambda r: asyncio.ensure_future(on_response(r)))
         await page.goto(conf["url"], wait_until="domcontentloaded", timeout=90000)
         await page.wait_for_timeout(6000)
+        if conf.get("nav_click"):
+            # 子应用入口菜单（失败不致命：已在目标页时靠被动拦截/直接 fetch）
+            try:
+                await page.click(f"text={conf['nav_click']}", timeout=8000)
+                await page.wait_for_timeout(6000)
+            except Exception:
+                pass
         if conf.get("paginate") == "douyin":
             # work_list 直连翻页：GET + max_cursor，比滚动加载稳（老作品在深页）
             cursor, seen_n = 0, -1
@@ -182,6 +193,26 @@ async def collect_browser(which: str) -> list[dict]:
                     break
                 cursor = nxt
                 await page.wait_for_timeout(1500)
+        elif conf.get("paginate") == "shipinhao":
+            # post/post_list 页内 fetch 翻页：POST currentPage 递增（列表 UI 是按钮翻页，滚动不加载）
+            for pg in range(1, 10):
+                body = await page.evaluate(
+                    """async (pg) => {
+                        const r = await fetch(
+                            '/micro/content/cgi-bin/mmfinderassistant-bin/post/post_list',
+                            {method: 'POST', credentials: 'include',
+                             headers: {'Content-Type': 'application/json'},
+                             body: JSON.stringify({pageSize: 20, currentPage: pg, userpageType: 11,
+                                  stickyOrder: false, timestamp: String(Date.now()),
+                                  _log_finder_uin: '', _log_finder_id: ''})});
+                        return await r.json();
+                    }""", pg)
+                captured.append(body)
+                d = body.get("data") or {}
+                n = len(d.get("list") or [])
+                if n == 0 or not d.get("continueFlag"):
+                    break
+                await page.wait_for_timeout(1200)
         else:
             for _ in range(12):  # 滚动翻页加载全量列表
                 await page.mouse.wheel(0, 4000)
@@ -267,21 +298,37 @@ def extract_shipinhao(bodies: list[dict]) -> list[dict]:
         if isinstance(body, dict) and body.get("errCode") not in (0, None):
             raise CollectError(f"shipinhao 接口 errCode={body.get('errCode')}（登录态失效需重新扫码）")
         data = body.get("data") or {}
-        for it in (data.get("finderList") or data.get("list") or data.get("post_list") or []):
+        for it in (data.get("list") or data.get("finderList") or data.get("post_list") or []):
             obj = it.get("objectDesc") or it.get("object") or it
             iid = str(obj.get("objectId") or it.get("objectId") or "")
             if not iid or iid in seen:
                 continue
             seen.add(iid)
+            # 2026-08-29 改版后 desc 是对象（desc.description=文案、desc.media[0]=视频元信息）
+            d = it.get("desc") if isinstance(it.get("desc"), dict) else {}
+            media_list = d.get("media") if isinstance(d.get("media"), list) else []
+            media = (media_list or [{}])[0]
+            text = d.get("description") or obj.get("description")
+            up = it.get("createTime") or 0
             items.append({
                 "platform": "shipinhao",
                 "item_id": iid,
-                "title": _norm_text(obj.get("description") or it.get("description")),
-                "published_at": None,
+                "title": _norm_text(text),
+                "published_at": datetime_from_epoch(up) if up else None,
                 "fetched_at": now_iso(),
                 "raw": {
-                    "play_count": None,  # 列表级不含，详情接口 P2
-                    "duration_ms": obj.get("duration") or None,
+                    # 改版后列表级自带播放/互动/完播/涨粉（旧接口 play 恒 None 的缺口补齐）
+                    "play_count": it.get("readCount"),
+                    "like_count": it.get("likeCount"),
+                    "comment_count": it.get("commentCount"),
+                    "forward_count": it.get("forwardCount"),
+                    "fav_count": it.get("favCount"),
+                    "follow_count": it.get("followCount"),
+                    "completion_rate": it.get("fullPlayRate"),
+                    "avg_play_sec": it.get("avgPlayTimeSec"),
+                    "yesterday_play": it.get("yesterdayReadCount"),
+                    "duration_second": media.get("videoPlayLen"),
+                    "publish_status": it.get("status"),
                 },
             })
     return items

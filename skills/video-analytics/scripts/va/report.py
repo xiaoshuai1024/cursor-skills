@@ -116,10 +116,16 @@ def per_video_card(slug: str, diag: dict, retentions: dict | None = None) -> str
 def overview(diag: dict, metrics: dict) -> str:
     videos = metrics["videos"]
     today = datetime.now(common.CST).strftime("%Y-%m-%d")
+    all_plats = ["douyin", "kuaishou", "bilibili", "shipinhao"]
+    present = [p for p in all_plats if any(p in e for e in videos.values())]
+    missing = [p for p in all_plats if p not in present]
+    cover = "/".join(PLAT_NAME[p] for p in present) or "无"
+    if missing:
+        cover += f"（{'/'.join(PLAT_NAME[p] for p in missing)} 缺失——登录态失效时 `python -m scripts.pub.login {'|'.join(missing)}` 重新扫码恢复）"
     lines = [f"# 运营总览 · {today}", "",
              f"- 生成：{diag['generated_at']} · slug {len(videos)} 个 · 平台记录 {sum(len(v) for v in videos.values())} 条",
-             f"- 平台覆盖：抖音/B站/快手（视频号登录态失效，本次缺失——`python -m scripts.pub.login shipinhao` 重新扫码后恢复）",
-             f"- 数据口径：完播率/5s 留存走「导出 Excel」通道（P2），当前为列表级互动+播放漏斗",
+             f"- 平台覆盖：{cover}",
+             f"- 数据口径：完播率/5s 留存走「导出 Excel」通道（P2），当前为列表级互动+播放漏斗；视频号列表自带完播/平均时长（2026-08-29 改版后）",
              ""]
 
     lines += ["## 涨粉看板（核心目标）", ""]
@@ -258,8 +264,8 @@ def feedback_keywords(diag: dict, metrics: dict) -> str:
     """选题反哺：涨粉口径（用户核心目标）——Top/Bottom 按单视频涨粉数排序，播转粉率 tiebreak。
     涨粉数据不足（<3 支有涨粉锚点）时回退播放口径并标注。
 
-    topic_keywords.json 现为词表结构；建议在文件级新增可选 "weights" 块（系列名 → 权重），
-    douyin-topic 的 filter_score 侧接入消费属其迁移任务（见 openspec 变更 Modified Capabilities）。
+    topic_keywords.json 支持可选 "weights"（系列名 → 权重）+ "series_keywords"（系列判定词）块，
+    douyin-topic filter_score 已接入消费（2026-08-29：话题词按 series_keywords 归属系列后缩放得分）。
     """
     from . import fetch_uid
     tk_path = common.ROOT / ".agents" / "skills" / "douyin-topic" / "topic_keywords.json"
@@ -324,7 +330,7 @@ def feedback_keywords(diag: dict, metrics: dict) -> str:
             cur = weights.get(ser, 1.0)
             lines.append(f'  "{ser}": {max(0.5, round(cur - 0.5, 1))},  // Bottom 系列（{", ".join(s[:24] for s in slugs[:2])}）')
         lines += ["}", "```", ""]
-        lines += ["⚠️ douyin-topic 的 filter_score 目前不读 weights 块——应用后需在其侧接入（对应 openspec 变更的 Modified Capabilities）。"]
+        lines += ["✅ filter_score 已接入 weights 块（话题词 → series_keywords 归属系列 → 缩放选题分），确认数值后合并进 `topic_keywords.json` 即生效。"]
     else:
         lines += ["（Top 与 Bottom 系列无差异化信号，本期不调整）"]
     return "\n".join(lines)

@@ -153,6 +153,41 @@ def clean_and_style(soup: BeautifulSoup):
     return doc
 
 
+def strip_leading_cover(content) -> bool:
+    """剥掉正文开头的封面重复图(weixin 版专用)。
+
+    博客端源稿普遍以 <img cover.png> 题图开头,公众号封面正是从这同一张图裁出
+    (convert_images idx==1)——平台侧推送卡片与文章详情页首屏已经展示过封面
+    (wechat-retention:标题+封面吃掉首屏一半),正文再以同一张图开头就是同图
+    重复,还把首屏 150 字钩子往下挤。
+    判据:文档里第一张 <img>,且沿其祖先链向上找不到任何前置兄弟
+    (元素或可见文字)——即它是文档的第一个可见内容。首图嵌在段落之间的
+    总览图前面有正文,不剥。
+    必须在 convert_images 之后调用——封面裁切取的是剥前的第一张图。
+    """
+    img = content.find("img")
+    if img is None:
+        return False
+    node = img
+    while node is not content:
+        for sib in node.previous_siblings:
+            if isinstance(sib, str):
+                if sib.strip():
+                    return False  # 前面有可见文字 → img 不是开头
+                continue
+            return False  # 前面有兄弟元素 → img 不是开头
+        node = node.parent
+        if node is None:
+            return False
+    parent = img.parent
+    img.decompose()
+    # 外壳因剥图变空(仅剩空白)时一并清掉,避免正文开头留空段落
+    if parent is not None and parent.name == "p" and not parent.get_text(strip=True) \
+            and parent.find() is None:
+        parent.decompose()
+    return True
+
+
 def replace_internal_links(content, platform: str, link_map: dict, _current_slug: str = "") -> None:
     """就地替换正文里的博客内链为对应平台的链接。
 
@@ -169,22 +204,31 @@ def replace_internal_links(content, platform: str, link_map: dict, _current_slug
         link_map: load_link_map() 的返回值
         _current_slug: 当前文章 slug(预留,当前未用)
     """
-    # 匹配 /posts/<slug>/ 或 BASE_URL + posts/<slug>/
-    blog_post_re = re.compile(r"^(?:https?://[^/]+)?/posts/([^/]+)/?$")
+    # 匹配 /posts/<slug>/、BASE_URL + posts/<slug>/，以及 Hugo relref 渲染的
+    # 相对路径 posts/<slug>/(无前导斜杠，曾漏匹配 → 原样留在微信 HTML 触发 64562)
+    blog_post_re = re.compile(r"^(?:https?://[^/]+)?/?posts/([^/]+)/?$")
 
     for a in content.find_all("a"):
         href = a.get("href", "")
         m = blog_post_re.match(href)
-        if not m:
-            continue
-        target_slug = m.group(1)
-        entry = link_map.get(target_slug, {}).get(platform, {})
-        published = entry.get("published_url")
-        if published:
-            a["href"] = published
-        else:
-            # 无映射或只有草稿 → 回退博客站绝对 URL
-            a["href"] = config.BASE_URL + "posts/" + target_slug + "/"
+        if m:
+            target_slug = m.group(1)
+            entry = link_map.get(target_slug, {}).get(platform, {})
+            published = entry.get("published_url")
+            if published:
+                a["href"] = published
+            elif platform == "weixin":
+                # mp 拒收一切非 mp.weixin 域链接(64562)：无已发布链接就解包保留内容
+                a.unwrap()
+            else:
+                # 无映射或只有草稿 → 回退博客站绝对 URL
+                a["href"] = config.BASE_URL + "posts/" + target_slug + "/"
+        elif platform == "weixin" and not href.startswith(
+            ("https://mp.weixin.qq.com", "http://mp.weixin.qq.com")
+        ):
+            # 其余非 mp 链接(外链、/svg /images 内部资源链接图片等)一律解包，
+            # 保留文字与图(图片包链接是 DSH 系文章的常见形态)
+            a.unwrap()
 
 
 def _svg_to_png(svg_path: str, out_path: str, width: int) -> None:
@@ -296,28 +340,41 @@ def convert_images(content, svg_dir: str, out_dir: str, src_mode: str = "placeho
     images = {}
     failed = []
     idx = 0
+    import shutil
+    static_dir = os.path.dirname(svg_dir)   # <root>/static
     for img in content.find_all("img"):
         src = img.get("src", "")
         # 解析 /svg/xxx.svg → 文件名
         m = re.match(r"/svg/(.+\.svg)(?:\?.*)?$", src)
-        if not m:
+        # 正文首图常态是 /images/<slug>/cover.png 这类本地栅格图——
+        # 此前只处理 SVG，导致首图不进循环、封面错取第一张 SVG 的裁切
+        raster = re.match(r"^/images/[^?#]+\.(?:png|jpe?g|gif)$", src)
+        if not m and not raster:
             continue
-        svg_name = m.group(1)
-        svg_path = os.path.join(svg_dir, svg_name)
-
         idx += 1
-        # SVG 缺失或转换失败:跳过,插占位文字,记日志(不中断整体流程)
-        if not os.path.exists(svg_path):
-            failed.append(svg_name)
-            img.replace_with(f"[图片缺失: {svg_name}]")
-            continue
-        try:
-            png_path = os.path.join(out_dir, f"img-{idx}.png")
-            _svg_to_png(svg_path, png_path, config.IMAGE_RENDER_WIDTH)
-        except subprocess.CalledProcessError as e:
-            failed.append(svg_name)
-            img.replace_with(f"[图片转换失败: {svg_name}]")
-            continue
+        png_path = os.path.join(out_dir, f"img-{idx}.png")
+        if raster:
+            src_path = os.path.join(static_dir, src.lstrip("/").split("?")[0])
+            if not os.path.exists(src_path):
+                failed.append(src)
+                img.replace_with(f"[图片缺失: {src}]")
+                continue
+            shutil.copyfile(src_path, png_path)
+        else:
+            svg_name = m.group(1)
+            svg_path = os.path.join(svg_dir, svg_name)
+
+            # SVG 缺失或转换失败:跳过,插占位文字,记日志(不中断整体流程)
+            if not os.path.exists(svg_path):
+                failed.append(svg_name)
+                img.replace_with(f"[图片缺失: {svg_name}]")
+                continue
+            try:
+                _svg_to_png(svg_path, png_path, config.IMAGE_RENDER_WIDTH)
+            except subprocess.CalledProcessError as e:
+                failed.append(svg_name)
+                img.replace_with(f"[图片转换失败: {svg_name}]")
+                continue
 
         if src_mode == "filepath":
             # Wechatsync 粘贴:src 用本地绝对路径,Wechatsync 自动上传
@@ -328,7 +385,7 @@ def convert_images(content, svg_dir: str, out_dir: str, src_mode: str = "placeho
             images[placeholder] = png_path
             img["src"] = placeholder
 
-        # 第一张图额外做封面
+        # 第一张图额外做封面(无论 SVG 还是本地栅格图)
         if idx == 1:
             cover_path = os.path.join(out_dir, "cover.png")
             _make_cover(png_path, cover_path, config.COVER_SIZE)
@@ -515,6 +572,8 @@ def prepare_for_wechatsync(slug: str) -> dict:
     for platform in config.SUPPORTED_PLATFORMS:
         platform_content = BeautifulSoup(base_html, "html.parser")
         replace_internal_links(platform_content, platform, link_map, slug)
+        if platform == "weixin" and strip_leading_cover(platform_content):
+            print("🖼️ 公众号版已剥离开头封面重复图(封面由平台首屏展示,正文不再重复)")
         platform_html = str(platform_content)
         path = os.path.join(out_dir, f"wechat-ready-{platform}.html")
         with open(path, "w", encoding="utf-8") as f:
@@ -601,15 +660,24 @@ def prepare_for_wechatsync(slug: str) -> dict:
         html = _re.sub(r'</code>', '</span>', html)
         return html
 
-    # 原文链接（文末注入，wechatsync 不支持设置 sourceurl0，只能正文兜底）
+    # 原文链接（文末注入）
     source_link = f'{config.BASE_URL}posts/{slug}/'
+    source_a = (
+        f'<a href="{source_link}" style="color:#2563eb;text-decoration:none;'
+        f'border-bottom:1px solid #2563eb;">{source_link}</a>'
+    )
     source_para = (
         f'<p style="margin:1.5em 0 0;padding:12px 16px;background-color:#334155;'
         f'border-left:4px solid #2563eb;color:#e2e8f0;font-size:14px;">'
-        f'📖 完整原文：'
-        f'<a href="{source_link}" style="color:#2563eb;text-decoration:none;'
-        f'border-bottom:1px solid #2563eb;">{source_link}</a>'
-        f'</p>'
+        f'📖 完整原文：{source_a}</p>'
+    )
+    # weixin 版必须是纯文本：mp 拒收正文里一切非 mp.weixin 域 <a>(64562)。
+    # 真链接走草稿 source_url 字段(publish_mp 注入)；BASE_URL 为空时这里
+    # 还会生成相对路径 href，同样是 64562 触发源
+    source_para_plain = (
+        f'<p style="margin:1.5em 0 0;padding:12px 16px;background-color:#334155;'
+        f'border-left:4px solid #2563eb;color:#e2e8f0;font-size:14px;">'
+        f'📖 完整原文：{source_link}</p>'
     )
 
     # 处理 wechat-ready.html（默认/剪贴板用）
@@ -623,7 +691,8 @@ def prepare_for_wechatsync(slug: str) -> dict:
         with open(path, encoding="utf-8") as f:
             plat_html = f.read()
         plat_html = _process_code_blocks(plat_html)
-        plat_html = plat_html.rstrip() + '\n' + source_para
+        tail = source_para_plain if platform == "weixin" else source_para
+        plat_html = plat_html.rstrip() + '\n' + tail
         with open(path, "w", encoding="utf-8") as f:
             f.write(plat_html)
 

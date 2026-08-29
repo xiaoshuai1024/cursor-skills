@@ -8,6 +8,9 @@
   3. 上升榜 ∩ challenge_search → 📈涨粉系列
   4. 潜力分 = 0.4×热度 + 0.3×垂直匹配 + 0.2×竞争度(反向) + 0.1×互动
   5. 无命中 → 诚实输出「今日无方向命中」
+  6. 系列权重缩放（2026-08-29 video-analytics 反哺接线）: 话题词按 series_keywords
+     归属到内容系列后乘 weights（多系列命中取命中词最多者，并列取低权重=歧义不加成）；
+     无 weights 块或无命中系列时权重 1.0，行为与旧版一致。
 
 评分口径: 缺失字段记中性 50（不奖不罚）; 两系列内部各自排序（跨系列不可比，成功指标不同）。
 """
@@ -26,6 +29,31 @@ def load_keywords(keywords_file: str) -> tuple[list[str], list[str]]:
     """读 topic_keywords.json，返回 (hot_list_match, challenge_search)。"""
     conf = json.loads(Path(keywords_file).read_text(encoding="utf-8"))
     return conf.get("hot_list_match") or [], conf.get("challenge_search") or []
+
+
+def load_series_weights(keywords_file: str) -> tuple[dict, dict]:
+    """读 weights（系列名→权重）与 series_keywords（系列名→判定词表），缺块返回空 dict。"""
+    conf = json.loads(Path(keywords_file).read_text(encoding="utf-8"))
+    return conf.get("weights") or {}, conf.get("series_keywords") or {}
+
+
+def series_weight(word: str, weights: dict, series_keywords: dict) -> tuple[float, list[str]]:
+    """话题词的系列权重。命中词最多的系列胜出；并列取低权重（歧义不加成）。
+
+    返回 (权重, 命中系列名列表)，无命中返回 (1.0, [])。
+    """
+    lowered = word.lower()
+    hits: dict[str, list[str]] = {}
+    for ser, kws in series_keywords.items():
+        matched = [kw for kw in kws if kw.lower() in lowered]
+        if matched:
+            hits[ser] = matched
+    if not hits:
+        return 1.0, []
+    best_count = max(len(v) for v in hits.values())
+    finalists = [s for s, v in hits.items() if len(v) == best_count]
+    weight = min(float(weights.get(s, 1.0)) for s in finalists)
+    return weight, list(hits.keys())
 
 
 def match_keywords(word: str, keywords: list[str]) -> list[str]:
@@ -88,12 +116,18 @@ def _interaction_score(item: dict) -> float:
     return min(100.0, ratio * 5000.0)
 
 
-def score_item(item: dict, heat_max: float, matched: list[str]) -> dict:
-    """给单个话题打分，返回带评分字段的副本。heat_max 按系列各自的最大热度值。"""
+def score_item(
+    item: dict, heat_max: float, matched: list[str],
+    weight: float = 1.0, hit_series: list[str] | None = None,
+) -> dict:
+    """给单个话题打分，返回带评分字段的副本。heat_max 按系列各自的最大热度值。
+
+    weight 为系列反哺权重（乘在总分上，1.0 = 不缩放）。
+    """
     heat = _heat_score(item, heat_max)
     comp = _competition_score(item)
     inter = _interaction_score(item)
-    total = 0.4 * heat + 0.3 * _match_score(matched) + 0.2 * comp + 0.1 * inter
+    total = (0.4 * heat + 0.3 * _match_score(matched) + 0.2 * comp + 0.1 * inter) * weight
     scored = dict(item)
     scored.pop("_hot_kws", None)
     scored.update({
@@ -103,13 +137,25 @@ def score_item(item: dict, heat_max: float, matched: list[str]) -> dict:
         "comp": round(comp, 1),
         "inter": round(inter, 1),
         "matched_keywords": matched,
+        "weight": round(weight, 2),
+        "matched_series": hit_series or [],
     })
     return scored
 
 
-def build_topics(summary: dict, hot_kws: list[str], growth_kws: list[str]) -> dict:
-    """从 fetch 汇总构建双系列选题清单。"""
+def build_topics(
+    summary: dict, hot_kws: list[str], growth_kws: list[str],
+    weights: dict | None = None, series_keywords: dict | None = None,
+) -> dict:
+    """从 fetch 汇总构建双系列选题清单。weights/series_keywords 为可选系列反哺配置。"""
     a_items = summary.get("a") or []
+    weights = weights or {}
+    series_keywords = series_keywords or {}
+
+    def _score(it: dict, heat_max: float, kws: list[str]) -> dict:
+        matched = match_keywords(it["word"], kws)
+        weight, hit_series = series_weight(it["word"], weights, series_keywords)
+        return score_item(it, heat_max, matched, weight, hit_series)
 
     hot_pool = dedup_hot_pool(a_items)
     hot_max = max([_heat_value(i) for i in hot_pool] or [0])
@@ -119,7 +165,7 @@ def build_topics(summary: dict, hot_kws: list[str], growth_kws: list[str]) -> di
     # 🔥 热度系列: 热榜 ∩ 方向关键词
     hot_scored = sorted(
         (
-            score_item(it, hot_max, match_keywords(it["word"], hot_kws))
+            _score(it, hot_max, hot_kws)
             for it in hot_pool if match_keywords(it["word"], hot_kws)
         ),
         key=lambda x: x["score"], reverse=True,
@@ -128,7 +174,7 @@ def build_topics(summary: dict, hot_kws: list[str], growth_kws: list[str]) -> di
     # 📈 涨粉系列: 上升榜 ∩ 方向搜索词（热度上升期求关注转化）
     growth_scored = sorted(
         (
-            score_item(it, growth_max, match_keywords(it["word"], growth_kws))
+            _score(it, growth_max, growth_kws)
             for it in rising_pool if match_keywords(it["word"], growth_kws)
         ),
         key=lambda x: x["score"], reverse=True,
@@ -150,6 +196,15 @@ def build_topics(summary: dict, hot_kws: list[str], growth_kws: list[str]) -> di
     }
 
 
+def _weight_tag(item: dict) -> str:
+    """权重标记：≠1.0 时在分数后追加 ×权重（含命中系列）。"""
+    w = item.get("weight", 1.0) or 1.0
+    if w == 1.0:
+        return ""
+    series = "/".join(item.get("matched_series") or [])
+    return f"(×{w:g} {series})" if series else f"(×{w:g})"
+
+
 def render_markdown(topics: dict) -> str:
     """可读的 markdown 选题清单。"""
     lines: list[str] = []
@@ -162,9 +217,10 @@ def render_markdown(topics: dict) -> str:
         lines.append("- 今日无方向命中（已尝试关键词: " + "、".join(topics["no_hit"]["hot_tried_keywords"][:8]) + "）")
     for item in hot[:12]:
         heat = item.get("view_count") or item.get("hot_value") or "-"
+        wtag = _weight_tag(item)
         group = f"https://www.douyin.com/video/{item['group_id']}" if item.get("group_id") else "待定位"
         lines.append(
-            f"- [{item['score']}] {item['word']} | 热度 {heat} | 命中 {','.join(item['matched_keywords'][:2])}\n"
+            f"- [{item['score']}]{wtag} {item['word']} | 热度 {heat} | 命中 {','.join(item['matched_keywords'][:2])}\n"
             f"    📼 {group}"
         )
 
@@ -174,8 +230,9 @@ def render_markdown(topics: dict) -> str:
         lines.append("- 上升榜无方向命中（已尝试关键词: " + "、".join(topics["no_hit"]["growth_tried_keywords"][:8]) + "）")
     for item in growth[:12]:
         heat = item.get("hot_value") or "-"
+        wtag = _weight_tag(item)
         lines.append(
-            f"- [{item['score']}] {item['word']} | 热度 {heat} | 命中 {','.join(item['matched_keywords'][:2])}"
+            f"- [{item['score']}]{wtag} {item['word']} | 热度 {heat} | 命中 {','.join(item['matched_keywords'][:2])}"
         )
 
     if topics.get("notes"):
@@ -199,8 +256,9 @@ def main() -> int:
         Path(__file__).resolve().parent.parent / "topic_keywords.json"
     )
     hot_kws, growth_kws = load_keywords(keywords_file)
+    weights, series_keywords = load_series_weights(keywords_file)
 
-    topics = build_topics(summary, hot_kws, growth_kws)
+    topics = build_topics(summary, hot_kws, growth_kws, weights, series_keywords)
 
     if args.out:
         Path(args.out).write_text(

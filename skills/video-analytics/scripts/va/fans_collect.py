@@ -3,6 +3,7 @@
 
 抖音: 页面上下文裸 fetch `aweme/janus/creator/data/overview/all/`（含 fans/new_fans/cancel_fans 日序列）
 B站: 公开 `api.bilibili.com/x/relation/stat?vmid=<mid>`（免登录，日快照差分得净增，掉粉不造数）
+视频号: 首页上下文裸 fetch `statistic/fans_trend`（7 日窗口日粒度 + 涨粉来源 tabType 拆解，2026-08-29 接入）
 快手: 数据中心粉丝页 P2（播放量级低暂缓）
 
 产出: data/analytics/snapshots/fans/{platform}.jsonl（每日一条，append）
@@ -126,16 +127,82 @@ def fans_bilibili() -> dict:
     }
 
 
+async def fans_shipinhao() -> dict:
+    """视频号: 首页上下文裸 fetch statistic/fans_trend（POST startTs/endTs/interval=3 日粒度）。
+
+    响应 add/reduce/netAdd/total 为按日起始的数组（末元素=最近一天）；带 tabType 来源拆解
+    （推荐/主页/分享…，涨粉来源归因用）。2026-08-29 随列表接口改版一接入。
+    """
+    sys.path.insert(0, str(ROOT / "scripts" / "pub" / "vendor"))
+    from patchright.async_api import async_playwright
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True, args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
+        context = await browser.new_context(storage_state=str(PUB_COOKIES / "shipinhao.json"))
+        page = await context.new_page()
+        await page.goto("https://channels.weixin.qq.com/platform",
+                        wait_until="domcontentloaded", timeout=90000)
+        await page.wait_for_timeout(6000)
+        body = await page.evaluate(
+            """async () => {
+                const end = Math.floor(Date.now() / 1000);
+                const start = end - 7 * 86400;
+                const r = await fetch(
+                    '/cgi-bin/mmfinderassistant-bin/statistic/fans_trend',
+                    {method: 'POST', credentials: 'include',
+                     headers: {'Content-Type': 'application/json'},
+                     body: JSON.stringify({startTs: String(start), endTs: String(end),
+                          interval: 3, timestamp: String(Date.now()),
+                          _log_finder_uin: '', _log_finder_id: '',
+                          rawKeyBuff: '', pluginSessionId: null, scene: 7, reqScene: 7})});
+                return await r.json();
+            }""")
+        await browser.close()
+    data = body.get("data") or {}
+    total_arr = [_i(x) for x in (data.get("total") or [])]
+    if not total_arr or total_arr[-1] is None:
+        raise RuntimeError(f"fans_trend 无 total 序列: {str(body)[:120]}")
+    add_arr = [_i(x) for x in (data.get("add") or [])]
+    reduce_arr = [_i(x) for x in (data.get("reduce") or [])]
+
+    from datetime import datetime, timedelta
+    n = len(total_arr)
+    base = datetime.now(common.CST)
+    dates = [(base - timedelta(days=n - 1 - i)).strftime("%Y-%m-%d") for i in range(n)]
+    daily, prev = [], None
+    for i, d in enumerate(dates):
+        daily.append({"date": d, "total": total_arr[i],
+                      "new_fans": add_arr[i] if i < len(add_arr) else None,
+                      "cancel_fans": reduce_arr[i] if i < len(reduce_arr) else None,
+                      "net": (total_arr[i] - prev) if prev is not None else None})
+        prev = total_arr[i]
+    # 最近一天涨粉来源拆解（推荐占比是视频号增长的关键归因）
+    breakdown = {}
+    for t in data.get("fansDataByTabtype") or []:
+        nets = [_i(x) for x in (t.get("netAdd") or [])]
+        if nets:
+            breakdown[t.get("tabTypeName") or str(t.get("tabType"))] = nets[-1]
+    return {
+        "platform": "shipinhao", "date": today(), "fetched_at": now_iso(),
+        "follower_total": total_arr[-1], "follower_total_eod": total_arr[-1],
+        "series_net": (total_arr[-1] - total_arr[0]) if n >= 2 else None,
+        "daily": daily,
+        "fans_source_breakdown": breakdown,
+    }
+
+
 def main() -> int:
     setup_utf8()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--platform", default="douyin,bilibili")
+    ap.add_argument("--platform", default="douyin,bilibili,shipinhao")
     args = ap.parse_args()
     for plat in args.platform.split(","):
         plat = plat.strip()
         try:
             record = asyncio.run(fans_douyin()) if plat == "douyin" else (
-                fans_bilibili() if plat == "bilibili" else None)
+                fans_bilibili() if plat == "bilibili" else (
+                    asyncio.run(fans_shipinhao()) if plat == "shipinhao" else None))
             if record is None:
                 print(f"[{plat}] 未知平台")
                 continue

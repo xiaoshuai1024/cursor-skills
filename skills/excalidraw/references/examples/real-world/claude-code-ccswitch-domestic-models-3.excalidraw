@@ -1,0 +1,211 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "mcp-excalidraw-server",
+  "elements": [
+    {
+      "id": "title3",
+      "type": "text",
+      "x": 90,
+      "y": 20,
+      "width": 660,
+      "height": 44,
+      "strokeColor": "#1e1e1e",
+      "text": "全量国产：切一次，不再回官方",
+      "fontSize": 24,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:17:48.988Z",
+      "updatedAt": "2026-08-02T07:17:48.988Z",
+      "version": 1
+    },
+    {
+      "id": "center",
+      "type": "rectangle",
+      "x": 330,
+      "y": 150,
+      "width": 220,
+      "height": 90,
+      "backgroundColor": "#a5d8ff",
+      "strokeColor": "#1971c2",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "CcSwitch\n管理配置"
+      },
+      "fontSize": 18,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:17:48.988Z",
+      "updatedAt": "2026-08-02T07:17:48.988Z",
+      "version": 1
+    },
+    {
+      "id": "box1",
+      "type": "rectangle",
+      "x": 40,
+      "y": 70,
+      "width": 230,
+      "height": 100,
+      "backgroundColor": "#b2f2bb",
+      "strokeColor": "#2f9e44",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "主力 · 日常开发\n重构 / 格式化 / 生成测试\n→ DeepSeek V4 Flash"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:17:48.989Z",
+      "updatedAt": "2026-08-02T07:17:48.989Z",
+      "version": 1
+    },
+    {
+      "id": "box2",
+      "type": "rectangle",
+      "x": 610,
+      "y": 70,
+      "width": 230,
+      "height": 100,
+      "backgroundColor": "#ffc9c9",
+      "strokeColor": "#e03131",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "深思考 · 长链路 · 难 bug\n国产阵营换更强的\n→ Qwen3-Coder / Kimi"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:17:48.989Z",
+      "updatedAt": "2026-08-02T07:17:48.989Z",
+      "version": 1
+    },
+    {
+      "id": "box3",
+      "type": "rectangle",
+      "x": 300,
+      "y": 280,
+      "width": 280,
+      "height": 90,
+      "backgroundColor": "#e9ecef",
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "官方 Anthropic\n已封号 · 全程不碰"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:17:48.989Z",
+      "updatedAt": "2026-08-02T07:17:48.989Z",
+      "version": 1
+    },
+    {
+      "id": "a1",
+      "type": "arrow",
+      "x": 322.2634037018988,
+      "y": 164.0166851847102,
+      "width": 120,
+      "height": 10,
+      "strokeColor": "#64748b",
+      "strokeWidth": 2,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -44.52680740379765,
+          -11.717580895736205
+        ]
+      ],
+      "start": {
+        "id": "center"
+      },
+      "end": {
+        "id": "box1"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T07:17:48.989Z",
+      "updatedAt": "2026-08-02T07:17:48.989Z",
+      "version": 1
+    },
+    {
+      "id": "a2",
+      "type": "arrow",
+      "x": 557.7365962981012,
+      "y": 164.0166851847102,
+      "width": 120,
+      "height": 10,
+      "strokeColor": "#64748b",
+      "strokeWidth": 2,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          44.52680740379765,
+          -11.717580895736205
+        ]
+      ],
+      "start": {
+        "id": "center"
+      },
+      "end": {
+        "id": "box2"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T07:17:48.990Z",
+      "updatedAt": "2026-08-02T07:17:48.990Z",
+      "version": 1
+    },
+    {
+      "id": "a3",
+      "type": "arrow",
+      "x": 440,
+      "y": 248,
+      "width": 120,
+      "height": 10,
+      "strokeColor": "#64748b",
+      "strokeWidth": 2,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          24
+        ]
+      ],
+      "start": {
+        "id": "center"
+      },
+      "end": {
+        "id": "box3"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T07:17:48.990Z",
+      "updatedAt": "2026-08-02T07:17:48.990Z",
+      "version": 1
+    },
+    {
+      "id": "cap3",
+      "type": "text",
+      "x": 200,
+      "y": 420,
+      "width": 480,
+      "height": 36,
+      "strokeColor": "#868e96",
+      "text": "切一次配置，之后一直用国产，官方号不碰了",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:17:48.990Z",
+      "updatedAt": "2026-08-02T07:17:48.990Z",
+      "version": 1
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null
+  }
+}

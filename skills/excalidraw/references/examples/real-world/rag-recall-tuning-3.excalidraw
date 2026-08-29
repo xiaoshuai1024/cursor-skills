@@ -1,0 +1,41 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {"type": "text", "id": "cap1", "x": 60, "y": 30, "width": 420, "height": 26, "text": "双塔 bi-encoder:各自编码,顶层才算相似度", "fontSize": 17, "strokeColor": "#1e293b"},
+
+    {"type": "rectangle", "id": "q", "x": 60, "y": 110, "width": 110, "height": 48, "label": {"text": "query"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "d", "x": 60, "y": 290, "width": 110, "height": 48, "label": {"text": "doc"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "encQ", "x": 260, "y": 110, "width": 130, "height": 48, "label": {"text": "Encoder"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "encD", "x": 260, "y": 290, "width": 130, "height": 48, "label": {"text": "Encoder"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "vQ", "x": 480, "y": 118, "width": 110, "height": 36, "label": {"text": "向量"}, "fontSize": 13, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "vD", "x": 480, "y": 290, "width": 110, "height": 36, "label": {"text": "向量"}, "fontSize": 13, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "sim", "x": 480, "y": 190, "width": 120, "height": 52, "label": {"text": "算相似度"}, "fontSize": 13, "strokeColor": "#0f766e", "backgroundColor": "transparent"},
+
+    {"type": "arrow", "id": "a1", "x": 170, "y": 134, "points": [[0, 0], [90, 0]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "a2", "x": 390, "y": 134, "points": [[0, 0], [90, 4]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "a3", "x": 170, "y": 314, "points": [[0, 0], [90, 0]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "a4", "x": 390, "y": 314, "points": [[0, 0], [90, -6]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "a5", "x": 535, "y": 154, "points": [[0, 0], [5, 36]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "a6", "x": 535, "y": 290, "points": [[0, 0], [5, -48]], "strokeColor": "#475569", "fontSize": 12},
+
+    {"type": "text", "id": "note1", "x": 60, "y": 380, "width": 560, "height": 22, "text": "快:文档可提前全部向量化;但 query 和 doc 只在最后'撞'一下", "fontSize": 13, "strokeColor": "#475569"},
+
+    {"type": "text", "id": "cap2", "x": 720, "y": 30, "width": 460, "height": 26, "text": "交叉编码器 cross-encoder:拼接后逐词比对", "fontSize": 17, "strokeColor": "#1e293b"},
+
+    {"type": "rectangle", "id": "q2", "x": 720, "y": 110, "width": 110, "height": 48, "label": {"text": "query"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "d2", "x": 720, "y": 290, "width": 110, "height": 48, "label": {"text": "doc"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "cat", "x": 960, "y": 190, "width": 190, "height": 60, "label": {"text": "query [SEP] doc\n拼接成一句"}, "fontSize": 13, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "tf", "x": 1240, "y": 190, "width": 180, "height": 60, "label": {"text": "完整 Transformer\n每层注意力交互"}, "fontSize": 13, "strokeColor": "#0f766e", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "sc", "x": 1510, "y": 190, "width": 130, "height": 60, "label": {"text": "相关性分数"}, "fontSize": 13, "strokeColor": "#0f766e", "backgroundColor": "transparent"},
+
+    {"type": "arrow", "id": "b1", "x": 830, "y": 134, "points": [[0, 0], [130, 84]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "b2", "x": 830, "y": 314, "points": [[0, 0], [130, -96]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "b3", "x": 1150, "y": 220, "points": [[0, 0], [90, 0]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "b4", "x": 1420, "y": 220, "points": [[0, 0], [90, 0]], "strokeColor": "#475569", "fontSize": 12},
+
+    {"type": "text", "id": "note2", "x": 720, "y": 380, "width": 900, "height": 22, "text": "准:每一层都在比对 query 和 doc;但每个候选都要单独过一遍模型", "fontSize": 13, "strokeColor": "#475569"}
+  ],
+  "appState": {"gridSize": null}
+}

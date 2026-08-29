@@ -1,0 +1,116 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "mcp-excalidraw-server",
+  "elements": [
+    {
+      "id": "title2",
+      "type": "text",
+      "x": 60,
+      "y": 30,
+      "width": 640,
+      "height": 44,
+      "strokeColor": "#1e1e1e",
+      "text": "同一个客户端，换个模型省 99%",
+      "fontSize": 26,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:14:38.591Z",
+      "updatedAt": "2026-08-02T07:14:38.591Z",
+      "version": 1
+    },
+    {
+      "id": "op-box",
+      "type": "rectangle",
+      "x": 90,
+      "y": 130,
+      "width": 300,
+      "height": 130,
+      "backgroundColor": "#ffc9c9",
+      "strokeColor": "#e03131",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "官方 Claude Opus 5\n输入 $5 / 百万 token"
+      },
+      "fontSize": 18,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:14:38.591Z",
+      "updatedAt": "2026-08-02T07:14:38.591Z",
+      "version": 1
+    },
+    {
+      "id": "ds-box",
+      "type": "rectangle",
+      "x": 530,
+      "y": 130,
+      "width": 300,
+      "height": 130,
+      "backgroundColor": "#b2f2bb",
+      "strokeColor": "#2f9e44",
+      "strokeWidth": 2,
+      "roughness": 1,
+      "label": {
+        "text": "DeepSeek V4 Flash\n缓存命中约 $0.028"
+      },
+      "fontSize": 18,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:14:38.592Z",
+      "updatedAt": "2026-08-02T07:14:38.592Z",
+      "version": 1
+    },
+    {
+      "id": "arrow2",
+      "type": "arrow",
+      "x": 398,
+      "y": 195,
+      "width": 120,
+      "height": 10,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "label": {
+        "text": "≈ 1/178"
+      },
+      "fontSize": 16,
+      "fontFamily": 1,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          124,
+          2.842170943040401e-14
+        ]
+      ],
+      "start": {
+        "id": "op-box"
+      },
+      "end": {
+        "id": "ds-box"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-08-02T07:14:38.592Z",
+      "updatedAt": "2026-08-02T07:14:38.592Z",
+      "version": 1
+    },
+    {
+      "id": "cap2",
+      "type": "text",
+      "x": 90,
+      "y": 300,
+      "width": 640,
+      "height": 36,
+      "strokeColor": "#868e96",
+      "text": "一次迁到国产：$5 的活换 $0.028 来干，账单掉一个量级",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "createdAt": "2026-08-02T07:14:38.592Z",
+      "updatedAt": "2026-08-02T07:14:38.592Z",
+      "version": 1
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null
+  }
+}

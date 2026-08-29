@@ -1,0 +1,18 @@
+LICENSE NOTICE for this directory
+=================================
+
+SPDX-License-Identifier: AGPL-3.0-only
+
+本目录（stock_sources/ 全部文件）搬运自 OpenMontage 项目
+（https://github.com/calesthio/OpenMontage），原项目以 GNU Affero General
+Public License v3.0（AGPL-3.0）发布。
+
+因此本目录下的代码按 **AGPL-3.0-only** 单独许可，**不适用**本仓库其余部分
+的 MIT 许可证。再分发本目录代码（含打包进其他作品）时，须整体遵循
+AGPL-3.0：保留本声明与各文件头的 SPDX 标注、向获得方提供完整对应源码、
+通过网络服务使用时同样须提供源码（AGPL 第 13 条）。
+
+GNU AGPL-3.0 完整文本：https://www.gnu.org/licenses/agpl-3.0.txt
+
+适配改造（Windows 编码、免 key/key 类源分层、溯源过滤）与上层 CLI
+（stock_search.py）为本仓新写，按仓库 MIT 许可。

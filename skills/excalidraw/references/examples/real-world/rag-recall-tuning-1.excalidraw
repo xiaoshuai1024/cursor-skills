@@ -1,0 +1,25 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {"type": "text", "id": "t1", "x": 60, "y": 30, "width": 300, "height": 28, "text": "token 硬切:信息被切碎", "fontSize": 20, "strokeColor": "#1e293b"},
+    {"type": "rectangle", "id": "sent", "x": 60, "y": 80, "width": 470, "height": 42, "label": {"text": "…需要运营确认,确认后 24 小时生效…"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "chunk1", "x": 60, "y": 160, "width": 230, "height": 64, "label": {"text": "…需要运营确"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "chunk2", "x": 300, "y": 160, "width": 230, "height": 64, "label": {"text": "认后 24 小时…"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "arrow", "id": "ar1", "x": 295, "y": 122, "points": [[0, 0], [-120, 38]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "arrow", "id": "ar2", "x": 340, "y": 122, "points": [[0, 0], [75, 38]], "strokeColor": "#475569", "fontSize": 12},
+    {"type": "text", "id": "n1", "x": 60, "y": 250, "width": 470, "height": 22, "text": "关键信息被切成两半,命中哪个都答不准", "fontSize": 13, "strokeColor": "#b91c1c"},
+
+    {"type": "text", "id": "t2", "x": 640, "y": 30, "width": 320, "height": 28, "text": "贴着语义边界切:信息完整", "fontSize": 20, "strokeColor": "#1e293b"},
+    {"type": "rectangle", "id": "chunkA", "x": 640, "y": 80, "width": 280, "height": 64, "label": {"text": "…需要运营确认"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "chunkB", "x": 950, "y": 80, "width": 280, "height": 64, "label": {"text": "确认后 24 小时内生效"}, "fontSize": 14, "strokeColor": "#1e293b", "backgroundColor": "transparent"},
+    {"type": "text", "id": "n2", "x": 640, "y": 170, "width": 560, "height": 22, "text": "每个 chunk 都能独立看懂", "fontSize": 13, "strokeColor": "#0f766e"},
+
+    {"type": "text", "id": "t3", "x": 60, "y": 330, "width": 700, "height": 24, "text": "overlap:跨块引用至少在一个 chunk 里完整", "fontSize": 17, "strokeColor": "#1e293b"},
+    {"type": "rectangle", "id": "ovA", "x": 120, "y": 400, "width": 360, "height": 80, "label": {"text": "chunk A:…需要运营确认…"}, "fontSize": 14, "strokeColor": "#0f766e", "backgroundColor": "transparent"},
+    {"type": "rectangle", "id": "ovB", "x": 390, "y": 400, "width": 360, "height": 80, "label": {"text": "chunk B:…确认后 24 小时…"}, "fontSize": 14, "strokeColor": "#0f766e", "backgroundColor": "transparent"},
+    {"type": "text", "id": "ov", "x": 402, "y": 426, "width": 90, "height": 40, "text": "重叠区\n=overlap", "fontSize": 12, "strokeColor": "#0f766e"}
+  ],
+  "appState": {"gridSize": null}
+}

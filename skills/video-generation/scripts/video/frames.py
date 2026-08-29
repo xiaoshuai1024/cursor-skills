@@ -113,6 +113,18 @@ def render_card_segment(
         state["shot_idx"] = shot_idx            # 当前镜头索引（-1 = 未开始）
         state["shot_birth"] = shot_birth        # 当前镜头出生帧（镜头层入场/行级 stagger 锚）
         state["shot_t_ms"] = audio_t_ms         # 卡内口播时间（hl_steps 讲到哪行亮哪行）
+        # 包袱表情标记（2026-08-29 talkshow 炸场：card.moods[].from_s/mood/bubble）
+        mood_mark, mood_age = None, None
+        t_s = audio_t_ms / 1000.0
+        cur_mark = None
+        for mk in (card.get("moods") or []):
+            if t_s >= float(mk.get("from_s", 0)):
+                cur_mark = mk
+        if cur_mark is not None:
+            mood_mark = cur_mark
+            mood_age = t_s - float(cur_mark.get("from_s", 0))
+        state["mood_mark"] = mood_mark
+        state["mood_mark_age"] = mood_age
         html = render_frame(card, state, C.COURSEWARE_W, C.COURSEWARE_H)
         frame_png = frames_dir / f"frame_{fi:05d}.png"
         if last_html is not None and html == last_html:

@@ -84,13 +84,13 @@ body {
   padding:6px 14px; border-radius:8px; white-space:nowrap; box-shadow:0 4px 14px rgba(37,99,235,.4); }
 
 /* 终端（浅色 mac 窗口） */
-.termwin { width:94%; background:#fbfcfe; border:1.5px solid #e2e8f0; border-radius:12px; overflow:hidden; }
+.termwin { width:94%; min-height:62%; background:#fbfcfe; border:1.5px solid #e2e8f0; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; justify-content:center; }
 .termbar { display:flex; align-items:center; gap:8px; padding:11px 16px;
   background:#f1f5f9; border-bottom:1.5px solid #e2e8f0; }
 .dot { width:13px; height:13px; border-radius:50%; }
 .termtitle { margin-left:10px; font-size:20px; color:#64748b; }
-.term { padding:20px 24px; font-family:Consolas,"JetBrains Mono",monospace;
-  font-size:30px; line-height:1.8; color:#334155; }
+.term { padding:30px 36px; font-family:Consolas,"JetBrains Mono",monospace;
+  font-size:36px; line-height:1.95; color:#334155; }
 .term .row { padding:2px 12px; border-radius:8px; border-left:4px solid transparent; }
 .term .row.done { color:#64748b; }  /* 终端done行 2026-08-25 升档:#94a3b8 ≈2.7:1 → ≈4.6:1 */
 .term .row.done::before { content:"✓ "; color:#16a34a; font-weight:700; }
@@ -105,13 +105,18 @@ body {
 .codebar { display:flex; align-items:center; gap:8px; padding:10px 16px; background:#171c29;
   border-bottom:1px solid #2b3347; }
 .codetab { margin-left:8px; font-size:22px; color:#9fb0cd; font-family:Consolas,monospace; }
-.codebody { padding:14px 0; font-family:Consolas,"JetBrains Mono",monospace;
-  font-size:24px; line-height:1.9; color:#d7e0f0; counter-reset:ln; }
+.codebody { padding:20px 0; font-family:Consolas,"JetBrains Mono",monospace;
+  font-size:29px; line-height:2.0; color:#d7e0f0; counter-reset:ln; }
 .cl { display:flex; padding:0 18px 0 0; white-space:pre; }
 .cl .no { width:52px; flex-shrink:0; text-align:right; padding-right:18px; color:#48556e;
   user-select:none; font-size:22px; }
 .cl.hl { background:rgba(37,99,235,.22); box-shadow:inset 3px 0 0 __BLUE__; }
 .cl.dim { opacity:.82; }
+.cl.cmd { color:__BLUE_DARK__; font-weight:700; }
+.cl.ok { color:#16a34a; }
+.cl.err { color:#dc2626; }
+.cl.out { color:#334155; }
+.cl.dimc { color:#64748b; }
 .kw { color:#c792ea; }  .str { color:#a5d6a7; }  .cmt { color:#5c6b85; font-style:italic; }
 .num { color:#f0a45d; }  .fn { color:#82aaff; }  .typ { color:#ffcb6b; }
 
@@ -160,6 +165,16 @@ body {
 
 /* ---- 卡内镜头舞台（openspec card-shots 2026-08-26）：stage 区按口播节拍轮换素材 ---- */
 .shotlayer { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+/* 概述轮播（openspec 2026-08-29 用户定规）：卡片开场先播本卡要点大字轮换，杜绝左侧白板长空白 */
+.ovl { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:30px; padding:0 60px; }
+.ovl .ovl-eyebrow { font-size:26px; font-weight:700; letter-spacing:6px; color:#94a3b8; }
+.ovl .ovl-item { font-size:66px; font-weight:800; line-height:1.4; color:#1e293b;
+  text-align:center; max-width:92%; }
+.ovl .ovl-item .ovl-n { display:inline-flex; align-items:center; justify-content:center;
+  width:64px; height:64px; border-radius:50%; background:__BLUE__; color:#fff;
+  font-size:30px; font-weight:800; margin-right:22px; vertical-align:middle; }
+.ovl .ovl-bar { width:120px; height:6px; background:__BLUE__; border-radius:3px; }
 .shot-tag { margin-left:auto; background:#eff6ff; color:__BLUE_DARK__; border:1.5px solid #bfdbfe;
   font-size:19px; font-weight:700; padding:3px 12px; border-radius:6px; letter-spacing:2px; }
 .shot-tree { width:94%; background:#fbfcfe; border:1.5px solid #e2e8f0; border-radius:12px; overflow:hidden; }
@@ -167,29 +182,29 @@ body {
 .trow { padding:2px 12px; white-space:pre; }
 .trow .dir { color:__BLUE_DARK__; font-weight:700; }
 .trow .note { color:#94a3b8; }
-.shot-trow { font-family:Consolas,"JetBrains Mono",monospace; font-size:29px; line-height:1.85;
+.shot-trow { font-family:Consolas,"JetBrains Mono",monospace; font-size:34px; line-height:1.95;
   white-space:pre-wrap; }
 .shot-trow.cmd { color:__BLUE_DARK__; font-weight:700; }
 .shot-trow.out { color:#334155; }
 .shot-trow.ok { color:#16a34a; }
 .shot-trow.err { color:#dc2626; }
 .shot-trow.dim { color:#64748b; }
-.shot-stat { display:flex; flex-direction:column; align-items:center; gap:20px; }
-.shot-stat .big { font-size:118px; font-weight:800; color:__BLUE__; line-height:1;
+.shot-stat { width:94%; min-height:62%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; background:#fbfcfe; border:1.5px solid #e2e8f0; border-radius:12px; }
+.shot-stat .big { font-size:170px; font-weight:800; color:__BLUE__; line-height:1;
   font-family:Consolas,"JetBrains Mono",monospace; letter-spacing:2px; }
-.shot-stat .label { font-size:36px; font-weight:700; color:#334155; }
-.shot-stat .sub { font-size:26px; color:#64748b; }
+.shot-stat .label { font-size:44px; font-weight:700; color:#334155; text-align:center; }
+.shot-stat .sub { font-size:30px; color:#64748b; text-align:center; }
 .shot-table { width:94%; border-collapse:collapse; background:#fff; border:1.5px solid #e2e8f0;
   border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(30,41,59,.07); }
 .shot-table th { font-size:29px; color:__BLUE_DARK__; background:#eff6ff; font-weight:700;
   padding:18px 24px; border-bottom:2px solid #bfdbfe; text-align:left; }
-.shot-table td { font-size:29px; color:#334155; padding:17px 24px;
+.shot-table td { font-size:32px; color:#334155; padding:20px 28px;
   border-bottom:1px solid #eef2f7; }
 .shot-table tr.hlrow td { background:#eff6ff; color:__BLUE_DARK__; font-weight:700; }
-.shot-quote { display:flex; flex-direction:column; gap:24px; padding:0 40px; max-width:92%; }
+.shot-quote { width:94%; min-height:62%; display:flex; flex-direction:column; justify-content:center; gap:28px; padding:30px 48px; background:#fbfcfe; border:1.5px solid #e2e8f0; border-radius:12px; }
 .shot-quote .mark { font-size:100px; line-height:.4; color:#bfdbfe; font-family:Georgia,serif; }
-.shot-quote .qtext { font-size:44px; font-weight:700; line-height:1.55; color:#1e293b; }
-.shot-quote .qsrc { font-size:23px; color:#94a3b8; font-family:Consolas,monospace; }
+.shot-quote .qtext { font-size:56px; font-weight:700; line-height:1.55; color:#1e293b; }
+.shot-quote .qsrc { font-size:27px; color:#94a3b8; font-family:Consolas,monospace; }
 """
 
 
@@ -462,11 +477,40 @@ def _flow_stage(card: dict, active_idx: int, breathe: float, ty: float, op: floa
 # ---- 卡内镜头舞台（openspec card-shots 2026-08-26）----
 
 def _shots_stage(card: dict, state: dict, breathe: float) -> str:
-    """stage 区镜头轮换：按口播句边界切 shots，新镜头浮入 / 旧镜头淡出（帧驱动）。"""
+    """stage 区镜头轮换：按口播句边界切 shots，新镜头浮入 / 旧镜头淡出（帧驱动）。
+    概述轮播（2026-08-29 用户定规）：卡片开场先播本卡要点大字逐条轮换，
+    杜绝左侧白板长空白；镜头出生帧整体后移到轮播结束。"""
     shots = card.get("shots") or []
     frame = int(state.get("frame", 10**6))
     shot_idx = int(state.get("shot_idx", -1))
     birth = int(state.get("shot_birth") or 0)
+    points = [p for p in (card.get("points") or []) if p]
+    ov_frames = min(45 + 30 * len(points), 135) if points else 0
+    if 0 < ov_frames and frame < ov_frames:
+        # 概述轮播：要点逐条大字轮换（每条 30 帧 ≈1s，含入场/出场动画）
+        items = []
+        per = 30
+        for pi, pt in enumerate(points):
+            st_f = 24 + per * pi
+            age = frame - st_f
+            if age < 0 or age >= per + 8:
+                continue
+            e_in = 1 - (1 - min(1.0, age / 8.0)) ** 3
+            op = e_in
+            ty = round(22 * (1 - e_in), 1)
+            tail = age - per
+            if tail > 0:
+                e_out = min(1.0, tail / 8.0)
+                op = 1 - e_out
+                ty = round(-16 * e_out, 1)
+            items.append(f'<div class="ovl-item" style="opacity:{op:.3f};'
+                         f'transform:translateY({ty}px)"><span class="ovl-n">{pi + 1}</span>'
+                         f'{_esc(pt)}</div>')
+        head = '<div class="ovl-eyebrow">本步概述</div>' if frame < 24 + per * len(points) else ''
+        bar = '<div class="ovl-bar"></div>'
+        return (f'<div class="stage"><div class="ovl">{head}{"".join(items)}{bar}</div></div>')
+    if ov_frames and frame >= ov_frames:
+        birth = max(birth, ov_frames)   # 镜头出生帧后移到轮播结束，入场不吞帧
     layers = []
     for si, sh in enumerate(shots):
         if shot_idx < 0 or si > shot_idx:
@@ -543,9 +587,16 @@ def _shot_content(sh: dict, card: dict, state: dict, breathe: float) -> str:
         rows = []
         for i, ln in enumerate(lines):
             cls = "cl hl" if i in hls else "cl"
+            if isinstance(ln, dict):
+                text, c = ln.get("t", ""), ln.get("c", "out")
+                if c in ("cmd", "ok", "err", "dim", "out"):
+                    cls += f" {c}"
+                shown = _hl_line(str(text))
+            else:
+                shown = _hl_line(str(ln))
             rows.append(f'<div class="{cls}"{_row_style(frame, birth, i)}>'
                         f'<span class="no">{i + 1}</span>'
-                        f'<span>{_hl_line(str(ln))}</span></div>')
+                        f'<span>{shown}</span></div>')
         tag = _esc(data.get("tag", "源码"))
         return (f'<div class="codewin"><div class="codebar">'
                 '<span class="dot" style="background:#fb7185"></span>'

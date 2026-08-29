@@ -293,6 +293,15 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 已确认支持：graph 连线扫描 / Remotion 卡片逐张浮现（动态流程）、courseware `sub_points`（概念卡片）、`LeaderboardChart`/`DataReveal`（数据图表）、realshot hotspots + `.hot.active`（视觉锚点）、screencast 顶部步骤条 / Remotion 阶段导航（进度导航）、`ComparisonTable3D`/`cost` 卡（对比）、`active_idx` 逐条揭示（防信息过载）、**BGM 垫底 + 三档 SFX + 15 种场景转场**（2026-08-23 接线，全管线自动，见「声音层与转场」）、**courseware/screencast 左下角 mascot 伴随层**（2026-08-25 补齐：`courseware.py::_mascot_html` 对 tool/tutorial/普通卡统一注入，样式全内联防 CSS 丢失，cue 出生 8 帧落地反应 + 窗口外静止保 PNG 复用——Playwright 管线不做循环动画是铁律）。
 
+### 外部素材与 BGM 卡点（stock-footage / beat-cut，2026-08-29 接入，openspec openmontage-knowledge-port）
+
+按场景触发，不是默认启用——遇到下列画面需求才调用，平时不改变现行管线：
+
+- **实拍空镜 B-roll**（调 `stock-footage` skill）：① 概念比喻段（压缩/缓存/token 账等抽象概念插 1-2 条实拍空镜换质感）；② 事故/案例复盘开头 3-5 秒实拍+旁白起手；③ 评测对比类选题的产品实拍；④ 封面底图（公有领域图）。素材带溯源三件套（provider/素材页/license），进成片一律静音、随 archive 登记。免 key 直接可用，境外源不通时设 HTTP_PROXY/HTTPS_PROXY
+- **BGM 卡点（beat-cut，段落级）**：① 片头钩子段（前 3-5 秒提问式开头，鼓点+快切）；② 榜单盘点类快剪段（top-N 倒数段）；③ 签名句收尾 sting。**全片不卡点**——课件讲解节奏由口播驱动。启用：config 加 `beat` 字段（audiomap 路径 + 策略），先跑 `scripts/video/beatgrid.py` 出 audiomap，方法论见 `references/beat-cut.md`
+- **Remotion 改版翻 `references/remotion-best-practices.md`**：官方 TransitionSeries 转场 / layout-utils 文字测量（防爆版）/ 口播波形可视化（TTS、token、账单类主题高契合）/ 地图烘焙红线
+- **验收闭环（每条卡点/转场视频渲染后强制）**：`verify_render.py --transition-check <切点帧>`（切点是否生效；d2 低 = 素材死帧 WARN，改用 freezedetect 避让进片点）+ `--caption-check <帧A> <帧B>`（字幕活性 + 对比双峰判据）。实战记录见 `video-generation/build/beatcut-demo/README.md`
+
 ### 内容覆盖（强制，文章→视频的完整性）
 
 - 视频必须覆盖**文章提及的所有条目/插件/skill/关键实体**，不得遗漏重要信息。观点、论述、铺垫可以简化删减，但**每个条目的核心信息（「它是什么 / 能做什么」）必须出现**。
@@ -412,7 +421,9 @@ video-generation/                        ← 项目根：所有内容配置 + �
   - Remotion opt-in：`sfx: { ...suggestSfxSet(N.audio, U.map(u=>u.text)) }` 一行整套；单场景 `suggestSfx("transition", "tense")`
   - 双源纪律：`config.py::SFX_SCENARIO_MATRIX` ↔ `sound-points.ts::SFX_SCENARIOS` 同源镜像，`make video-lint` 的 `check_sfx_matrix` 机检漂移
 - **SFX 选配速查**（手动微调用；自动选择走上面的矩阵）：悬念切断 `sfx-transition-tapestop`（磁带急停）、倒计时 `sfx-ticktock`、紧张铺垫 `sfx-heartbeat`、钩子埋点 `sfx-hook-riser`（上扬悬置）、报错/翻车 `sfx-error-buzz`（三全音下行）、代码逐行 `sfx-typewriter`——其余场景（转场/强调/揭晓/里程碑/收尾）优先让矩阵按 mood 选，别手锁一个变体
-- **验收（强制）**：`python scripts/verify_render.py <mp4> <fps> <起帧:名>...`——frame-diff 查场景动画 + volumedetect 查混音健康（mean −20~−30dB、max 不贴 0dB）。发布前抽听开场 1s（应有 chime）与中段任意 5s（应有 BGM 底垫）
+- **验收（强制）**：`python scripts/verify_render.py <mp4> <fps> <起帧:名>...`——frame-diff 查场景动画 + volumedetect 查混音健康（mean −20~−30dB、max 不贴 0dB）。发布前抽听开场 1s（应有 chime）与中段任意 5s（应有 BGM 底垫）。增补两检查（2026-08-29，openspec openmontage-knowledge-port 第二批）：`--caption-check <帧A> <帧B>`（字幕活性 + 主题无关对比双峰判据）、`--transition-check <切点帧>...`（切点两侧画面变化检出；切点帧来自 config 的 transitionFrames）
+- **BGM 卡点（可选增强，2026-08-28 接入，openspec openmontage-knowledge-port）**：情绪档管「选哪首」，卡点管「画面跟不跟拍」。`scripts/video/beatgrid.py`（librosa 节拍网格/能量叙事/短语层，唯一音乐时间事实源）把 BGM 转成确定性 `audiomap.json`，画面按信任边界分帧卡点（beat_cut 逐拍硬切 / phrase_flow 短语流动）。**缺省不启用**：config 加 `beat` 字段才走卡点，不写完全走本节老路；动效只许复用 motion.py 既有缓动。信任边界/分帧法/素材三处理/接线方式见 `references/beat-cut.md`（beatgrid.py 搬运自 OpenMontage，AGPL-3.0 单独许可）
+- **Remotion 官方实践参考**：`references/remotion-best-practices.md`（2026-08-29 摘录自 OpenMontage，TransitionSeries 官方转场/layout-utils 文字测量/音频可视化/地图烘焙红线/字幕分页等，新视频优先试官方 presentation 再回落自研）
 - 教训沉淀：**归档变更前必须 grep 实际代码确认接线存在**（渲染端 import/调用点），不能只看 tasks 勾选——本次 5 项 `[x]` 任务里 4 项接线实际不存在
 
 ### 形象伴随层（机器人 mascot，2026-08-24 接线，video-mascot-narration）
@@ -427,6 +438,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 - **遮挡调优（2026-08-25 换边定规，openspec video-mascot-placement）**：默认 `position: "bottom-left"` + `height: 240`，形象区约 left 48/bottom 36 起（含头顶符号带约 280×400）。依据：抖音/快手/视频号信息流右侧竖排互动栏（头像/关注/赞/评/转）直接覆盖横屏视频右缘（2026-08-25 实测机器人被抖音头像挡住），底部文案栏另占底缘——左下是四平台一致净空角，与「右缘避让 180px」门禁同源。240 为左侧净空区标定（右侧旧标定 210 的「240 抢戏」判定不迁移）；场景左下有核心内容（SkillStage 左栏末张要点卡）时单视频降 210，禁超 270。字幕 pill 居中不冲突；B站横屏播放互动在右下，左下同样安全
 - **验收（强制）**：`python scripts/verify_render.py <mp4> 60 --mascot-check <说话帧> <静默帧> [--mood <表情A帧> <表情B帧>]`——形象区帧差 ≥0.5%（讲话面板+浮动）、表情带 ≥0.3%；本 change 实测讲话 13.41%/表情带 68.70%/段边界反应 15.48%
 - **双份同步约束**：封面 `scripts/video/assets/mascot.svg` 与 `MascotFigure.tsx` 是同一形象两份实现，改几何必须两边同步（两文件头部注释互指）
+- **迭代参考（非定规）**：`references/mascot-pose-rig.md`（2026-08-29 摘录）——姿态库三分类盘点（现 6 表情/3 姿态缺 attention 类朝向：看代码/看图表联动感提升点）、pose JSON 只声明变化部件的数据包模式；部件超 ~10 个或有朝向需求时再重构
 
 ### 字幕
 - **意群单元级**（不是句级）：`split_units` 拆成的短意群，每次显示一个完整短句，按单元时间戳跟随口播
@@ -720,6 +732,28 @@ video-generation/
 - 结尾无静默尾巴（去掉 TAIL 余量），评论引导必须有声音有字幕，说完即收。
 - 开头禁用「双持」类冷门行话（已入 de-ai-smell 禁词表，用「深度使用」）。
 
+### 课件批量生产与后台渲染事故清单（2026-08-29 复盘沉淀，强制）
+
+#### 资产门禁（deck/narrations authoring）
+- **deck 卡数必须 === narrations 卡数**（逐句卡一一对应，禁止两张口播卡合并一张 deck 卡）：数量不等 render 门禁直接拒（实录 14≠15、12≠13 两集渲染被拒）。deck 拆卡时 eyebrow/points 同步补齐。
+- **metadata.txt 必须在链路前写入** `build/<slug>/metadata.txt`（至少 `标题:` 行）：cover_video 从中取标题，缺失时封面步骤静默跳过（`|| true` 吞掉），成片无封面。 серии六集实录：五集封面全缺即此因。
+- **narrations JSON 零污染**（2026-08-29 实录）：从口播稿 md 提取逐句卡时，节边界必须切到「下一个 `## ` 标题」，禁止用后置章节名当切点（章节顺序一变就把分镜表/梗清单整段吞进最后一张卡）。发合成前机检：所有卡不得含 `|`、`→`、换行——TTS 会把表格当口播念出来（IndexTTS 报 unknown tokens `|` 即此症）。
+- `sync_check.py` 是 **Remotion 管线专用**（依赖 remotion-videos/<slug>/narration.ts）；courseware 模式不适用，音画对位由 `_align_shots.py`（真实句边界重排镜头切点）+ 人工抽帧承担，别对课件跑它。
+
+#### 后台/子环境渲染五坑（gpuq/后台任务实录，全部已修）
+1. **gpuq/子进程 PATH 被裁剪**：链脚本内禁裸调 `wsl`/`py`/`make`——一律绝对路径（`/c/Windows/System32/wsl.exe`、`/c/Windows/py.exe`、或直接 `python.exe -m video.build` 内联绕开 make）。模板级修法见 `_run_eng_series_chain.sh` 开头的 Git Bash 重执行守卫（检测 `MSYSTEM`，WSL bash 环境自动 exec 到 Git Bash；守卫变量引用用 `${VAR:-}` 防 set -u 报 unbound）。
+2. **python 文本模式补丁 .sh 会写出 CRLF** → bash 报 `invalid option`/`$'': command not found` 拒跑。补丁脚本写文件必须 `io.open(p,'w',encoding='utf-8',newline='
+')`（同 blog-writing「drawio 禁 heredoc」坑族）。
+3. **gpuq 锁内再嵌 gpuq = 自锁死锁**（外层 holder=自己，内层 WAIT 自己，ttl 到期互踢）。正确姿势：后台直接 `bash 链脚本 <slug…>`，外层循环自行逐集 gpuq；给 gpuq 传的 --episode 子命令只含单集步骤。
+4. **pgrep -f 自匹配**：`wsl bash -c "pgrep -f 'synth_indextts.py'"` 会匹配到自身命令行 → 永远「gpu busy」死循环。模式加括号技巧 `'[s]ynth_indextts.py'`。
+5. **SLF 混写路径**：gpuq 子 bash 里 `$SELF` 若为 D:/ 风格路径，WSL bash 打不开（No such file）；统一 MSYS 风格 /d/... 并在重执行前 `cd /mnt/d/codes/blog-src` 锚定 cwd。
+
+#### 左侧白板概述轮播（2026-08-29 用户定规，模板已实现）
+- **定规**：课件左画布（镜头舞台）不得长时间空白——卡片开场先播「本步概述」：本卡要点逐条大字居中轮换（编号徽章 + 浮入/上升出场，每条 ~1s），轮播结束镜头接棒（镜头出生帧整体后移 max(birth, ov_frames)，不吞入场帧）。
+- **镜头内容必须填充画布**：term/quote/stat 加 width:94% + min-height:62% + 字号升档（引言 56px/终端 36px/大数字 170px），禁止小盒子浮在大白面上（修前实录：141s 成片 121s 左画布内容占比 <6%）。
+- **定量验收方法**（改模板后必跑）：`ffmpeg fps=1` 抽全片帧 → PIL 裁左画布区（~x65-1140, y105-925 @1080p）→ 统计非白(<235)像素占比，**<6% 连续 ≥3s 即不合格**。EP08 修前 121/141s 不合格，修后仅代码卡外时段达标。
+- render-only 复用：改模板/重渲画面无需重合成——audio/sent/align 产物全复用，直接 `video.build`（每集 ~4-6 min）；六集批量用 `bash scripts/video/_run_eng_series_direct.sh`（v2 直跑链，无 gpuq 嵌套）。
+
 ## 性能
 
 graph 模式约 1-2 分钟渲染（5 段 ~1800 帧），courseware 约 10-12 分钟，screencast（courseware 子模式）9 段约 10-15 分钟。Remotion 管线 50-100s 视频约 1-3 分钟。若频繁迭代，可降帧率到 30fps 或用 `--scale=0.5` 草稿模式。
@@ -939,8 +973,8 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 ```
 
 - 流程：草稿放弃 → 上传 → 描述（话题 ≤4 裁剪）→ 地区 → **封面（上传+预览验证）** → 定时 → 合集内发布（URL 带 collectionId）→ 发布验证 → link-map 条件写入
-- 坑位：① 描述话题超 4 个会被快手拒发（「话题标签数量超过上限：4」）；② 话题联想面板选择器已失效，话题以描述 # 文本生效；③ 定时作品公开后才计入合集「有效剧集」（发布后验证）
-- 配套：`kuaishou_fix_cover.py`（已发布作品补封面：编辑页→封面区→去编辑→重选封面→上传封面 tab，双栏/单栏两种 DOM 兼容）、`kuaishou_delete_scheduled.py`（按关键词删定时，去重用）、`kuaishou_check_status.py`（定时状态检查）
+- 坑位：① 描述话题超 4 个会被快手拒发（「话题标签数量超过上限：4」）；② 话题联想面板选择器已失效，话题以描述 # 文本生效；③ 定时作品公开后才计入合集「有效剧集」（发布后验证）；④ **desc 清空 bug（2026-08-29 已修）**：vendored `ks_uploader_main.py` 打完简介后有一步 08-20 加的「Control+A→Delete→12×Backspace 清残留 chips」，实际把刚打的简介全选删光、只剩话题循环补的标签——08-27 ep2 / 08-28 源码解析重传版两支中招（简介 30 字符纯标签），v2 通道无此步故未全灭。修复=移除打完后的清空（打字前的清空保留）+话题循环跳过简介文本已含标签防双写；线上受害作品走编辑页补描述（发布按钮须 dump 坐标点击，locator 在该站对 button 失效）。同窗多支作品按「时间+独特词」双条件定位防误中（同档 20:00 常有多支）
+- 配套：`kuaishou_fix_cover.py`（已发布作品补封面，2026-08-29 适配改版 UI：定位支持 `搜索词|卡片唯一子串` 双关键词（纯 `-"` 跳过搜索走列表子串，纯标签简介的作品搜索索引搜不到）；封面入口两态——已自定义封面点「编辑封面」/ 从未设过封面直接点当前封面图（该态弹窗有静态 file input 可直接 set_input_files）；「清空上传」→拖放区 `expect_file_chooser` 拦截选图兜底；确认按钮「完成」/「确认」两态兼容；get_by_text/locator 对该站部分元素计数为 0，按钮一律 dump 坐标点击；**卡片 img src 前后变化为唯一真验证**。清空只改弹窗草稿，不点完成/发布则作品封面不受影响）、`kuaishou_delete_scheduled.py`（按关键词删定时，去重用）、`kuaishou_delete_video.py`（删已发布作品，先只读扫描确认唯一命中再 --confirm）、`kuaishou_check_status.py`（定时状态检查）
 
 ### B 站通道：biliup-rs
 

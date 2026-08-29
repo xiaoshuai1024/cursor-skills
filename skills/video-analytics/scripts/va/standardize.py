@@ -60,8 +60,10 @@ def std_metrics(platform: str, raw: dict) -> dict:
             "forward": None,
         }
     if platform == "shipinhao":
-        return {"play": _num(raw.get("play_count")), "like": None, "comment": None,
-                "share": None, "fav": None, "coin": None, "danmaku": None, "forward": None}
+        return {"play": _num(raw.get("play_count")), "like": _num(raw.get("like_count")),
+                "comment": _num(raw.get("comment_count")), "share": _num(raw.get("forward_count")),
+                "fav": _num(raw.get("fav_count")), "coin": None, "danmaku": None,
+                "forward": None}  # forward 与 share 同源（forwardCount），只计一处防互动重复累加
     raise ValueError(f"unknown platform {platform}")
 
 
@@ -173,7 +175,7 @@ def build() -> dict:
 def _account_fans() -> dict:
     """账号级粉丝数据（fans_collect 产物，B站净增由快照差分）。"""
     account = {}
-    for plat in ("douyin", "bilibili"):
+    for plat in ("douyin", "bilibili", "shipinhao"):
         p = common.SNAP_DIR / "fans" / f"{plat}.jsonl"
         if not p.exists():
             continue

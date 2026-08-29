@@ -56,6 +56,7 @@ py -3.11 -m scripts.fetch_sources --out .douyin-topic/latest.json
 py -3.11 -m scripts.filter_score --in .douyin-topic/latest.json
 py -3.11 -m scripts.fetch_video --group-id <id>
 py -3.11 -m scripts.transcribe --audio .douyin-topic/videos/<id>/audio.mp4
+py -3.11 -m scripts.understand_video .douyin-topic/videos/<id>/video.mp4 --max-frames 12 -o .douyin-topic/videos/<id>/teardown.json   # 镜头级拆解帧表（零依赖，whisper 不需要）
 py -3.11 -m scripts.analyze --dir .douyin-topic/videos/<id>/
 py -3.11 -m scripts.outline --rough <topic.json>   # Phase 1 假设大纲
 py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
@@ -63,7 +64,7 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 
 **两阶段分工**：
 - **Phase 1 选题**：拿 `topics.md` + `rough_outlines/` 的假设大纲，判断「本次模仿哪条」——不看原片，纯靠话题信息 + 方向经验 + 本站素材映射
-- **Phase 2 深挖**：对确认的 `group_id` 下载原片 → 本地转写 → 拆解真实钩子/结构/热评/关键帧 → 生成**逐行可抄**的仿写脚本
+- **Phase 2 深挖**：对确认的 `group_id` 下载原片 → 本地转写 → 拆解真实钩子/结构/热评/关键帧 → 生成**逐行可抄**的仿写脚本。转写之外加**镜头级拆解**（`understand_video.py`，2026-08-28 增补，搬运自 OpenMontage video-understand，AGPL-3.0）：ffmpeg 场景切分 + 关键帧帧表（JSON 落 `videos/<id>/teardown.json`，帧图落 `video_frames/`），回答「怎么拍」——镜头数/切点节奏/钩子出现在第几个镜头/每个镜头 hold 多久；与转写文本（「说什么」）构成双证据链，缺一不算拆完。纯 ffmpeg 零第三方依赖，whisper 转写不归它管（走 transcribe.py）
 
 产物统一落 `.douyin-topic/`（git 忽略）：`topics.json`（选题清单）、`rough_outlines/`（假设大纲）、`videos/<group_id>/`（原片/截图/转写稿/拆解）、`deep_outline.json`（可抄大纲）。
 
@@ -84,7 +85,7 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
   - 无匹配 → 按热度速跟 / 垂直教学两套模板生成（`references/outline-templates.md`）
   - **精选对标（2026-08-27，openspec douyin-featured-selection）**：除热榜爆款外，另一类拆解对象是**已入选精选的知识类案例**（DeepSeek 实用技巧 / 自制硬件 / 三维建模类，档案见 `references/jingxuan-benchmarks.md`）——拆解维度比热榜多两层：选题结构（实用技巧清单 / 反常识机制揭秘 / 官方没说的细节三型）与**获得感密度分布**（每多少秒落一个可带走知识点）、时长形态；仿写角度优先「专业到极限」（单工具单机制源码深挖）
 
-可抄大纲逐行可投产（口播骨架 + 画面提示 + 差异化角度），直接可喂 `video-generation` 的 deck/口播。
+可抄大纲逐行可投产（口播骨架 + 画面提示 + 差异化角度），直接可喂 `video-generation` 的 deck/口播。有镜头级拆解帧表时，仿写脚本的画面提示列 SHALL 对齐原片镜头节奏证据（钩子镜头时长/切点密度），不凭空编画面。
 
 **仿写脚本强制视频三要素**（2026-08-24 用户定规，与 `video-generation` skill 的「视频三要素」同源，产稿时逐条对照）：① 提问式开头——引导语固定用「问你一个问题」或「你有没有想过」二选一（频道签名），问题主体 ≤20 字且须在正文中被回答；② 钩子设计且必须消费——稿附「钩子 → 回收」映射表（埋点 + 回收时间码 + **15s 兑现位**列，openspec douyin-featured-selection），无回收点的钩子不许埋；③ 分镜含 BGM 情绪档 / 音效触发点 / 转场类型三列（转场 15 种、音效至少含开场音 + 提问音 + 转场音 + 关键动作音）。**冲精选追加两条**（2026-08-27，openspec douyin-featured-selection）：④ **选题三问**——获得感（观众带走什么）/ 惊喜感（哪里超预期）/ 共鸣感（哪里想到自己），三问全空换选题；**获得感密度**——每 30s 一个可带走知识点，口播稿逐段自检；⑤ **时长预算 ≤120s**（口播 340-380 字；>150s 需拆系列论证，发布门禁拦）。另守签名定规：开头不放自我介绍，结尾最后一句固定签名「我是1024工程笔记，越基础的东西，越值得讲透。」（2026-08-26 定稿；签名句前允许合规求关注，见 video-generation skill），视觉品牌由右下角伴随机器人承担、不加水印。
 
@@ -93,13 +94,14 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 ```
 本 skill 目录（见 SKILL.md「产物与目录」）
 ├── SKILL.md
-├── topic_keywords.json        方向关键词表（可编辑）
+├── topic_keywords.json        方向关键词表（可编辑）；含 weights/series_keywords 反哺块（video-analytics 涨粉口径 → 选题分缩放，2026-08-29 接入）
 ├── scripts/
 │   ├── pipeline.py            两阶段编排（phase1 选题 / phase2 深挖）
 │   ├── fetch_sources.py       免登录热榜拉取（主榜+上升榜，含缓存）
 │   ├── filter_score.py        方向过滤 + 双系列 + 潜力分
 │   ├── fetch_video.py         Playwright+msedge 拉代表视频/截图
 │   ├── transcribe.py          faster-whisper 转写
+│   ├── understand_video.py    镜头级拆解（ffmpeg 场景切分+关键帧帧表，搬运自 OpenMontage，转写不归它管）
 │   ├── analyze.py             拆解（钩子/结构/热评/关键帧）
 │   └── outline.py             大纲（--rough 假设 / --deep 可抄）+ 资产映射
 └── references/

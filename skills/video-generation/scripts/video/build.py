@@ -145,6 +145,7 @@ def normalize_card(raw: dict) -> dict:
         "sub_points": list(raw.get("sub_points", [])),
         "flow": raw.get("flow"),   # 可选：链式流程图画布（与 sub_points 互斥，flow 优先）
         "shots": list(raw.get("shots", [])),  # 卡内镜头序列（openspec card-shots，优先于 flow/sp）
+        "annotate": raw.get("annotate"),  # 手绘强调注记（openspec shot-motion-upgrade）
         "footer": raw.get("footer", ""),
         "is_cover": False,
     }
