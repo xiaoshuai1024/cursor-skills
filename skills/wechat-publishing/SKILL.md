@@ -46,7 +46,7 @@ hugo --gc --minify          # 构建到 public/
 make wechat-prepare slug=<slug>
 ```
 
-`scripts/wechat/prepare.py`（走 `--for-wechatsync` 路径）做的事：
+`scripts/wechat/prepare.py`（走 `--for-mp` 路径）做的事：
 1. 从 `public/posts/<slug>/index.html` 的 `.content` 区提取正文，剔除导航/TOC/分享按钮
 2. `clean_and_style()`：注入 inline 样式（公众号不支持 CSS class），清除非 span 标签的 class
 3. `convert_images()`：SVG → PNG（公众号不支持 SVG），**首图额外按 9:5 裁出 `cover.png`**
@@ -195,6 +195,14 @@ Hugo 用 chroma 以 class-based 方式生成高亮（`noClasses = false`）。�
 - `direct_send=1` 缺失直接 67011；`isFreePublish` 必须小写字符串 `"false"`（布尔 False 序列化成 `"False"` 服务端不认）。
 - `operation_seq` 从 `masssendpage?f=json&preview_appmsgid=<id>` 拿（每次会话变）；`req_id` 32 位随机字母数字；`req_time` 毫秒+`client_time_diff`。
 - 直连前**必须先查配额**（`quota_detail_list`，`quota:0` = 已被排期占用，`original_quota`=上限），无配额日期 time_send 会被拒。`schedule_api.py` 内置此检查，`--dry-run` 只打印 payload 不提交。
+
+### 定时取消与权威核验（2026-08-29 实证）
+
+- **取消定时走 API，不走 UI 气泡**：`cancel_time_send` 表单 `id` = **masssend 定时记录 id**（不是草稿 appMsgId），来源见下条 timesend_msg。实测 form 直推 ret=0，一击即中。**首页「定时发表」面板的取消气泡是每卡预渲染的**——盲点 JS「确认」会点中错误卡片的气泡（2026-08-29 事故：想取消 QKV 卡，误把总抢跑卡的定时取消了）。UI 取消必须「记录触发点坐标→点最近确认→复核列表」三步走全。
+- **权威核验通道 = 首页 HTML 内嵌 `wx.cgiData.timesend_msg`**：GET 首页后正则提取（`timesend_msg\s*:\s*"(.*?)",\s*\n`，反转义后 JSON.parse），`sent_list[]` 含全部定时条目的 `msgid`（=cancel_time_send 的 id）/`sent_info.time`/`appmsg_info[].title`。改完约 1 分钟后可查到新状态，无面板窗口限制。
+- **⚠️ 首页「定时发表」面板模板是 `v-show="show || index < 2"`——DOM 里永远只渲染前 2 条**，滚动/等待都出不来。面板只适合看最近两档；全量排期一律走 timesend_msg。
+- **schedule_ui_v2 的「发表」按钮坐标兜底（已并入脚本）**：编辑器底部「发表」不是 button/a 元素，`get_by_text` 可能全不可见——按「文本恰为『发表』的最内层元素」scrollIntoView 后 `mouse.click` 坐标点击（2026-08-29 五级文实证，无兜底时两次重试全挂在「无可见发表」）。
+- **time_send 抓包判定会漏报**：三次定时实际成功但脚本报「未检测到 time_send/未确认发布动作」（confirm 链抓包窗口错过）。**以 timesend_msg 列表为准**，脚本报失败先核验再重跑，盲目重跑会多堆一个发布副本。
 
 ### UI 定时发表会创建发布副本（schedule_ui_v2.py，2026-08-03 实证）
 

@@ -113,6 +113,27 @@ def per_video_card(slug: str, diag: dict, retentions: dict | None = None) -> str
     return "\n".join(lines)
 
 
+def experiments_section() -> list[str]:
+    """实验台账节（openspec ops-hardening）：进行中 + 最近已验证。"""
+    from . import experiment
+    try:
+        opens = experiment.open_experiments()
+        done = experiment.verified_recent()
+    except Exception:
+        return []
+    if not opens and not done:
+        return []
+    lines = ["## 实验台账（假设→落地→验证）", ""]
+    for r in opens:
+        lines.append(f"- 🔬 **{r['id']}** [{r.get('directive')}] {r.get('hypothesis')}"
+                     f"（落地：{', '.join(r.get('applied_to') or []) or '—'}）——观察期后 `verify` 写结论")
+    for r in done:
+        mark = "✅" if r["status"] == "verified" else "❌"
+        lines.append(f"- {mark} **{r['id']}** [{r.get('directive')}] {r.get('result_note') or '(无结论)'}（{r.get('verified_at')}）")
+    lines.append("")
+    return lines
+
+
 def overview(diag: dict, metrics: dict) -> str:
     videos = metrics["videos"]
     today = datetime.now(common.CST).strftime("%Y-%m-%d")
@@ -247,6 +268,8 @@ def overview(diag: dict, metrics: dict) -> str:
             lines.append(f"- {b}：{len(slugs)} 条{note} —— {', '.join(s[:30] for s in slugs[:4])}")
         lines.append("")
 
+    lines += experiments_section()
+
     lines += ["## 建议动作清单", ""]
     n = 0
     for slug, pv in diag["per_video"].items():
@@ -358,7 +381,11 @@ def run() -> int:
     (REPORT_DIR / f"overview-{stamp}.md").write_text(overview(diag, metrics), encoding="utf-8")
     (REPORT_DIR / "feedback-keywords.md").write_text(feedback_keywords(diag, metrics), encoding="utf-8")
     (REPORT_DIR / "report.json").write_text(json.dumps(diag, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"[report] 诊断卡 {n} 张 + 总览 + 反哺建议 -> {REPORT_DIR}")
+    exp_lines = experiments_section()
+    (REPORT_DIR / "experiments.md").write_text(
+        "\n".join(["# 实验台账"] + (exp_lines[1:] if exp_lines else ["", "（空）无登记——第一条 `make experiment ARGS=\"add ...\"`"]) ) + "\n",
+        encoding="utf-8")
+    print(f"[report] 诊断卡 {n} 张 + 总览 + 反哺建议 + 实验台账 -> {REPORT_DIR}")
     return 0
 
 

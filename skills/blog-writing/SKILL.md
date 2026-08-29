@@ -202,9 +202,9 @@ print('   公众号变体: wechat_title %s' % ('有' if re.search(r'^wechat_titl
 - [ ] 文章间用 `{{< relref "posts/xxx.md" >}}` 互链,融入成长线
 - [ ] `hugo build` 成功;公众号发布 48h 回看已排期(跑 `make wechat-analytics` + `make wechat-analytics-report` 看诊断卡,**对照完读率 30/50/65 与打开率 1.9%/4% 基准线归档**,流失位置用留存曲线 5% 节点读,打开低修标题摘要、完读低修首屏节奏/长度档位,数据结论写 link-map.json 备注);**定时群发落 20:00-21:00 窗口**(晚间打开峰)
 
-### 第 10 步:生成图文版(小红书/抖音) — 已归档
+### 第 10 步:生成图文版(小红书/抖音) — 已退役
 
-> ⚠️ **2026-08 已归档**:图文发布管线(`scripts/xiaohongshu/`、`scripts/douyin/`、`image-text/`、旧第三方发布脚本 及对应 Makefile 目标)已整体删除,仓库不再生成/发布小红书、抖音图文版。历史内容与旧命令见 git 历史。卡片**设计规范**仍保留在 `image-text-cards` skill 供参考。
+> ⚠️ **2026-08 归档、2026-08-30 退役**(openspec `xiaohongshu-image-notes-retirement`):图文发布管线(`scripts/xiaohongshu/`、`scripts/douyin/`、`image-text/`、旧第三方发布脚本 及对应 Makefile 目标)已删,`image-text-cards` skill 亦已整体删除——仓库不再生成/发布任何图文笔记,暂时目标全部是视频。历史内容与卡片设计规范见 git 历史。
 
 ---
 

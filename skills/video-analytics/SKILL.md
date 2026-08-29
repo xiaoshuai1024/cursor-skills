@@ -17,6 +17,9 @@ make analytics platform=bilibili  # 单平台（douyin,kuaishou,bilibili,shipinh
 make analytics-deep               # 深度过程采集（完播率/平均时长/3s退出/涨粉）+ whisper 留存对齐
 make analytics-deep slugs=a,b     # 只跑指定 slug（转写有缓存）
 make analytics-report             # 标准化 → 诊断 → 报告
+make analytics-revenue            # 平台收益只读采集 + 变现门槛进度表（monetize-tracking）
+make fans-insight                 # 粉丝画像/活跃时段采集 + 发布档校准建议（fans-insight）
+make experiment ARGS="list"       # 实验台账：假设→落地→验证闭环（ops-hardening）
 ```
 
 **冲精选期采集纪律**（2026-08-27，openspec douyin-featured-selection）：① deep 采集对**新发视频默认全量跑**（历史仅 4/25 覆盖，回验样本不足）；② 每条视频发布满 **48h** 跑一次 `analytics-deep + analytics-report`，对照「精选自查基准线」写进 directives；③ **月度精选复盘**——每月 18-20 日（官方发上月精选作者榜单）跑一次 report，对照榜单记录本号差距与可仿写点，同步更新 `douyin-topic/references/jingxuan-benchmarks.md` 案例档案；④ 20:00 发布窗口回测——累计 10 支 20:00 档后与中午档历史对比完播/池级，结论回写 video-generation skill「发布窗口」节；⑤ **结论沉淀**（2026-08-29）——48h 回验与月度复盘的账号级结论追加 `references/findings-log.md`（`reports/` 与 `.video-analytics/` 均 gitignore 不进 git，跨期结论只认 references 落盘；新结论与旧结论冲突时并列保留并标注修订）。
@@ -42,6 +45,21 @@ make analytics-report             # 标准化 → 诊断 → 报告
 | B站 | 公开 `relation/stat`（免登录）+ 日快照差分 | 粉丝总数、净增（无掉粉明细则不造数） |
 | B站 | `archive_diagnose`（单视频）| 涨粉、播转粉率（含同类 UP 主对照，not_ready 时置空） |
 | 视频号 | `statistic/fans_trend`（首页裸 fetch，随 `make analytics` 每日，2026-08-29 接入）| 粉丝总数、7 日涨/掉/净增序列、涨粉来源拆解（推荐/主页/分享…）；单视频涨粉走列表 `follow_count` |
+| 快手 | cp.kuaishou.com 被动 XHR 拦截 + fan/follower 关键字深挖（随 `make analytics`，2026-08-30 接入）| 粉丝总数（快照差分得净增；端点带签名，落空时降级留痕） |
+
+## 粉丝画像与发布档校准（fans-insight，2026-08-30）
+
+`make fans-insight`：四平台创作者中心粉丝画像 XHR 宽匹配拦截 + 原始证据落盘（`snapshots/fans_insight_raw/`，gitignore）+ 关键字/name/value 双路深挖。**当前覆盖**：视频号全量画像（年龄/性别/地域/设备，`statistic/fans_portrait` respJson 解包）；抖音/快手的活跃时段直方图端点未固化（raw 证据在手，待人工抓包迭代）；B站随登录恢复后接入。产出 `data/analytics/fans_insight.json`（含 F1 发布档校准 directive：活跃峰值 vs 现行 8/12/20 档）+ `reports/fans-insight.md`。校准是建议不是自动改档——双窗口定规不动。
+
+## 变现数据（monetize-tracking，2026-08-30）
+
+- `make analytics-revenue` = `va.revenue_collect`（B站/视频号收益页 XHR 宽匹配拦截，原始证据 `snapshots/revenue_raw/`）+ `va.monetize`（门槛进度表）。快照落 `snapshots/revenue/<platform>.jsonl`（进 git）。
+- `data/analytics/monetize-report.md`（进 git）：各平台变现门槛进度（现状/差距/近7日净增/按速度外推达标日）+ 收益摘要。门槛数值在 `monetize-thresholds.json` 维护（含来源注记，以后台页面为准）。
+- 已知缺口（2026-08-30 首采）：视频号 141 粉后台无收益中心入口（未达开通条件，属预期）；B站浏览器登录态失效（archives HTTP API 仍活），收益端点待登录恢复后抓包固化。
+
+## 实验台账（ops-hardening，2026-08-30）
+
+directives 提出假设，`va.experiment` 补验证闭环：`add`（登记 directive/假设/落地 slug/验证指标）→ 观察期 → `verify <id> --note "结论"`（自动拉 timeseries.db 最新指标辅助，结论必须人写——平台无对照流量不硬造 A/B）。台账 `data/analytics/experiments.jsonl`（进 git）；`make analytics-report` 的总览与 `experiments.md` 均渲染进行中/最近已验证实验。
 
 ## 播放过程分析（锚点推断法）
 

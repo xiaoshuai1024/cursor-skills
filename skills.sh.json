@@ -30,13 +30,12 @@
     },
     {
       "title": "配图 / Visuals",
-      "description": "架构图（draw.io）、手绘风概念图（真实 Excalidraw 引擎 + 已发布文章真实成稿案例库）、应用窗口截图 OCR、免费实拍素材检索、图文笔记卡片设计。",
+      "description": "架构图（draw.io）、手绘风概念图（真实 Excalidraw 引擎 + 已发布文章真实成稿案例库）、应用窗口截图 OCR、免费实拍素材检索。",
       "skills": [
         "drawio",
         "excalidraw",
         "app-screenshot",
-        "stock-footage",
-        "image-text-cards"
+        "stock-footage"
       ]
     },
     {

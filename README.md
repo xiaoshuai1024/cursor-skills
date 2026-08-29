@@ -1,10 +1,10 @@
 # xiaoshuai skills
 
-技术内容创作与多平台运营 Agent Skills 集合 —— 把「选题 → 写作 → 配图 → 发布 → 视频 → 评论承接 → 数据回看」全链路沉淀成 22 个可复用的 skill。
+技术内容创作与多平台运营 Agent Skills 集合 —— 把「选题 → 写作 → 配图 → 发布 → 视频 → 评论承接 → 数据回看」全链路沉淀成 21 个可复用的 skill。
 
 所有 skill 兼容 [Agent Skills 规范](https://agentskills.io)，可在 Claude Code、Codex、Cursor、Gemini CLI 等编码 Agent 里通用。
 
-> 本仓只收**自研** skill。这套 skill 的特点是带着真实运营定规：不是「教你写」的方法论，而是每天真实产出文章/视频/图文沉淀下来的机检门禁、平台红线与数据回看闭环。
+> 本仓只收**自研** skill。这套 skill 的特点是带着真实运营定规：不是「教你写」的方法论，而是每天真实产出文章/视频沉淀下来的机检门禁、平台红线与数据回看闭环。
 
 ## 安装
 
@@ -18,14 +18,14 @@ npx skills add xiaoshuai1024/skills
 
 ### 按场景选装（装哪些）
 
-`npx skills add` 会装全部 22 个；真正的「选装」是**配置**——只有配了登录态/密钥的 skill 才能跑通完整链路，其余 skill 纯本地即可用：
+`npx skills add` 会装全部 21 个；真正的「选装」是**配置**——只有配了登录态/密钥的 skill 才能跑通完整链路，其余 skill 纯本地即可用：
 
 | 你要做的事 | 必装（自动发现即用） | 需要额外配置才能跑满 |
 |-----------|---------------------|---------------------|
 | 只写技术博客 | blog-writing、drawio、excalidraw、de-ai-smell、app-screenshot | 无（全本地） |
 | + 选题 | tech-topic、douyin-topic、mstodo-topic | mstodo-topic 需 Microsoft 登录态；douyin-topic 深挖需 patchright + 浏览器 |
 | + 标题与合规 | metadata-optimizer、platform-compliance | 无（词表+脚本自包含） |
-| + 公众号 | wechat-publishing、image-text-cards、wechat-analytics | wechat-publishing/analytics 需 mp 后台登录态 + `.env.local`（见下） |
+| + 公众号 | wechat-publishing、wechat-analytics | wechat-publishing/analytics 需 mp 后台登录态 + `.env.local`（见下） |
 | + 视频 | video-generation、stock-footage、video-detail-site | 视频发布需四平台登录态（cookies/）；IndexTTS-2 克隆链需 WSL 环境（可降级 edge-tts） |
 | + 全平台运营闭环 | comment-auto-reply、video-analytics、video-pipeline-tracker | 需各平台创作者登录态；B站走 biliup-rs 双轨 |
 | 写口播稿/文章加梗 | talkshow | 无（点名触发，联网搜热梗需网络） |
@@ -112,20 +112,7 @@ cmd /c mklink /J .agents\skills\<name> ..\.skills\skills\<name>
 5. 反哺：把诊断结论写回 link-map 备注， douyin-topic 用表现最好的钩子型找下一批对标。
 ```
 
-### 场景 5：图文笔记（小红书 / 抖音图文 / 视频号图文）
-
-需要：image-text-cards、metadata-optimizer、platform-compliance、app-screenshot（可配真截图）
-
-```
-把《【主题】》做成图文笔记：
-1. image-text-cards 设计卡片组：每张卡一个信息点，对比驱动、去术语化，
-   封面卡大字钩子、尾卡单动作引导；
-2. 正文 description 与卡片分工：卡片秒抓眼球、正文给完整逻辑链；
-3. 标题走 metadata-optimizer 变体，platform-compliance 扫一遍平台红线
-   （小红书/抖音各自的违禁词与导流规则）。
-```
-
-### 场景 6：从一条待办到全平台的全链路
+### 场景 5：从一条待办到全平台的全链路
 
 需要：以上全部 + code-doc-maker（无需）、mstodo-topic 起点版
 
@@ -139,7 +126,7 @@ mstodo-topic 拉清单分析（三维：仿写价值/潜力/方向匹配）→ �
 
 ---
 
-## 全景：22 个 skill 按场景选用（渐进叠加）
+## 全景：21 个 skill 按场景选用（渐进叠加）
 
 这些 skill 设计为**配合使用**，按内容运营需求分层叠加。每一层独立可用，装到哪层用哪层：
 
@@ -156,7 +143,6 @@ platform-compliance                      ✅       ✅       ✅        ✅
 metadata-optimizer                       ✅       ✅       ✅        ✅
 wechat-publishing                                ✅       ✅        ✅
 wechat-analytics                                 ✅       ✅        ✅
-image-text-cards                                 ✅       ✅        ✅
 video-generation                                          ✅        ✅
 stock-footage                                             ✅        ✅
 video-detail-site                                         ✅        ✅
@@ -221,7 +207,6 @@ video-pipeline-tracker                                              ✅
 |------------|------|
 | [wechat-publishing](skills/wechat-publishing/) | 公众号 mp 后台 API 直推（Playwright 登录态）→ 草稿+定时群发+封面自动取首图 9:5+代码高亮（chroma→Monokai）+内链替换；发布配置四查（作者/合集/原创声明/广告开关） |
 | [wechat-analytics](skills/wechat-analytics/) | 公众号数据分析：mp 后台只读采集（单篇/详情/趋势）→ 增量快照 → 转化五级漏斗诊断（送达→打开→读完→互动→关注导流）→ 打开/完读/转化三层归因 → 48h 回看对照 30/50/65 完读基线出结论 |
-| [image-text-cards](skills/image-text-cards/) | 公众号/小红书图文笔记卡片设计（卡片秒抓眼球 + 正文深度展开，对比驱动与去术语化原则） |
 
 **依赖**：Python 3 + playwright + bs4 + Pillow。配置 `.env.local`（见 [`.env.local.example`](skills/wechat-publishing/.env.local.example)）：站点 URL、作者名、合集 ID、masssend 指纹。
 

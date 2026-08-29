@@ -1,6 +1,6 @@
 # 标题公式库（候选生成时的档位与句式）
 
-> 来源标注：〔qiaomu〕= qiaomu-xinzhiyuan-title（2688 篇新智元标题统计驱动）；〔toolkit〕= social-creator-toolkit；〔实证〕= 中文平台数据研究（小红书 Top50 / 公众号 A/B 等，见 blog-src `openspec/changes/metadata-optimization/research.md` §1.2）。
+> 来源标注：〔qiaomu〕= qiaomu-xinzhiyuan-title（2688 篇新智元标题统计驱动）；〔toolkit〕= social-creator-toolkit；〔实证〕= 中文平台数据研究（公众号 A/B 等，见 blog-src `openspec/changes/metadata-optimization/research.md` §1.2）。
 > 本账号线上的真实历史标题举例用〔本仓〕标注。
 
 ## 五档位公式（每个候选必须归档，同档位不重复出）
@@ -31,7 +31,8 @@
 |----|------------|-----------------|
 | 通用标题 | 同一句话贵 30 倍？DSH 源码里的 3 条省钱纪律 | 同一个问题贵 30 倍？DeepSeek Harness 的省钱纪律 |
 | 抖音变体 | 同一句话贵30倍？DSH源码3条省钱纪律 | 同一问题贵30倍？DeepSeek Harness省钱纪律（29/30 字） |
-| 小红书变体 | 同一个问题贵30倍？DSH源码3条纪律 | DeepSeek Harness 省钱纪律（20/20 字，字数紧时保实体砍钩子） |
+
+> 小红书变体示例已随 2026-08-30 小红书退役删除（openspec `xiaohongshu-image-notes-retirement`）。
 
 结构拆解：钩子（贵30倍，反差数字，前 10 字）+ 热词（DeepSeek Harness 全称）+ 长尾（省钱纪律 = 实体×利益）。配套动作：封面关键词组**首位放全称**；简介首段「DeepSeek Harness（DSH）」双命中。
 
@@ -40,12 +41,6 @@
 ## 7 心理触发（候选自检：至少命中 2 个）〔toolkit〕
 
 画饼（更好的愿景）/ 损失厌恶（不做会亏）/ 数字（可预期）/ 反认知（打破常识）/ 提问（对号入座）/ 参照物（和已知物对比）/ 圈定人群（「前端」「写 Go 的」）。
-
-## 小红书 10 句式〔toolkit〕（用于 标题_小红书 变体）
-
-亮点前置+悬念 / 别再[错误做法]了 / 后悔没早点[动作] / [人群]必看 / [数字]个[结果] / 救命！[痛点] / 有手就会[动作] / [工具]隐藏用法 / [人群]请进 / 一秒搞定[事]。
-
-**注意**：小红书避感叹号（句式里的「救命！」等按平台禁忌降级为 `|` 或去掉），核心词放前 10 字。
 
 ## 简介首句（2 秒留存门）〔higgsfield social-hook〕
 

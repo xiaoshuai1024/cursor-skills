@@ -25,7 +25,7 @@ except (AttributeError, OSError):
     pass
 
 # 平台上限(len 口径;同步源 blog-src scripts/pub/config.py)
-TITLE_MAX = {"douyin": 30, "kuaishou": 50, "xiaohongshu": 20,
+TITLE_MAX = {"douyin": 30, "kuaishou": 50,
              "shipinhao": 63, "weixin": 64, "bilibili": 80}
 
 VERBS = ("安装", "装", "配置", "部署", "上线", "写", "剪", "生成", "拆解", "读懂",

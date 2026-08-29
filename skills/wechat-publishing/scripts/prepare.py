@@ -468,25 +468,25 @@ def prepare(slug: str) -> dict:
 def main() -> None:
     """CLI 入口。
 
-    python3 -m prepare --slug xxx                  # Playwright 用(占位符)
-    python3 -m prepare --slug xxx --for-wechatsync # Wechatsync 用(本地路径+复制剪贴板)
+    python3 -m prepare --slug xxx            # Playwright 用(占位符)
+    python3 -m prepare --slug xxx --for-mp   # mp 直推用(本地图片路径+复制剪贴板)
     """
     import argparse
     import json
 
     parser = argparse.ArgumentParser(description="准备公众号内容包")
     parser.add_argument("--slug", required=True, help="文章 slug")
-    parser.add_argument("--for-wechatsync", action="store_true",
-                        help="生成 Wechatsync 专用 HTML(本地图片路径)并复制到剪贴板")
+    parser.add_argument("--for-mp", action="store_true",
+                        help="生成 mp 后台直推专用 HTML(本地图片路径)并复制到剪贴板")
     args = parser.parse_args()
 
-    if args.for_wechatsync:
-        result = prepare_for_wechatsync(args.slug)
-        print(f"✅ Wechatsync 内容已生成并复制到剪贴板")
+    if args.for_mp:
+        result = prepare_for_mp(args.slug)
+        print(f"✅ mp 直推内容已生成并复制到剪贴板")
         print(f"   HTML: {result['wechat_html']}")
         print(f"   封面: {result['cover']}")
         print(f"   标题: {result['title']}")
-        print(f"   → 现在打开 Wechatsync,粘贴(Cmd+V)到内容区即可")
+        print(f"   → HTML/封面交发布管线使用,剪贴板可手动粘贴核对")
     else:
         result = prepare(args.slug)
         print(f"✅ 内容包已生成: {os.path.dirname(result['content_html'])}")
@@ -498,11 +498,11 @@ def _copy_html_to_clipboard(html: str) -> None:
     """把 HTML 以富文本格式复制到剪贴板。
 
     macOS:JXA + AppKit 写 public.html 类型。
-    Windows:跳过(Wechatsync CLI 直接读 HTML 文件路径,无需剪贴板)。
+    Windows:跳过(mp 直推直接读 HTML 文件路径,无需剪贴板)。
     """
     import sys
     if sys.platform == "win32":
-        # Windows 下 wechatsync CLI 直接传 HTML 文件路径,不需要剪贴板
+        # Windows 下发布管线直接传 HTML 文件路径,不需要剪贴板
         return
     import subprocess
     import tempfile
@@ -536,11 +536,11 @@ def _copy_html_to_clipboard(html: str) -> None:
         subprocess.run(["pbcopy"], input=html, text=True, check=False)
 
 
-def prepare_for_wechatsync(slug: str) -> dict:
-    """生成 Wechatsync 专用 HTML(本地图片路径)并复制到剪贴板。
+def prepare_for_mp(slug: str) -> dict:
+    """生成 mp 后台直推专用 HTML(本地图片路径)并复制到剪贴板。
 
-    与 prepare() 的区别:图片 src 用本地绝对路径(Wechatsync 粘贴时自动上传),
-    并把 HTML 以富文本格式复制到剪贴板,直接 Cmd+V 粘到 Wechatsync。
+    与 prepare() 的区别:图片 src 用本地绝对路径(mp 直推读取本地上传),
+    并把 HTML 以富文本格式复制到剪贴板供人工核对。
     """
     import json
 
@@ -686,7 +686,7 @@ def prepare_for_wechatsync(slug: str) -> dict:
     with open(wechat_html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    # 处理各平台专属 HTML（wechatsync sync 实际用的是这些）
+    # 处理各平台专属 HTML（mp 直推/juejin 变体用的是这些）
     for platform, path in platform_outputs.items():
         with open(path, encoding="utf-8") as f:
             plat_html = f.read()

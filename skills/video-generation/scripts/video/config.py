@@ -1,4 +1,4 @@
-"""视频生成管线配置。和 scripts/xiaohongshu、scripts/douyin 的风格保持一致。"""
+"""视频生成管线配置。"""
 import os
 from pathlib import Path
 
@@ -32,7 +32,7 @@ NARRATIONS_DIR = OUTPUT_ROOT / "narrations"          # 口播文案 json
 ASSETS_DIR = SCRIPT_DIR / "assets"                   # skill 内可复用素材（预留）
 NARRATION_ASSETS_DIR = OUTPUT_ROOT / "narration"     # BGM/SFX 素材（gen-sfx.py 产物,与 Remotion public/ 同源）
 
-# 输出规格：竖屏短视频（抖音/视频号/小红书通用）
+# 输出规格：竖屏短视频（抖音/视频号通用）
 FPS = 30
 OUT_W, OUT_H = 1080, 1920
 OUT_SIZE = f"{OUT_W}x{OUT_H}"

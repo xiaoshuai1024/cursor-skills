@@ -4,7 +4,8 @@
 抖音: 页面上下文裸 fetch `aweme/janus/creator/data/overview/all/`（含 fans/new_fans/cancel_fans 日序列）
 B站: 公开 `api.bilibili.com/x/relation/stat?vmid=<mid>`（免登录，日快照差分得净增，掉粉不造数）
 视频号: 首页上下文裸 fetch `statistic/fans_trend`（7 日窗口日粒度 + 涨粉来源 tabType 拆解，2026-08-29 接入）
-快手: 数据中心粉丝页 P2（播放量级低暂缓）
+快手: cp.kuaishou.com 页内多候选裸 fetch + fan/follower 关键字深挖（端点无文档，2026-08-30 接入，
+      落空时抛错留 raw 线索待迭代；后续按抓包固化端点后可改为直连）
 
 产出: data/analytics/snapshots/fans/{platform}.jsonl（每日一条，append）
 用法: python -m va.fans_collect [--platform douyin,bilibili]
@@ -192,17 +193,90 @@ async def fans_shipinhao() -> dict:
     }
 
 
+async def fans_kuaishou() -> dict:
+    """快手: cp.kuaishou.com 创作者中心，被动 XHR 拦截 + fan/follower 关键字深挖。
+
+    快手创作中心粉丝端点带签名无公开文档——盲拉候选端点实测不命中（2026-08-30），
+    改为打开控制台后被动拦截用户/粉丝相关接口，挖到 fan/follower 数值即取用；
+    全部落空抛错（errors 留痕，fans_insight_raw 同款抓包证据路径迭代）。
+    """
+    from .revenue_collect import _deep_find, NOISE
+
+    sys.path.insert(0, str(ROOT / "scripts" / "pub" / "vendor"))
+    from patchright.async_api import async_playwright
+
+    MATCH = ["user", "fans", "follower", "profile", "overview", "center"]
+    SKIP = NOISE + ["photo/list", "video/list", "work", "upload", "log"]
+
+    captured: list[dict] = []
+
+    async def on_response(resp):
+        try:
+            u = resp.url
+            if not any(m in u for m in MATCH) or any(s in u for s in SKIP):
+                return
+            captured.append(await resp.json())
+        except Exception:
+            pass
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True, args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
+        context = await browser.new_context(storage_state=str(PUB_COOKIES / "kuaishou.json"))
+        page = await context.new_page()
+        page.on("response", lambda r: asyncio.ensure_future(on_response(r)))
+        await page.goto("https://cp.kuaishou.com/", wait_until="domcontentloaded", timeout=90000)
+        await page.wait_for_timeout(6000)
+        for nav in ["粉丝管理", "数据中心", "我的主页"]:
+            try:
+                await page.click(f"text={nav}", timeout=5000)
+                await page.wait_for_timeout(5000)
+                break
+            except Exception:
+                continue
+        await browser.close()
+
+    hits: dict[str, object] = {}
+    for body in captured:
+        for p, v in _deep_find(body, keywords=("fan", "follower")):
+            hits[p] = v
+    total = None
+    for p, v in hits.items():
+        key = p.split(".")[-1].lower()
+        if key in ("fancount", "fanscount", "followercount", "fans_count", "fan_count") and v not in (None, "", 0):
+            total = int(v)
+            break
+    if total is None:
+        for p, v in hits.items():
+            if isinstance(v, int) and 0 < v < 10_000_000:
+                total = v
+                break
+    if total is None:
+        raise RuntimeError(f"未挖到快手粉丝数（拦截 {len(captured)} 响应无 fan 字段），按抓包迭代")
+    return {
+        "platform": "kuaishou", "date": today(), "fetched_at": now_iso(),
+        "follower_total": total, "follower_total_eod": total,
+        "daily": [],  # 快照差分得净增
+        "raw_fields": {k: v for k, v in list(hits.items())[:20]},
+    }
+
+
 def main() -> int:
     setup_utf8()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--platform", default="douyin,bilibili,shipinhao")
+    ap.add_argument("--platform", default="douyin,bilibili,shipinhao,kuaishou")
     args = ap.parse_args()
+    collectors = {
+        "douyin": lambda: asyncio.run(fans_douyin()),
+        "bilibili": lambda: fans_bilibili(),
+        "shipinhao": lambda: asyncio.run(fans_shipinhao()),
+        "kuaishou": lambda: asyncio.run(fans_kuaishou()),
+    }
     for plat in args.platform.split(","):
         plat = plat.strip()
         try:
-            record = asyncio.run(fans_douyin()) if plat == "douyin" else (
-                fans_bilibili() if plat == "bilibili" else (
-                    asyncio.run(fans_shipinhao()) if plat == "shipinhao" else None))
+            fn = collectors.get(plat)
+            record = fn() if fn else None
             if record is None:
                 print(f"[{plat}] 未知平台")
                 continue

@@ -237,8 +237,8 @@ def test_prepare_raises_when_html_missing(tmp_path, monkeypatch):
 # 用例已移至 test_wechat_overrides.py(不依赖 fixtures,任何机器可跑)
 
 
-# ============ prepare_for_wechatsync(多平台生成)===========
-def test_prepare_for_wechatsync_generates_per_platform_html(tmp_path, monkeypatch):
+# ============ prepare_for_mp(多平台生成)===========
+def test_prepare_for_mp_generates_per_platform_html(tmp_path, monkeypatch):
     """应按 SUPPORTED_PLATFORMS 生成各平台专属 HTML,内链按平台替换。"""
     fixture_dir = os.path.join(os.path.dirname(__file__), "..", "fixtures")
     monkeypatch.setattr(prepare.config, "PUBLIC_DIR", fixture_dir)
@@ -248,7 +248,7 @@ def test_prepare_for_wechatsync_generates_per_platform_html(tmp_path, monkeypatc
     # 屏蔽剪贴板写入(测试环境无 JXA)
     monkeypatch.setattr(prepare, "_copy_html_to_clipboard", lambda html: None)
 
-    result = prepare.prepare_for_wechatsync("ai-dev-test")
+    result = prepare.prepare_for_mp("ai-dev-test")
 
     # 各平台 HTML 文件存在
     weixin_html = os.path.join(str(tmp_path), "ai-dev-test", "wechat-ready-weixin.html")
