@@ -13,7 +13,14 @@ video-engagement-cta「24h 回复承接」的自动化实现。**单命令手动
 make comment-reply                      # 全流程（B站+抖音 → 分诊 → 逐条确认 → 发送）
 make comment-reply args="--dry"         # 演练：走到发送前留截图，不实发
 make comment-reply args="--platform douyin --no-llm"
+make comment-reply args="--platform kuaishou"   # 快手：只读采集+分诊，B 档确认稿存账本 manual（发送通道未建，人工在创作者平台评论管理页回）
 ```
+
+**平台矩阵（2026-08-30，openspec comment-coverage-kuaishou-shipinhao）**：
+- **B站**：公开 API 读+回+回读验证（bili.py）——全能力
+- **抖音**：评论管理页 DOM 采集+回复+回读（douyin.py）——全能力
+- **快手**：全局评论流只读采集（kuaishou.py，`/rest/cp/creator/pc/home/commentList` XHR 拦截免签名逆向；平铺行按创作者昵称 replyToCommentId 判已回；photoId 暂无 slug 映射以 `?` 入账）——**发送通道未建**
+- **视频号**：登录态已失效（落到 login.html，需扫码重登后才能探评论端点形态）——**未接**
 
 **定向回复单条**（用户贴来一条评论要回时，不跑整轮）：
 
