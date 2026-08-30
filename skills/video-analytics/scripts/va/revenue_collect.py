@@ -35,15 +35,25 @@ REVENUE_TARGETS = {
         ],
     },
     "shipinhao": {
-        "url": "https://channels.weixin.qq.com/platform",
+        # 2026-08-30 开通创作分成后实测：收益页直连 /platform/income（菜单「收入与服务→收入权益」
+        # 子项隐藏态，常规 text 点击超时，SPA 需 JS 强制点击；直接 URL 进页最稳）
+        "url": "https://channels.weixin.qq.com/platform/income",
         "match_sub": ["profit", "income", "revenue", "award", "balance", "monetize"],
-        # 收益中心是子应用菜单，逐个尝试点击（失败不致命，被动拦截兜底）
-        "nav_clicks": ["变现", "收益中心", "收益"],
+        "nav_clicks": [],
         "fetch_candidates": [
             "/cgi-bin/mmfinderassistant-bin/profit/overview",
             "/cgi-bin/mmfinderassistant-bin/income/overview",
-            "/cgi-bin/mmfinderassistant-bin/profit/profit_overview",
         ],
+    },
+    "douyin": {
+        "url": "https://creator.douyin.com/creator-micro/home",
+        "match_sub": ["income", "revenue", "profit", "earning", "settle", "withdraw"],
+        "nav_clicks": ["收益", "钱包"],
+    },
+    "kuaishou": {
+        "url": "https://cp.kuaishou.com/",
+        "match_sub": ["income", "revenue", "profit", "reward", "settle", "gain", "bonus"],
+        "nav_clicks": ["收益", "创作激励", "创作服务"],
     },
 }
 
@@ -220,7 +230,7 @@ def run(platforms: list[str]) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--platform", default="bilibili,shipinhao")
+    ap.add_argument("--platform", default="bilibili,shipinhao,douyin,kuaishou")
     args = ap.parse_args()
     plats = [x.strip() for x in args.platform.split(",") if x.strip()]
     return run(plats)
