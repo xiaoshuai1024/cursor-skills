@@ -51,8 +51,9 @@ def _run(*args: str) -> int:
     return result.returncode
 
 
-def phase1(top: int = 5, no_cache: bool = False) -> int:
+def phase1(top: int = 5, no_cache: bool = False, no_trend: bool = False) -> int:
     latest = OUTPUT_ROOT / "latest.json"
+    trend_json = OUTPUT_ROOT / "trend.json"
     topics_json = OUTPUT_ROOT / "topics.json"
     topics_md = OUTPUT_ROOT / "topics.md"
     rough_dir = OUTPUT_ROOT / "rough_outlines"
@@ -60,11 +61,27 @@ def phase1(top: int = 5, no_cache: bool = False) -> int:
     code = _run("fetch_sources", "--out", str(latest), *(["--no-cache"] if no_cache else []))
     if code != 0:
         return code
+
+    # B/C 源（抖音指数双板 + 创作者中心垂类，登录态）——软失败，缺了就仅 A 源跑
+    trend_arg = []
+    if no_trend:
+        print("⏭ --no-trend：跳过 B/C 源（仅 A 热榜）")
+    else:
+        trend_cmd = ["fetch_trend", "--out", str(trend_json)]
+        if no_cache:
+            trend_cmd.append("--no-cache")
+        code = _run(*trend_cmd)
+        if code != 0:
+            print(f"⚠️ fetch_trend 退出码 {code}，继续仅用 A 源")
+        if trend_json.exists():
+            trend_arg = ["--trend", str(trend_json)]
+
     code = _run(
         "filter_score",
         "--in", str(latest),
         "--out", str(topics_json),
         "--markdown", str(topics_md),
+        *trend_arg,
     )
     if code != 0:
         return code
@@ -171,6 +188,7 @@ def main() -> int:
     p1 = sub.add_parser("phase1", help="选题（不下载）")
     p1.add_argument("--top", type=int, default=5, help="生成假设大纲的候选数")
     p1.add_argument("--no-cache", action="store_true", help="忽略缓存强制刷新热榜")
+    p1.add_argument("--no-trend", action="store_true", help="跳过 B/C 源（抖音指数/垂类推荐），仅 A 热榜")
 
     p2 = sub.add_parser("phase2", help="下载+拆解+可抄大纲")
     p2.add_argument("--group-id", required=True, help="代表视频 group_id")
@@ -180,7 +198,7 @@ def main() -> int:
     args = parser.parse_args()
     _utf8_stdio()
     if args.phase == "phase1":
-        return phase1(args.top, args.no_cache)
+        return phase1(args.top, args.no_cache, args.no_trend)
     return phase2(args.group_id, args.headful, args.skip_fetch)
 
 

@@ -1,27 +1,33 @@
 ---
 name: douyin-topic
-description: 抖音选题 + 对标拆解。免登录热榜真实数据把热门话题筛成符合博客方向的选题（🔥热度/📈涨粉双系列），定位代表视频，拆解爆款（钩子/结构/热评/转写）产出可抄大纲与仿写脚本。两阶段：先选题确认，再深挖。
+description: 抖音选题 + 对标拆解。免登录热榜 + 抖音指数（原热点宝）实时/飙升热点 + 创作者中心个性化垂类推荐三源真实数据，把热门话题筛成符合博客方向的选题（🔥热度/📈涨粉/💥低粉爆款代理三榜），定位代表视频，拆解爆款（钩子/结构/热评/转写）产出可抄大纲与仿写脚本。两阶段：先选题确认，再深挖。
 ---
 
 # Douyin Topic Skill — 抖音选题 + 对标拆解
 
-把抖音当前热门话题（**真实数据**）筛成符合本博客「前端 → 全栈 → AI 开发」方向的选题，分 🔥热度 / 📈涨粉 双系列，定位确切代表视频，拆解爆款（钩子/结构/热评/转写），产出**详细到可抄**的大纲 + 映射博客资产的仿写脚本。
+把抖音当前热门话题（**真实数据**）筛成符合本博客「前端 → 全栈 → AI 开发」方向的选题，分 🔥热度 / 📈涨粉 双系列 + 💥低粉爆款代理榜，定位确切代表视频，拆解爆款（钩子/结构/热评/转写），产出**详细到可抄**的大纲 + 映射博客资产的仿写脚本。
 
 ## 何时用
 
 - 不知道该做什么视频 / 下一篇写什么 → 跑 `make topic` 拿选题清单（Phase 1，不下载）
-- 想快速涨粉 → 优先看 📈涨粉系列（垂直话题），结合原片拆解做差异化原创
+- 想快速涨粉 → 优先看 📈涨粉系列（垂直话题 + 飙升热点 + 个性化垂类），结合原片拆解做差异化原创
+- 小号想吃流量 → 看 💥低粉爆款代理榜（飙升快 × 竞争低的话题，低粉号有机会）
 - 想蹭热点 → 优先看 🔥热度系列（热榜 ∩ 方向关键词），跟得快有流量
 - 在 `topics.md` / `rough_outlines/` 看中某条 → `make topic-deep id=<group_id>` 确认后深挖（Phase 2）
 
-## 数据源（免登录公开 API，已实测）
+## 数据源（免登录 + 登录态公开页，2026-08-30 实测）
 
-| 源 | 通道 | 内容 |
-|----|------|------|
-| A | 抖音搜索热榜 API（免登录免签名） | 51 热搜词（主榜）+ 5 上升热点（rising），`group_id` 覆盖率 98% |
+| 源 | 通道 | 登录 | 内容 |
+|----|------|------|------|
+| A | 抖音搜索热榜 API（免登录免签名） | ❌ | 51 热搜词（主榜）+ 5 上升热点（rising），`group_id` 覆盖率 98% |
+| B | **抖音指数**（原热点宝，2026-01 升级接入创作者中心）双板 | ✅ douyin 登录态 | 实时热点 + 飙升热点各 30 条（10 条/页 × ≤3 页），含热点指数；飙升板即话题上升信号 |
+| C | 创作者中心首页「猜你喜欢·热门话题」 | ✅ 同上 | 按账号垂类个性化的方向内话题 Top5（带热度），免关键词直入涨粉系列 |
 
-- 主榜供 🔥热度系列，上升榜供 📈涨粉系列；结果缓存 10 分钟
-- 零登录依赖：无需任何账号绑定或第三方查询通道，断网外因只影响拉取本身
+- 主榜/实时板供 🔥热度系列；上升榜/飙升板/C 垂类供 📈涨粉系列；A/B/C 三源按话题词归一合并，结果缓存 10 分钟
+- **登录态双回退**（B/C 源）：`.douyin-topic/profile-douyin/` 持久 profile（与作品搜索共享，`make topic-works --login` 扫码一次）→ 注入 `scripts/pub/cookies/douyin.json`（发布管线 cookie）→ 都没有则自动降级仅 A 源并记 note
+- **B/C 源只走 Playwright+DOM 解析**：指数页 API 全带 msToken/X-Bogus 签名，不做逆向（签名轮换不影响 DOM 通道）
+- **三方平台边界**：蝉妈妈/飞瓜/新榜等三方榜单全为登录墙，且定规禁第三方数据 SaaS CLI——**不自动接**；需要视频级低粉爆款/达人涨粉明细时人工浏览（蝉妈妈 chanmama.com / 飞瓜 feigua.cn / 新榜 newrank.cn），不进管线
+- **升级位**：抖音指数的话题详情页（关联视频/视频级低粉爆款）需 trendinsight 独立 SSO（douyin cookie 不覆盖，实测 `has_login:false`）——未来独立扫码一次即可解锁，本期未接
 
 ## ⚠️ 合规边界（强制，违反即错）
 
@@ -43,17 +49,20 @@ description: 抖音选题 + 对标拆解。免登录热榜真实数据把热门�
 
 ```bash
 # ── Phase 1 选题（不下载）──
-make topic                 # 热榜拉取 → 双系列评分 → Top 候选「假设大纲」
+make topic                 # 三源拉取(A热榜+B指数+C垂类) → 双系列+低粉代理榜评分 → Top 候选「假设大纲」
                            # 产物: .douyin-topic/topics.md + rough_outlines/
-# 参数: make topic top=8   # 假设大纲候选条数（默认 5）
+# 参数: make topic top=8        # 假设大纲候选条数（默认 5）
+#       pipeline phase1 --no-trend  # 跳过 B/C 源（登录态不可用时的快速路径，仅 A 热榜）
 
 # ── Phase 2 深挖（确认模仿后）──
 make topic-deep id=<group_id>          # 下载原片 → 转写 → 拆解 → 可抄大纲
 make topic-deep id=<id> skip-fetch=yes # 复用已下载目录（已有逐字稿/拆解自动跳过）
+# B/C 源条目无 group_id: 先 make topic-works keywords="<话题词>" 定位作品，取 aweme_id 当 id 深挖
 
 # 底层命令（不经过 pipeline，单独跑某步）
 py -3.11 -m scripts.fetch_sources --out .douyin-topic/latest.json
-py -3.11 -m scripts.filter_score --in .douyin-topic/latest.json
+py -3.11 -m scripts.fetch_trend --out .douyin-topic/trend.json   # B/C 源（登录态；--login 扫码 / --no-cache 强刷）
+py -3.11 -m scripts.filter_score --in .douyin-topic/latest.json --trend .douyin-topic/trend.json
 py -3.11 -m scripts.fetch_video --group-id <id>
 py -3.11 -m scripts.transcribe --audio .douyin-topic/videos/<id>/audio.mp4
 py -3.11 -m scripts.understand_video .douyin-topic/videos/<id>/video.mp4 --max-frames 12 -o .douyin-topic/videos/<id>/teardown.json   # 镜头级拆解帧表（零依赖，whisper 不需要）
@@ -66,16 +75,19 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 - **Phase 1 选题**：拿 `topics.md` + `rough_outlines/` 的假设大纲，判断「本次模仿哪条」——不看原片，纯靠话题信息 + 方向经验 + 本站素材映射
 - **Phase 2 深挖**：对确认的 `group_id` 下载原片 → 本地转写 → 拆解真实钩子/结构/热评/关键帧 → 生成**逐行可抄**的仿写脚本。转写之外加**镜头级拆解**（`understand_video.py`，2026-08-28 增补，搬运自 OpenMontage video-understand，AGPL-3.0）：ffmpeg 场景切分 + 关键帧帧表（JSON 落 `videos/<id>/teardown.json`，帧图落 `video_frames/`），回答「怎么拍」——镜头数/切点节奏/钩子出现在第几个镜头/每个镜头 hold 多久；与转写文本（「说什么」）构成双证据链，缺一不算拆完。纯 ffmpeg 零第三方依赖，whisper 转写不归它管（走 transcribe.py）
 
-产物统一落 `.douyin-topic/`（git 忽略）：`topics.json`（选题清单）、`rough_outlines/`（假设大纲）、`videos/<group_id>/`（原片/截图/转写稿/拆解）、`deep_outline.json`（可抄大纲）。
+产物统一落 `.douyin-topic/`（git 忽略）：`topics.json`（选题清单）、`trend.json`（B/C 源原始数据）、`rough_outlines/`（假设大纲）、`videos/<group_id>/`（原片/截图/转写稿/拆解）、`deep_outline.json`（可抄大纲）。
 
-## 双系列与评分
+## 双系列 + 低粉代理与评分
 
 | 系列 | 信号 | 运营目标 | 评分侧重 |
 |------|------|---------|---------|
-| 🔥 热度 | 热榜 ∩ 方向关键词 | 蹭热点求播放 | 热度增速 + 垂直匹配 |
-| 📈 涨粉 | 上升榜 ∩ 方向搜索词 | 垂直建定位求关注 | 垂直匹配 + 竞争度 |
+| 🔥 热度 | A 主榜 + B 实时热点 ∩ 方向关键词 | 蹭热点求播放 | 热度增速 + 垂直匹配 |
+| 📈 涨粉 | A 上升榜 + B 飙升热点 ∩ 方向搜索词 + **C 个性化垂类免关键词直入** | 垂直建定位求关注 | 垂直匹配 + 竞争度 |
+| 💥 低粉爆款代理 | rising 板证据 × 低竞争（`lowfan = 0.5×热度 + 0.5×竞争度反向`） | 小号吃流量 | 独立展示维度，**不改潜力分公式** |
 
-潜力分 = `0.4×热度增速 + 0.3×垂直匹配 + 0.2×竞争度(反向) + 0.1×互动潜力`。规则详见 `references/scoring-guide.md`。热榜无命中时**诚实输出「今日无方向命中」**，不硬凑。
+- 潜力分 = `0.4×热度增速 + 0.3×垂直匹配 + 0.2×竞争度(反向) + 0.1×互动潜力`；三源合并后热度一律**系列内归一化**（B 指数与 A 热榜量级不同，跨源不直比）。规则详见 `references/scoring-guide.md`
+- 💥榜是代理信号（官方低粉爆款榜已随巨量算数 2026-01 升级下线）：飙升快=话题上升期新内容有机会，竞争低=低粉号有机会；要视频级低粉爆款明细走三方人工清单（见数据源一节）
+- 热榜无命中时**诚实输出「今日无方向命中」**，不硬凑；B/C 源任一失败自动降级仅 A 源（备注栏写明原因）
 
 ## 大纲：假设（Phase 1）→ 可抄（Phase 2）
 
@@ -97,8 +109,9 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 ├── topic_keywords.json        方向关键词表（可编辑）；含 weights/series_keywords 反哺块（video-analytics 涨粉口径 → 选题分缩放，2026-08-29 接入）
 ├── scripts/
 │   ├── pipeline.py            两阶段编排（phase1 选题 / phase2 深挖）
-│   ├── fetch_sources.py       免登录热榜拉取（主榜+上升榜，含缓存）
-│   ├── filter_score.py        方向过滤 + 双系列 + 潜力分
+│   ├── fetch_sources.py       免登录热榜拉取（A 源：主榜+上升榜，含缓存）
+│   ├── fetch_trend.py         B/C 源拉取（抖音指数实时/飙升双板 + 创作者中心垂类，登录态 DOM 采集，含缓存）
+│   ├── filter_score.py        方向过滤 + 双系列 + 潜力分 + 低粉爆款代理榜（三源 word 归一合并）
 │   ├── fetch_video.py         Playwright+msedge 拉代表视频/截图
 │   ├── transcribe.py          faster-whisper 转写
 │   ├── understand_video.py    镜头级拆解（ffmpeg 场景切分+关键帧帧表，搬运自 OpenMontage，转写不归它管）
@@ -121,8 +134,8 @@ py -3.11 -m scripts.outline --deep <analysis.json> # Phase 2 可抄大纲
 
 抖音对「固定节奏 + 固定指纹」的自动化识别很严（实测：高频导航会弹滑块验证码）。脚本已内置扰动，**新增任何对 douyin.com / CDN 的请求或浏览器动作，必须保持以下随机性**：
 
-- **UA 池**：请求用 `UA_POOL` 随机取，禁止硬编码单一 UA（`fetch_sources.py` 定义，`fetch_video.py` 复用）
+- **UA 池**：请求用 `UA_POOL` 随机取，禁止硬编码单一 UA（`fetch_sources.py` 定义，`fetch_video.py`/`fetch_trend.py` 复用）
 - **请求间隔**：失败重试指数退避 + `random.uniform` 抖动
-- **浏览器行为**（`fetch_video.py` 的 `_humanize`）：滚动次数/步长/间隔全随机、~25% 概率回滚、随机鼠标移动；视口尺寸每次会话随机（1410–1536 × 860–940）；页面等待 10s ± 3s 抖动
+- **浏览器行为**（`fetch_video.py` 的 `_humanize`）：滚动次数/步长/间隔全随机、~25% 概率回滚、随机鼠标移动；视口尺寸每次会话随机（1410–1536 × 860–940）；页面等待 10s ± 3s 抖动。`fetch_trend.py` 同构：随机滚动 + 随机等待 + 弹窗自动关闭，**单会话只导航 2 个页面**（指数页 + 创作者中心首页），解析为空单次重试一次
 - **节奏纪律**：一次会话不要连续多次导航；触发验证码后停止，等用户手动完成或等 10 分钟再试
-- 改动后跑 `py -3.11 -m py_compile scripts/fetch_sources.py scripts/fetch_video.py` 确认语法
+- 改动后跑 `py -3.11 -m py_compile scripts/fetch_sources.py scripts/fetch_trend.py scripts/fetch_video.py` 确认语法
