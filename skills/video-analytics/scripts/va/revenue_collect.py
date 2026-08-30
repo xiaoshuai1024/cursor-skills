@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 
 from . import common
 from .common import PUB_COOKIES, SNAP_DIR, now_iso, record_error, setup_utf8, today
@@ -205,13 +206,72 @@ async def collect_browser(which: str) -> dict:
     }
 
 
+async def collect_weixin() -> dict:
+    """公众号流量主收益（文章侧）：wechat-profile 持久会话打开流量主页，解析渲染文本。
+
+    收益数字直接渲染在 publisher_index 页面（无 JSON XHR），按文本行解析：
+    累计收入 / 创作者分成广告收入 / 昨日增量 / 互选合作 / 带货与内容推广。
+    登录态：复用 wechat-profile/（msedge 通道，与 wechat-publishing 同一口径），
+    token 从 mp 首页 URL 动态提取；跳登录页即报失效。
+    """
+    from patchright.async_api import async_playwright
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch_persistent_context(
+            str(common.ROOT / "wechat-profile"), channel="msedge", headless=True,
+            args=["--disable-blink-features=AutomationControlled"],
+            viewport={"width": 1440, "height": 900})
+        page = browser.pages[0] if browser.pages else await browser.new_page()
+        try:
+            await page.goto("https://mp.weixin.qq.com/", wait_until="domcontentloaded", timeout=90000)
+            await page.wait_for_timeout(6000)
+            m = re.search(r"[?&]token=(\d+)", page.url)
+            if not m:
+                raise RuntimeError("mp 首页无 token（登录态失效，需重新扫码）")
+            await page.goto(
+                f"https://mp.weixin.qq.com/promotion/publisher/publisher_index?token={m.group(1)}&lang=zh_CN",
+                wait_until="domcontentloaded", timeout=90000)
+            await page.wait_for_timeout(10000)
+            text = await page.evaluate("() => (document.body.innerText || '')")
+        finally:
+            await browser.close()
+
+    def _after(label: str) -> float | None:
+        lines = [x.strip() for x in text.splitlines()]
+        for i, ln in enumerate(lines):
+            if ln.startswith(label) and i + 1 < len(lines):
+                try:
+                    return float(lines[i + 1].replace(",", ""))
+                except ValueError:
+                    return None
+        return None
+
+    m = re.search(r"昨日\s*\+?\s*([\d.]+)", text)
+    fields = {
+        "累计收入": _after("累计收入"),
+        "创作者分成广告收入": _after("创作者分成广告收入"),
+        "昨日增量": float(m.group(1)) if m else None,
+        "互选合作收入": _after("互选合作收入"),
+        "带货与内容推广": _after("带货与内容推广"),
+    }
+    if fields["累计收入"] is None:
+        raise RuntimeError(f"流量主页未解析到收入数字（页面头 200 字: {text[:200]}）")
+    return {
+        "platform": "weixin", "date": today(), "fetched_at": now_iso(),
+        "fields": fields, "source_urls": ["publisher_index"], "raw_evidence": "页面文本解析（无 XHR）",
+    }
+
+
 def run(platforms: list[str]) -> int:
     setup_utf8()
     import time
     ok, fail = [], []
     for plat in platforms:
         try:
-            record = asyncio.run(collect_browser(plat))
+            if plat == "weixin":
+                record = asyncio.run(collect_weixin())
+            else:
+                record = asyncio.run(collect_browser(plat))
             added = append_revenue(plat, record)
             n = len(record["fields"])
             print(f"[{plat}] 收益字段 {n} 个" + ("（同日已采，跳过）" if not added else "，快照已写"))
@@ -230,7 +290,7 @@ def run(platforms: list[str]) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--platform", default="bilibili,shipinhao,douyin,kuaishou")
+    ap.add_argument("--platform", default="bilibili,shipinhao,douyin,kuaishou,weixin")
     args = ap.parse_args()
     plats = [x.strip() for x in args.platform.split(",") if x.strip()]
     return run(plats)

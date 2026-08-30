@@ -104,6 +104,7 @@ def build_report() -> str:
             "id": item["id"], "name": item["name"], "plat": PLATFORM_NAME.get(plat, plat),
             "requirement": item["requirement"], "thr": thr,
             "cur": cur, "cur_note": cur_note, "speed": speed, "eta": eta,
+            "status_note": item.get("status_note") or "",
         })
 
     lines += ["## 门槛进度", "",
@@ -121,7 +122,8 @@ def build_report() -> str:
     if hit:
         lines += ["## 已达标待开通", ""]
         for r in hit:
-            lines.append(f"- **{r['name']}**（{r['plat']}）：当前 {r['cur']} ≥ 门槛 {r['thr']}——后台开通入口核对后登记收益采集。")
+            note = f"（{r['status_note']}）" if r.get("status_note") else ""
+            lines.append(f"- **{r['name']}**（{r['plat']}）：当前 {r['cur']} ≥ 门槛 {r['thr']}——后台开通入口核对后登记收益采集。{note}")
         lines.append("")
 
     lines += ["## 收益采集状态", "", "| 平台 | 最近采集 | 字段摘要 |", "|---|---|---|"]
