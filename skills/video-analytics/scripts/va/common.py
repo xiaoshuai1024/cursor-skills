@@ -54,8 +54,10 @@ def today() -> str:
 
 
 def snap_path(platform: str) -> Path:
-    SNAP_DIR.mkdir(parents=True, exist_ok=True)
-    return SNAP_DIR / f"{platform}.jsonl"
+    # platform 可带子目录（如 album/douyin → snapshots/album/douyin.jsonl）
+    p = SNAP_DIR / f"{platform}.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    return p
 
 
 def load_snapshots(platform: str) -> list[dict]:

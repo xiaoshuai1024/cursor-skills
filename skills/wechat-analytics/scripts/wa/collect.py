@@ -24,6 +24,7 @@ from .common import (
     DETAIL_PAGE_WINDOW_DAYS,
     URL_ARTICLE_LIST,
     URL_DATACUBE_QUERY,
+    URL_USER_ANALYSIS,
     URL_DETAIL_PAGE,
     URL_PUBLISH_LIST,
     URL_TENDENCY_SOURCE,
@@ -218,6 +219,24 @@ def fetch_tendency_source(s: MpSession) -> dict:
     return data
 
 
+def fetch_user_growth(s: MpSession, window_days: int = 62) -> list[dict]:
+    """用户分析：日粒度 new/cancel/netgain/cumulate_user 序列（openspec wechat-fans-growth-channel）。
+
+    user_source=99999999 为全部场景；fingerprint 传 0 直连可用（2026-08-30 实证）。
+    """
+    fingerprint = __import__("os").environ.get("WECHAT_FINGERPRINT", "") or "0" * 32
+    end = time.time() - 86400  # 数据 T+1
+    d2 = time.strftime("%Y-%m-%d", time.localtime(end))
+    d1 = time.strftime("%Y-%m-%d", time.localtime(end - window_days * 86400))
+    data = s.get_json(URL_USER_ANALYSIS.format(d1=d1, d2=d2, fp=fingerprint, token=s.mp["token"]))
+    if data.get("base_resp", {}).get("ret") != 0:
+        raise RuntimeError(f"user_analysis ret={data.get('base_resp')}")
+    for c in data.get("category_list") or []:
+        if c.get("user_source") == 99999999:
+            return c.get("list") or []
+    return []
+
+
 def detail_fetched_today(msg_id: int, item_idx: int) -> bool:
     """同日详情去重：当天已有 detail 快照即跳过（列表快照仍刷新）。"""
     today = time.strftime("%Y-%m-%d")
@@ -358,6 +377,28 @@ def main() -> None:
             except Exception as exc:
                 record_error("tendency_source", exc)
                 print(f"  ⚠️ 账号级失败: {exc}")
+
+            # 5) 用户增长（涨粉序列，openspec wechat-fans-growth-channel；流量主门槛追踪用）
+            try:
+                polite_sleep()
+                rows = fetch_user_growth(s)
+                if rows:
+                    append_jsonl(
+                        ACCOUNT_SNAPSHOT,
+                        {
+                            "fetched_at": now_iso(),
+                            "kind": "user_growth",
+                            "user_source": 99999999,
+                            "latest": rows[-1],
+                            "list": rows,
+                        },
+                    )
+                    print(f"  用户增长快照落盘（cumulate_user={rows[-1].get('cumulate_user')}）")
+                else:
+                    print("  ⚠️ 用户增长：无数据行")
+            except Exception as exc:
+                record_error("user_growth", exc)
+                print(f"  ⚠️ 用户增长失败: {exc}")
     except RuntimeError as exc:
         print(f"❌ {exc}")
         sys.exit(2)

@@ -113,6 +113,73 @@ def per_video_card(slug: str, diag: dict, retentions: dict | None = None) -> str
     return "\n".join(lines)
 
 
+def series_health(metrics: dict) -> list[str]:
+    """合集粒度快照（snapshots/album/*.jsonl）→ 系列健康度：增量、追更、封面 CTR、对标单视频均值。"""
+    def _n(v):
+        """API 数字多为字符串，统一转数值；有小数保留 float（比率），整数转 int（计数）。"""
+        try:
+            f = float(v) if v is not None and v != "" else None
+        except (TypeError, ValueError):
+            return None
+        if f is None:
+            return None
+        return int(f) if f == int(f) else f
+
+    lines: list[str] = []
+    # 单视频对标基线（抖音口径）
+    dy = [m for e in metrics.get("videos", {}).values()
+          for p, m in e.items() if p == "douyin"]
+    base_cr = [m.get("completion_rate") for m in dy if m.get("completion_rate") is not None]
+    base_at = [m.get("avg_play_time_s") for m in dy if m.get("avg_play_time_s") is not None]
+    cr_avg = sum(base_cr) / len(base_cr) if base_cr else None
+    at_avg = sum(base_at) / len(base_at) if base_at else None
+
+    for plat, label in [("douyin", "抖音"), ("kuaishou", "快手")]:
+        snaps = common.load_snapshots(f"album/{plat}")
+        if not snaps:
+            continue
+        by_item: dict[str, list[dict]] = {}
+        for s in snaps:
+            by_item.setdefault(str(s.get("item_id") or ""), []).append(s)
+        for iid, recs in by_item.items():
+            recs.sort(key=lambda r: r.get("fetched_at") or "")
+            latest, prev = recs[-1], (recs[-2] if len(recs) > 1 else None)
+            raw, prow = latest.get("raw") or {}, (prev or {}).get("raw") or {}
+            vc = raw.get("view_count")
+            if vc is None:
+                vc = raw.get("play_vv")
+            pvc = prow.get("view_count")
+            if pvc is None:
+                pvc = prow.get("play_vv")
+            delta = (_n(vc) - _n(pvc)) if (_n(vc) is not None and _n(pvc) is not None) else None
+            head = f"**{label} · {latest.get('title') or iid}**（截至 {(latest.get('fetched_at') or '')[:10]}，{len(recs)} 次采样）"
+            if plat == "douyin":
+                sub, unsub = _n(raw.get("subscribe_count")), _n(raw.get("unsubscribe_count"))
+                cr, at = _n(raw.get("completion_rate")), raw.get("avg_view_second")
+                lines += [head, "",
+                          f"- 播放 **{_fmt(_n(vc))}**" + (f"（较上次 **{delta:+,}**）" if delta is not None else "（首采基线）")
+                          + f" · 收藏 {_fmt(_n(raw.get('favorite_count')))} · 分享 {_fmt(_n(raw.get('share_count')))}"
+                          f" · 集数 {_fmt(_n(raw.get('updated_to_episode')))}",
+                          f"- 追更订阅 **{_fmt(sub)}** / 退订 {_fmt(unsub)}"
+                          + (f" · 净订阅率 {_pct1((sub - unsub) / sub)}" if sub else ""),
+                          f"- 完播率 {_pct1(cr)}" + (f"（单视频均值 {_pct1(cr_avg)}）" if cr_avg else "")
+                          + f" · 2S 跳出 {_pct1(_n(raw.get('bounce_rate_2s')))}"
+                          + f" · 人均时长 {(float(_n(at)) or 0):.1f}s" + (f"（单视频均值 {at_avg:.0f}s）" if at_avg else ""),
+                          f"- 合集封面：曝光 {_fmt(_n(raw.get('cover_show')))} · 点击 {_fmt(_n(raw.get('cover_click')))}"
+                          f" · CTR {_pct1(_n(raw.get('cover_click_rate')))}（合集卡在主页/推荐位的入口效率）",
+                          ""]
+            else:
+                offline = raw.get("offline_reason")
+                size = raw.get("size")
+                lines += [head, "",
+                          f"- 成员 {size} · 播放 {_fmt(_n(raw.get('view_count')))} · 催更 {_fmt(_n(raw.get('urge_update_count')))}",
+                          f"- ⚠️ 离线中：{offline or '—'}——合集未公开生效，先补挂成员（collection-packaging-optimize 0.4）",
+                          ""]
+    if not lines:
+        return ["（无合集快照——跑 `make analytics-album`；B站合集权益未解锁暂无通道）", ""]
+    return lines
+
+
 def experiments_section() -> list[str]:
     """实验台账节（openspec ops-hardening）：进行中 + 最近已验证。"""
     from . import experiment
@@ -241,6 +308,9 @@ def overview(diag: dict, metrics: dict) -> str:
     else:
         lines += ["（暂无 ≥2 平台的数据成熟记录）"]
     lines += [""]
+
+    lines += ["## 系列健康度（合集粒度，openspec collection-data-conversion）", ""]
+    lines += series_health(metrics)
 
     lines += ["## 留存深度排行（平均播放时长 / 全长）", ""]
     rows = []

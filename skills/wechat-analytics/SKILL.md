@@ -41,8 +41,10 @@ make wechat-analytics-test    # fixtures 单测（不依赖登录态）
 ## 数据与产物
 
 数据落 `data/wechat-analytics/`（**进 git**，时间序列历史不可再生）：
-`snapshots/articles.jsonl`（list/detail 增量快照）+ `snapshots/account.jsonl`（账号级+发表记录）
+`snapshots/articles.jsonl`（list/detail 增量快照）+ `snapshots/account.jsonl`（账号级+发表记录+**用户增长**）
 + `identity.json`（msg_id↔slug 映射）+ `metrics.json` + `diagnosis.json` + `errors.json`。
+
+**用户增长通道（openspec wechat-fans-growth-channel，2026-08-30 实况接通）**：`wa/collect.py::fetch_user_growth`（采集步骤 5）打 `misc/useranalysis`（旧 `misc/userpage` 已 404 下线；`source=99999999` 全场景，fingerprint 传 32 个 0 直连 ret=0），快照 kind=user_growth 日粒度 new/cancel/netgain/cumulate_user 序列；`va.monetize` 读它出公众号流量主 500 粉门槛行（make wechat-analytics → make analytics-revenue）。菜单路径「数据分析→用户分析」是折叠组，无头会话点不开——端点已固化，直连采集不受影响。
 
 报告落 `.wechat-analytics/reports/`（生成物，git 忽略）：
 

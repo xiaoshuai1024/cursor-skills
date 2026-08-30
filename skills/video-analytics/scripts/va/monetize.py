@@ -20,6 +20,7 @@ THRESHOLD_PATH = DATA_DIR / "monetize-thresholds.json"
 REPORT_PATH = DATA_DIR / "monetize-report.md"
 FANS_DIR = DATA_DIR / "snapshots" / "fans"
 REVENUE_DIR = DATA_DIR / "snapshots" / "revenue"
+WECHAT_ACCOUNT_SNAP = DATA_DIR.parent / "wechat-analytics" / "snapshots" / "account.jsonl"
 
 PLATFORM_NAME = {"douyin": "抖音", "kuaishou": "快手", "bilibili": "B站",
                  "shipinhao": "视频号", "weixin": "公众号"}
@@ -40,13 +41,27 @@ def _jsonl(path) -> list[dict]:
 
 
 def _fans_records(platform: str) -> list[dict]:
+    if platform == "weixin":
+        # wechat-analytics 用户增长序列（openspec wechat-fans-growth-channel）：日粒度 cumulate_user
+        dedup: dict[str, dict] = {}
+        for r in _jsonl(WECHAT_ACCOUNT_SNAP):
+            if r.get("kind") != "user_growth":
+                continue
+            for row in r.get("list") or []:
+                if row.get("date"):
+                    dedup[row["date"]] = {
+                        "date": row["date"],
+                        "follower_total": row.get("cumulate_user"),
+                        "net": row.get("netgain_user"),
+                    }
+        return sorted(dedup.values(), key=lambda r: r.get("date") or "")
     return sorted(_jsonl(FANS_DIR / f"{platform}.jsonl"), key=lambda r: r.get("date") or "")
 
 
 def _fans_current(platform: str) -> tuple[int | None, str]:
     """返回 (当前粉丝数, 数据日期说明)。公众号现有采集无粉丝累计通道，如实报缺。"""
-    if platform == "weixin":
-        return None, "未采集：wechat-analytics 暂无用户增长通道"
+    if platform == "weixin" and not _fans_records("weixin"):
+        return None, "未采集，跑 make wechat-analytics"
     recs = _fans_records(platform)
     if not recs:
         return None, "未采集，跑 make analytics"

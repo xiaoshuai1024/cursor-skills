@@ -46,6 +46,13 @@ URL_TENDENCY_SOURCE = (
     MP_BASE + "/misc/appmsganalysis?action=get_article_stat_tendency_and_source"
     "&begin_timestamp={d1}&end_timestamp={d2}&fingerprint={fp}&token={token}&lang=zh_CN&f=json&ajax=1"
 )
+# 用户分析：日粒度 new/cancel/netgain/cumulate_user 序列（user_source=99999999 全部场景）
+# 2026-08-30 实证（openspec wechat-fans-growth-channel）：misc/userpage 已 404 下线；
+# useranalysis 直连可用，fingerprint 传 32 个 0 也 ret=0
+URL_USER_ANALYSIS = (
+    MP_BASE + "/misc/useranalysis?&begin_date={d1}&end_date={d2}&source=99999999"
+    "&fingerprint={fp}&token={token}&lang=zh_CN&f=json&ajax=1"
+)
 # 发表记录：msgid/群发时间/sent_status.total（送达数，打开率分母）
 URL_PUBLISH_LIST = (
     MP_BASE + "/cgi-bin/appmsgpublish?sub=list&begin={begin}&count={count}"
