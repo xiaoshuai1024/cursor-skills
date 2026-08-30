@@ -202,11 +202,20 @@ def cmd_sync(args) -> int:
     if not args.all and args.slug not in state["videos"]:
         raise SystemExit(f"❌ state 里没有 {args.slug}（先 stage 创建，或用 --all）")
     changed = 0
+    promotions: list[str] = []
     for slug in slugs:
+        before_stage = (state["videos"].get(slug) or {}).get("stage", "")
         if sync_one(state, slug):
             changed += 1
+            after_stage = (state["videos"].get(slug) or {}).get("stage", "")
+            if after_stage != before_stage:
+                promotions.append(f"  {slug}: {before_stage} → {after_stage}")
     save_state(state)
     print(f"✅ sync 完成，{changed}/{len(slugs)} 条有更新")
+    if promotions:
+        print(f"stage 晋升 {len(promotions)} 条:")
+        for line in promotions:
+            print(line)
     return 0
 
 
@@ -225,7 +234,8 @@ def sync_one(state: dict, slug: str) -> bool:
     # 0) blocked 记录：人工状态优先，只并入 link-map 平台证据，不动 stage
     sched = v.get("schedule") or {}
 
-    # 1) 平台状态判定：有 schedule 按时间（未来=scheduled/过去=published）；link-map ok 补存在性
+    # 1) 平台状态判定：link-map ok 实据优先（已发布平台不可能还有未来定时——有则是残留卡），
+    #    其次 schedule 按时间（未来=scheduled/过去=published）
     lm = {}
     if LINK_MAP.exists():
         try:
@@ -236,10 +246,10 @@ def sync_one(state: dict, slug: str) -> bool:
     plats = set(sched.keys()) | {k for k in results if k in PLATFORMS}
     for plat in plats:
         t = _dt(sched.get(plat, ""))
-        if t and t > now:
-            status = "scheduled"
-        elif plat in results and results[plat].get("ok"):
+        if plat in results and results[plat].get("ok"):
             status = "published"
+        elif t and t > now:
+            status = "scheduled"
         elif t:
             status = "published"
         else:
@@ -250,14 +260,25 @@ def sync_one(state: dict, slug: str) -> bool:
             prev["verified_at"] = now_iso()
 
     # 2) stage 推导（只升不降；blocked 跳过）
+    #    发布实据 = link-map results 任一平台 ok（published_at 单独不算——失败的单平台尝试也会盖章）。
+    #    published 晋升（pipeline-reconcile）：此前缺这一档，发布后未归档的视频永远停在 scheduled。
+    #    晋升时清掉已 ok 平台的 schedule 残留（已发布 ⇒ 定时已消费），防队列幽灵卡。
     if not v.get("blocked_reason"):
         fut_sched = any(t and t > now for t in map(_dt, sched.values()))
         has_past_pub = any(results.get(pl, {}).get("ok") for pl in plats)
-        if (VG_DIR / "archive" / slug).is_dir() and (not fut_sched) and has_past_pub:
+        if (VG_DIR / "archive" / slug).is_dir() and has_past_pub:
             if order[v["stage"]] < order["archived"]:
                 v["stage"] = "archived"
                 v["stage_ts"] = now_iso()
                 v.setdefault("refs", {})["archive_dir"] = f"video-generation/archive/{slug}"
+        elif has_past_pub:
+            if order[v["stage"]] < order["published"]:
+                v["stage"] = "published"
+                v["stage_ts"] = now_iso()
+                v.setdefault("refs", {})["link_map"] = "content/link-map.json"
+                for pl in list(sched):
+                    if results.get(pl, {}).get("ok"):
+                        sched.pop(pl, None)
         elif fut_sched:
             if order[v["stage"]] < order["scheduled"]:
                 v["stage"] = "scheduled"

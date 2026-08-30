@@ -55,11 +55,11 @@ make experiment ARGS="list"       # 实验台账：假设→落地→验证闭�
 
 - `make analytics-revenue` = `va.revenue_collect`（B站/视频号收益页 XHR 宽匹配拦截，原始证据 `snapshots/revenue_raw/`）+ `va.monetize`（门槛进度表）。快照落 `snapshots/revenue/<platform>.jsonl`（进 git）。
 - `data/analytics/monetize-report.md`（进 git）：各平台变现门槛进度（现状/差距/近7日净增/按速度外推达标日）+ 收益摘要。门槛数值在 `monetize-thresholds.json` 维护（含来源注记，以后台页面为准）。
-- 已知缺口（2026-08-30 首采）：视频号 141 粉后台无收益中心入口（未达开通条件，属预期）；B站浏览器登录态失效（archives HTTP API 仍活），收益端点待登录恢复后抓包固化。
+- 已知缺口（2026-08-30 首采）：视频号 141 粉后台无收益中心入口（未达开通条件，属预期）；~~B站浏览器登录态失效~~ → **B站已采通（openspec bilibili-income-endpoint，2026-08-30）**：真端点 `api.bilibili.com/x/earnings/up/index/income*`（老 member 域 x2/creative/web/income* 已 404）；bilibili.json 是 biliup cookie_info 格式，浏览器加载须转 storage_state（revenue_collect 已内置转换）——当前真实 0，符合 18 粉未达激励门槛现状。
 
 ## 实验台账（ops-hardening，2026-08-30）
 
-directives 提出假设，`va.experiment` 补验证闭环：`add`（登记 directive/假设/落地 slug/验证指标）→ 观察期 → `verify <id> --note "结论"`（自动拉 timeseries.db 最新指标辅助，结论必须人写——平台无对照流量不硬造 A/B）。台账 `data/analytics/experiments.jsonl`（进 git）；`make analytics-report` 的总览与 `experiments.md` 均渲染进行中/最近已验证实验。
+directives 提出假设，`va.experiment` 补验证闭环：`add`（登记 directive/假设/落地 slug/验证指标）→ 观察期 → `verify <id> --note "结论"`（自动拉 timeseries.db 最新指标辅助，结论必须人写——平台无对照流量不硬造 A/B）。台账 `data/analytics/experiments.jsonl`（进 git）；`make analytics-report` 的总览与 `experiments.md` 均渲染进行中/最近已验证实验。**关联与提醒（openspec experiment-evidence-linkage，2026-08-30）**：承载视频定了以后 `link <id> --slugs slug1,slug2` 补挂（与 add 的 `--applied-to` 同字段）；`make next` 只对已挂 slug 且落地 ≥5 天的实验出 verify 提醒（文本带各 slug deep 覆盖状态）；openspec 悬空验证（色彩改版/CTA/dyn 档/幽默双片/gpuq 链）已预登记为 exp-20260830-01..05。
 
 ## 播放过程分析（锚点推断法）
 

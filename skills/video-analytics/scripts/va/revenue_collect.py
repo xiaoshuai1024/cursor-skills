@@ -29,11 +29,9 @@ REVENUE_TARGETS = {
         "url": "https://member.bilibili.com/platform/home",
         "match_sub": ["income", "bcoin", "revenue", "wallet", "profit", "award"],
         "nav_clicks": ["收益中心", "收益", "创作激励"],
-        # 无文档端点主动试拉（404/权限错误静默跳过，靠 nav 后被动拦截兜底）
-        "fetch_candidates": [
-            "/x2/creative/web/income?pn=1&ps=12",
-            "/x2/creative/web/income/summary",
-        ],
+        # 2026-08-30 实采固化：真端点在 api.bilibili.com/x/earnings/up/index/income*（老 member
+        # 域 x2/creative/web/income* 已 404）；靠收益主页被动拦截即命中，无需主动 fetch
+        "fetch_candidates": [],"depth_note": "income_judge_report.current_month_income/last_month_income",
     },
     "shipinhao": {
         # 2026-08-30 开通创作分成后实测：收益页直连 /platform/income（菜单「收入与服务→收入权益」
@@ -132,6 +130,25 @@ def _unwrap(bodies: list) -> list:
     return out
 
 
+def _bili_storage_state() -> dict:
+    """bilibili.json 是 biliup 的 cookie_info 格式，Playwright 不能直接加载（会零 cookie 被
+    重定向登录页——2026-08-30 实锤）。转成 storage_state：domain 缺省 .bilibili.com、secure、Lax。"""
+    data = json.loads((PUB_COOKIES / "bilibili.json").read_text(encoding="utf-8"))
+    raw = data["cookie_info"]["cookies"] if "cookie_info" in data else data.get("cookies") or []
+    cookies = []
+    for c in raw:
+        cookies.append({
+            "name": c.get("name"), "value": c.get("value"),
+            "domain": c.get("domain") or ".bilibili.com",
+            "path": c.get("path") or "/",
+            "expires": c.get("expires") if isinstance(c.get("expires"), (int, float)) else -1,
+            "httpOnly": bool(c.get("httpOnly", False)),
+            "secure": True,
+            "sameSite": "Lax",
+        })
+    return {"cookies": cookies, "origins": []}
+
+
 async def collect_browser(which: str) -> dict:
     import sys
     sys.path.insert(0, str(common.ROOT / "scripts" / "pub" / "vendor"))
@@ -161,7 +178,10 @@ async def collect_browser(which: str) -> dict:
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True, args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
-        context = await browser.new_context(storage_state=str(cookie_file))
+        if which == "bilibili":
+            context = await browser.new_context(storage_state=_bili_storage_state())
+        else:
+            context = await browser.new_context(storage_state=str(cookie_file))
         page = await context.new_page()
         page.on("response", lambda r: asyncio.ensure_future(on_response(r)))
         await page.goto(conf["url"], wait_until="domcontentloaded", timeout=90000)

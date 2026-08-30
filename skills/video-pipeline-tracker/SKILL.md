@@ -11,7 +11,7 @@ description: 视频生产全生命周期状态台账。单一事实源 state.jso
 
 - 视频流程推进到节点（文章完成/口播确认/合成/渲染完成/挂定时/出片/归档）→ `stage` 记录
 - 「现在队列里有什么、排到哪天、有没有撞档」→ `queue`
-- 怀疑台账与现实漂移 → `sync`（从目录/link-map/analytics 快照推导并入，只读外部源）
+- 怀疑台账与现实漂移 → `sync`（从目录/link-map/analytics 快照推导并入，只读外部源）；日循环发布后收尾直接 `make reconcile`（blog-src，批量 sync + 复算 make next）
 - 看全貌 → `report` 或直接打开 `data/video-pipeline/dashboard.md`
 
 ## 用法
@@ -23,6 +23,8 @@ py -3.11 vpt.py stage <slug> scheduled --schedule douyin=2026-08-29\ 20:00 --sch
 py -3.11 vpt.py stage <slug> synthesizing --block "合成任务僵死，重跑中"   # 阻塞标注
 py -3.11 vpt.py queue                                          # 排队视图（同日多条标 ⚠️CONFLICT）
 py -3.11 vpt.py sync <slug>                                    # 现实源推导并入（--all 全量）
+
+sync 实据口径（2026-08-30，openspec pipeline-reconcile）：发布实据 = link-map `pub_video.results.*.ok`——`published_at` 单独不算（失败的单平台尝试也会盖章）；`results.ok` 优先于 schedule（已发布平台不可能还有未来定时，有则是残留卡，晋升时清理）；published 晋升档已补齐（发布未归档不再卡 scheduled）。
 py -3.11 vpt.py report                                         # 重生成 dashboard
 ```
 

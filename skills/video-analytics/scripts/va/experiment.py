@@ -9,6 +9,7 @@ applied_to slugs 的最新指标辅助判断（结论必须人写，平台无对
 用法:
     python -m va.experiment add --directive H5 --applied-to slugA,slugB \
         --hypothesis "删过渡句后停留句位后移" [--metric avg_play_time_s] [--note "..."]
+    python -m va.experiment link exp-20260830-01 --slugs slugC,slugD   # 补挂/追加关联 slug
     python -m va.experiment list
     python -m va.experiment verify exp-20260830-01 --note "中位深度 6%→11%，继续" [--reject]
 
@@ -70,6 +71,21 @@ def _next_id(records: list[dict]) -> str:
     return f"exp-{datetime.now().strftime('%Y%m%d')}-{n:02d}"
 
 
+def _deep_dates() -> dict[str, str]:
+    """slug → 最近一次有深度指标（completion_rate）的采集日（experiment-evidence-linkage）。"""
+    if not DB_PATH.exists():
+        return {}
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        rows = conn.execute(
+            "SELECT slug, MAX(collected_date) FROM metrics_ts "
+            "WHERE completion_rate IS NOT NULL GROUP BY slug").fetchall()
+        conn.close()
+        return {r[0]: r[1] for r in rows}
+    except sqlite3.Error:
+        return {}
+
+
 def cmd_add(args) -> int:
     setup_utf8()
     records = _load()
@@ -92,17 +108,38 @@ def cmd_add(args) -> int:
     return 0
 
 
+def cmd_link(args) -> int:
+    setup_utf8()
+    records = _load()
+    rec = next((r for r in records if r["id"] == args.id), None)
+    if not rec:
+        print(f"❌ 找不到 {args.id}（make experiment ARGS=\"list\" 查看）")
+        return 1
+    new = [s.strip() for s in (args.slugs or "").split(",") if s.strip()]
+    if not new:
+        print("❌ --slugs 不能为空（逗号分隔）")
+        return 2
+    rec["applied_to"] = list(dict.fromkeys((rec.get("applied_to") or []) + new))
+    _save(records)
+    print(f"✅ {rec['id']} 关联 slug: {', '.join(rec['applied_to'])}")
+    return 0
+
+
 def cmd_list(_args) -> int:
     setup_utf8()
     records = _load()
     if not records:
         print("台账为空。第一条: python -m va.experiment add --directive H5 --applied-to slugA,slugB --hypothesis \"...\"")
         return 0
+    deep = _deep_dates()
     for r in records:
         mark = {"applied": "🔬 进行中", "verified": "✅ 验证有效", "rejected": "❌ 判定无效"}.get(r["status"], r["status"])
         print(f"{r['id']}  {mark}  [{r['date']}] {r['directive']}")
         print(f"    假设: {r['hypothesis']}")
         print(f"    落地: {', '.join(r['applied_to']) or '—'}")
+        if r["status"] == "applied" and r.get("applied_to"):
+            cov = ", ".join(f"{s}: deep {deep.get(s) or '无'}" for s in r["applied_to"])
+            print(f"    数据: {cov}")
         if r.get("result_note"):
             print(f"    结论: {r['result_note']}（{r['verified_at']}）")
     return 0
@@ -158,12 +195,15 @@ def main() -> int:
     p_add.add_argument("--note", default="")
     p_add.add_argument("--id", default="", help="自定义 id（默认自动 exp-日期-序号）")
     sub.add_parser("list")
+    p_link = sub.add_parser("link", help="补挂/追加关联 slug（experiment-evidence-linkage）")
+    p_link.add_argument("id")
+    p_link.add_argument("--slugs", required=True, help="逗号分隔 slug")
     p_ver = sub.add_parser("verify")
     p_ver.add_argument("id")
     p_ver.add_argument("--note", default="", help="结论（必须人写）")
     p_ver.add_argument("--reject", action="store_true", help="判定无效")
     args = ap.parse_args()
-    return {"add": cmd_add, "list": cmd_list, "verify": cmd_verify}[args.cmd](args)
+    return {"add": cmd_add, "list": cmd_list, "link": cmd_link, "verify": cmd_verify}[args.cmd](args)
 
 
 if __name__ == "__main__":
