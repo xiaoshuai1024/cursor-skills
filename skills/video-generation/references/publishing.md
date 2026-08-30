@@ -155,6 +155,24 @@ vendor 三上传器（douyin/ks/tencent；bilibili 走 API 不涉浏览器）所
 
 - 合集封面/简介/排序实改统一挂 `collection-repackaging` 实验（`make experiment ARGS="add collection-repackaging --slugs=<在更系列 slug>"`），观察期 ≥5 天后用「系列健康度」新数据 verify（追更订阅增量 / 封面 CTR 变化 / 合集播放增量），结论人写。
 
+### 已发布作品封面/描述修复工具箱（2026-08-30）
+
+| 平台 | 脚本 | 关键结构 |
+|------|------|----------|
+| 抖音 | `scripts/pub/douyin_fix_cover_v2.py <关键词> <横图> <竖图> <expect令牌>` | 编辑页双卡槽（横4:3/竖3:4）分别进，modal 内第 2 个 hidden input 传图（第 1 个是 AI 参考图槽），img src 前后变化验证；确认键必须 scoped `.semi-modal`（page 级「确定」会静默失效） |
+| 快手 | `scripts/pub/kuaishou_fix_cover.py <关键词> <封面路径>` | 管理页卡片定位 → 编辑作品 → 封面区「编辑封面」→ 上传封面 tab → 确认（弹窗按钮是「确认」非「完成」）；desc 类作品按简介定位 |
+| 视频号 | `scripts/pub/shipinhao_fix_cover.py --slug <slug> --cover <竖图> [--confirm]` | 见下方专节 |
+| B站 | 封面投稿时提交，无已发布改封面通道 | — |
+
+### 视频号改封面自动化（shipinhao_fix_cover，2026-08-30 调研实测）
+
+- **⚠️ 平台铁律（弹窗原文）**：「仅支持修改一次，修改后不可撤回，修改记录将会展示在视频上」——已发布作品的描述+封面**合计只有一次修改机会**，`--confirm` 前必须确认封面文件正确；`描述只能改 20 个字`。
+- **入口**：内容管理→视频列表卡片操作条「修改描述和封面」——**图标在文字标签上方 ~28px，点文字不路由、点图标才路由**；hover 偶发不生效（约 1/3 概率），脚本内已做三 attempts 重试。
+- **路由**：SPA 站内跳 `/platform/post/coverEdit?objectId=export%2F...`（全形 objectId = link-map 的 shipinhao_id）；**直连 URL 重定向回首页**，必须列表页站内点入。
+- **⚠️ 编辑器整页跑在 wujie 微前端 shadowRoot**：主文档 querySelector 全空，一切探测/操作必须 `wujie-app.shadowRoot` 穿透（file input `accept=image/jpeg,image/jpg,image/png` = 封面上传口；range×2=帧选择；text×3=描述/短标题）。
+- **流程**：规则弹窗「我知道了」（每次都出现）→ 3:4 卡「编辑」→ 裁剪弹层内对 file input 直接 `set_input_files`（无需点「上传封面」开 chooser，headless 下 chooser 事件不触发）→ footer「确认」（**y≈742 在视口折叠线下，必须 scrollIntoView 后取坐标再点**——此前四次失败全栽在这）→ 弹层右上 `weui-desktop-icon-btn` ✕ 关闭 → 顶层「完成」（edit-btns 容器）→ 不可逆弹窗「确认修改」。
+- **今日首战**：ai-whole-project-antipattern 旧封面（元数据改版前的「别让 AI 一次写完项目」图）已由本流程替换为新版 144:1 封面，不可逆提交被平台受理。
+
 ### 平台风控与批量排期守则（2026-08-30 batch15 事故沉淀，含指数退避）
 
 **概念定规（2026-08-30 用户定规）**：「定时发布」**专指使用平台自身的定时发布功能**——抖音发布页定时控件、快手「定时发布」、B站 `dtime` 定时投稿、视频号发布页定时控件。本地 schtasks 挂 bat 定时直发**不属于定时发布**，称「本地兜底直发」；台账（state.json/link-map）、汇报、审计中两者必须分开表述，四平台齐全判定不受影响，但视频号的 schtasks 档必须在备注标注「本地兜底」。视频号平台定时实证仅当天内近档（小时级）可用（15:50 档降级实录 + ep3 canary 78h 必降，canary 已取消），故 >当天 档位只能本地兜底并如实标注，当天内档位一律优先平台定时。
