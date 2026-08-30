@@ -108,3 +108,39 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 - **并发会话清目录坑（2026-08-27 实锤）**：`video-generation/build/<slug>/` 可能被并发会话整目录清掉（发布运行中 mp4 消失、metadata.txt 一起丢）——发布前后确认 mp4 在场；**重要 metadata 发布前备份一份到 build 外**（或从本 skill 记录重建）；音频 `audio/<slug>_t/` 与 deck/narrations 在 build 外，丢了 build 重渲即可恢复（约 25 分钟，换声旁路自动接管）。
 
 **主管线**（`scripts/pub/publish.py`，抖音/视频号/B站通道 + 公众号 mp API）自动处理：封面横竖双版生成（复用 `scripts/video/cover.py`）、**metadata lint 门禁**（`--confirm` 前跑，FAIL 拒发；lint 自身异常同样拒发，`--force` 逃生留痕；含**时长纪律**——ffprobe 成片 >150s 且无「豁免_时长」拒发，openspec douyin-featured-selection）、标题裁剪、AI 声明、合集选择（抖音/视频号）、平台间隔风控缓冲（180-480s）、结果回收 link-map。**快手走 v2**（主管线 KSVideo 选择器过期待修）。⚠️ link-map 无文件锁——多平台并行发布时互相覆盖（2026-08-23 实证），串行发布或事后核对。
+
+## 合集数据与转化定规（2026-08-30，openspec collection-data-conversion）
+
+> 合集是搜索/主页之外第三内容入口；合集粒度数据回流走 `make analytics-album`（snapshots/album/*.jsonl），报表看板见 video-analytics「系列健康度」节。
+
+### 三平台合集现状与数据通道（2026-08-30 实查）
+
+- **抖音**：Web 合集管理在创作者中心「内容管理 → 作品合集」tab（旧结论「Web 无入口」作废）。数据接口 `web/api/mix/list`（清单+浅层 statis）+ `web/api/creator/item/mix/mget?fields=metrics`（完整 14 项：播放/点赞/评论/收藏/分享/完播率/2S跳出率/人均时长/封面曝光/封面点击/封面CTR/**追更订阅 subscribe_count**/退订/总时长）——追更订阅与封面 CTR 是合集特有转化位，UI 行不显示，采集器被动拦截两个端点。
+- **快手**：合集数据只有 `rest/cp/works/v2/collection/list`（viewCount 等基础字段 + `offlineReason`/`urgeUpdateCount` 催更数）；数据中心无合集维度。`collection/tab` 是纯 tab 计数（collect.py SKIP_PAT 保持）。**⚠️ 2026-08-30 实查两个合集均 size=0 离线（「有效剧集数不足，不公开展示」）——合集从未公开生效，成员补挂是前置缺口（collection-packaging-optimize 0.4），数据全 0 是离线导致不是没流量。**
+- **B站**：合集权益未解锁（内容管理无合集 tab；候选直达 URL 重定向首页；粉丝 19 未达改版后门槛）。2026-08-30 搜索佐证：电磁力改版后合集权益按粉丝量定级放宽（90 粉 Lv1 可用，旧「需 Lv2」口径过期）——**粉丝过 90 后重查权益页，达标即建合集并按抖音款式补采集**。
+- 视频号无合集功能，永久排除。
+
+### 合集内排序策略（C1 定规 + 实操清单）
+
+- **策略**：首位放系列最强单集（承接主页/搜索进合集的流量，当前最强 = deepseek-harness-plugin-system）；其余按系列正序（EP.1 → EP.N），追更动线自然。新爆款产生时更新首位。
+- **实操**（抖音 Web：内容管理 → 作品合集 →「设置排序」）：① 置顶 deepseek-harness-plugin-system；② dsh-source-deep-dive ep1~ep11 按期号正序；③ deepseek-harness 系列按期号正序；④ 其余散集作品按播放降序垫后。快手合集编辑页无拖拽排序入口（App 内核对，补成员时顺手确认）。
+- **门禁**：排序是平台写操作且对外可见——会话内操作前报用户确认，改完回读截图。
+
+### 置顶评论 × 合集钩子（C2，备稿模板）
+
+- 系列视频 `置顶评论:` 备稿在承接文案外加导流句：「本系列全集已收录合集《AI 编程实战课》，收藏追更不迷路」（合集名跨平台严格一致）；与粉丝群链接并存（管线自动挂尾，互不冲突）。
+- lint 已识别：系列视频（EP 期号标题）简介/置顶评论缺钩子 → WARN「合集钩子」（metadata_lint `check_series_hook`）。
+- 存量承接：48h 回看窗口内的已发布视频补挂新模板，不批量回改历史。
+
+### 简介追更钩子（C3，定规）
+
+- 系列视频 `简介:` 末尾（互动问题后）加「本系列全集已收录合集《AI 编程实战课》」——站内合集指路**不触抖音简介外链红线**（红线只禁站外链接）；规则落点在 metadata-optimizer skill「简介与话题」节。
+
+### 粉丝群追更联动（C4，发布后节拍）
+
+- 前置：`scripts/pub/config.py::DOUYIN_FAN_GROUP_URL` 配置群链接（**HUMAN**：用户从抖音 App 群分享页复制；2026-08-30 时点仍为空，置顶评论私域挂尾实际未生效）。
+- 节拍：新集发布确认后 → 粉丝群内人工推一条更新消息（新集标题 + 一句话价值）——群是当前唯一私域入口，合集更新触达靠粉丝信息流 + 群推送双通道。
+
+### 实验挂账（C6）
+
+- 合集封面/简介/排序实改统一挂 `collection-repackaging` 实验（`make experiment ARGS="add collection-repackaging --slugs=<在更系列 slug>"`），观察期 ≥5 天后用「系列健康度」新数据 verify（追更订阅增量 / 封面 CTR 变化 / 合集播放增量），结论人写。
