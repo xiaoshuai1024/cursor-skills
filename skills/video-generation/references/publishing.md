@@ -52,6 +52,14 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 - `--dtime` 定时距提交需 >4h；封面 `--cover` 本地横版路径自动上传
 - 投稿后字段核对：`/x/web/archives`（稿件列表）、`/x/vupre/web/archive/view?aid=`（详情，浏览器内 fetch；requests 直调 404）
 
+### 视窗跟随定规：--start-maximized + no_viewport（2026-08-30，openspec platform-ops-toolkit 2.5）
+
+vendor 三上传器（douyin/ks/tencent；bilibili 走 API 不涉浏览器）所有 headful launch/context 统一口径：launch args 三元组 `["--no-sandbox", "--disable-blink-features=AutomationControlled", "--start-maximized"]` + `new_context(no_viewport=not headless)`。headless 路径零漂移（cookie_auth 默认 headless 语义不变）；`connect_over_cdp` 复用外部 context 的路径不动。
+
+- **为什么**：Playwright 系默认固定视口 1280×720——有头窗口里页面钉在左上角、人工盯发布/扫码可视面积小，且 `window.screen` 被仿真成 1280×720 与真实屏幕不符（指纹破绽）。定规组合 = 窗口真最大化 + 视口跟随窗口 + screen 用真实值，也正是 patchright 官方最佳实践（headless=False + `no_viewport=True`）的落地；窗口最大化而非真全屏，保留任务栏与窗口控制便于人工在场核对。
+- **实测坑（本机 1680×1050，探针可复跑）**：① 只加 `--start-maximized` 不配 `no_viewport` 是**坏的**——窗口没最大化反而出现视口 1280 宽 > 窗口 825 宽的页面裁切；② `--start-fullscreen` 在本机（RDP 会话）不进全屏、窗口落怪尺寸，禁用；③ 生产全走 `conf.LOCAL_CHROME_PATH` 自带 chromium（系统 Chrome `spawn UNKNOWN` 老坑，见 conf.py 注释）。
+- **工具**：`scripts/pub/viewport_probe.py`（五组合实测，about:blank 零平台请求）；`scripts/pub/viewport_window_demo.py`（人工验收窗，页面实时显示视口/窗口/屏幕尺寸并随 resize 跟新，点 X 自动退出）。
+
 ### 全平台发布与逐平台状态确认（2026-08-27 修订：取消抖音先行顺序门禁）
 
 > 背景：原「抖音先行 + 后台状态门禁」（2026-08-20，源自 ccswitch 抖音被拒导致多平台无效副本）要求先发抖音、确认其状态再发其余平台。2026-08-27 用户定规**取消发布顺序约束**：四平台不分先后，串行执行只为 cookie 会话与 link-map 写入安全；发布成功与否由**现存检查工具逐平台确认**，某平台被拒按「发布后复查闭环」层级处置，**不再前置阻断其他平台**。
