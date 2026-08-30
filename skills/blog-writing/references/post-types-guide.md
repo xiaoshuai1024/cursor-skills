@@ -496,16 +496,7 @@
 
 **掘金/知乎**是 Web 平台,SVG 正常显示,博客站绝对 URL 或相对路径都行。
 
-**公众号**必须用 PNG 位图。用 wechatsync 同步前:
-
-```bash
-# SVG 转 PNG(1600px 宽,公众号高清)
-rsvg-convert -w 1600 static/svg/<slug>.svg -o /tmp/<slug>.png
-```
-
-然后生成公众号专用版文章:把 `<img src="https://站点/svg/<slug>.svg">` 换成 `<img src="/tmp/<slug>.png">`(本地路径)。wechatsync 会自动把本地 PNG 上传到公众号图床。
-
-**多图时**:逐张转 PNG,文章里有几张图就转几张,全部换成本地路径再 sync。
+**公众号**必须用 PNG 位图——现行 `make wechat-publish-mp` 通道的 `prepare.py` 已自动做 SVG → PNG 转换(首图另按 9:5 裁 `cover.png`),不需要手工转;旧的 rsvg-convert 手工流程随 wechatsync 一并退役(2026-08-30)。
 
 ### 配图密度(按成文实际字数配额)
 

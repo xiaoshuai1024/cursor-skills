@@ -1,6 +1,6 @@
 ---
 name: drawio
-description: 用 draw.io (mxGraph XML) 画架构图/部署图/数据流/分层架构等规整技术图，并通过 drawio CLI 导出 SVG 放进博客 static/。替代 mermaid 机器图、去 AI 味。概念图/对比图/流程梗图请改用 Excalidraw 手绘风。
+description: 用 draw.io (mxGraph XML) 画架构图/部署图/数据流/分层架构/时序图等规整技术图（英文 flowchart/architecture 类规整图请求同样归本 skill，不用 excalidraw），并通过 drawio CLI 导出 SVG 放进博客 static/。替代 mermaid 机器图、去 AI 味。仅手绘风概念图/对比图/梗图归 excalidraw。概念图/对比图/流程梗图请改用 Excalidraw 手绘风。
 ---
 
 # draw.io 画图

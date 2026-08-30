@@ -88,7 +88,7 @@ description: 写博客文章或改文章时的统一入口。覆盖选题自检�
 
 工作流:写 `.drawio` 源文件到 `static/diagrams-src/<slug>.drawio` → 用 drawio CLI 导出 SVG 到 `static/svg/<slug>.svg` → 文章里 `<img src="/svg/<slug>.svg" alt="描述性文字">`。
 
-**公众号同步必须转 PNG**:公众号对 SVG 支持极差,`<img>` 引用 SVG 显示不出来。用 wechatsync 同步到公众号时,先把 SVG 转成 PNG:`rsvg-convert -w 1600 static/svg/<slug>.svg -o /tmp/<slug>.png`,再把文章里的 SVG 路径换成 PNG 本地路径——wechatsync 会自动把本地 PNG 上传到公众号图床。掘金/知乎是 Web 平台,SVG 正常显示,不用转。
+**公众号配图走 PNG**:公众号不支持 SVG,`<img>` 引用 SVG 显示不出来。现行通道 `make wechat-publish-mp`(wechat-publishing skill)的 `prepare.py` 自动把正文 SVG 转成 PNG(首图另按 9:5 裁 `cover.png`),不用手工转换——旧的 rsvg-convert 手工流程随 wechatsync 于 2026-08-30 退役。掘金/知乎是 Web 平台,SVG 正常显示,不用转(掘金已降级低优先渠道,用户点名才发)。
 
 **同步公众号前过留存层**:读 `references/wechat-retention.md`(与掘金第十章同构的平台适配层)——标题/摘要变体(`wechat_title`/`wechat_digest`)、首屏 150 字、小标题间隔、钩子兑现、转化合规与 48h 数据回看,清单全过再走 wechat-publishing。
 

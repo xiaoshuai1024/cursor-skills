@@ -496,9 +496,9 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 4. **封面**：`cd scripts && PYTHONIOENCODING=utf-8 python -m video.cover_vscode --slug <slug>` → 复用视频主体视觉做封面（realshot 截图或写实窗口），再 `make video-cover-check slug=<slug>` 过验收
 5. **本地桌面应用窗口截图**：浏览器截不到的本地应用（Codex / CcSwitch / 客户端等）优先**真实窗口截图**而不是 CSS 仿真——用 `scripts/screenshot_app.py` 只截应用窗口（跨平台：macOS Quartz / Windows 调 .ps1，不截全屏）：
    ```bash
-   python scripts/screenshot_app.py --process "Codex" --title "Codex" --output video-generation/assets/<slug>/01.png
+   python skills/app-screenshot/scripts/screenshot_app.py --process "Codex" --title "Codex" --output video-generation/assets/<slug>/01.png
    ```
-   截图后如无法目视验证（模型不支持看图），用 `scripts/ocr.py`（macOS Vision / Windows WinRT）核对窗口文字，确保截到了目标界面而非误截。
+   截图后如无法目视验证（模型不支持看图），用 `skills/app-screenshot/scripts/ocr.py`(app-screenshot skill)（macOS Vision / Windows WinRT）核对窗口文字，确保截到了目标界面而非误截。
    **Windows 实测经验（2026-08-17 deepseek-harness-desktop-cli 沉淀）**：
    - **进程名不带 .exe**：`screenshot_app.py --process "cmd"`（`Get-Process` 的 Name 是 `cmd`，传 `cmd.exe` 匹配不到直接 "no window"）
    - **窗口被遮挡是最大坑**：矩形截取用 `CopyFromScreen` 抓屏面上该区域，若目标窗口被编辑器/ZCode 等盖住，截到的是一张**静止黑屏/别人界面**——两帧 diff 为 None 就是截错信号（`ImageChops.difference` bbox）。截前先 `ShowWindow(SW_MINIMIZE)` 移开竞争窗口 + `SetForegroundWindow` 并核对 `GetForegroundWindow()==MainWindowHandle`，截图后两帧 diff 确认画面在变

@@ -46,7 +46,7 @@ hugo --gc --minify          # 构建到 public/
 make wechat-prepare slug=<slug>
 ```
 
-`scripts/wechat/prepare.py`（走 `--for-mp` 路径）做的事：
+`scripts/prepare.py`（走 `--for-mp` 路径）做的事：
 1. 从 `public/posts/<slug>/index.html` 的 `.content` 区提取正文，剔除导航/TOC/分享按钮
 2. `clean_and_style()`：注入 inline 样式（公众号不支持 CSS class），清除非 span 标签的 class
 3. `convert_images()`：SVG → PNG（公众号不支持 SVG），**首图额外按 9:5 裁出 `cover.png`**
@@ -256,13 +256,13 @@ python -m scripts.wechat.cleanup_drafts --delete  # 3. 真正删除
 
 | 文件 | 作用 |
 |---|---|
-| `scripts/wechat/config.py` | 路径、inline 样式常量（一律 `background-color`）、封面尺寸、超时、`ALBUMS` 合集映射 |
-| `scripts/wechat/prepare.py` | 内容准备（清洗/样式/SVG→PNG/cover.png/代码高亮/原文链接） |
-| `scripts/wechat/publish_mp.py` | **mp API 直推**（登录态/上传图+封面/创建草稿+合集/回填 link-map） |
-| `scripts/wechat/schedule_api.py` | 直连 `time_send` 定时发表（全字符串表单 + fingerprint，`--dry-run` 预览；先查配额） |
-| `scripts/wechat/schedule_ui_v2.py` | UI 定时发表（创建发布副本；headless 面板用 JS-click；`--capture-only` 停确认弹窗抓 fingerprint） |
-| `scripts/wechat/list_drafts.py` | 草稿箱 DOM 盘点（`.wechat-build/draft-inventory.json`） |
-| `scripts/wechat/cleanup_drafts.py` | 批量删除测试草稿（dry-run 默认，`--delete` 执行） |
+| `scripts/config.py` | 路径、inline 样式常量（一律 `background-color`）、封面尺寸、超时、`ALBUMS` 合集映射 |
+| `scripts/prepare.py` | 内容准备（清洗/样式/SVG→PNG/cover.png/代码高亮/原文链接） |
+| `scripts/publish_mp.py` | **mp API 直推**（登录态/上传图+封面/创建草稿+合集/回填 link-map） |
+| `scripts/schedule_api.py` | 直连 `time_send` 定时发表（全字符串表单 + fingerprint，`--dry-run` 预览；先查配额） |
+| `scripts/schedule_ui_v2.py` | UI 定时发表（创建发布副本；headless 面板用 JS-click；`--capture-only` 停确认弹窗抓 fingerprint） |
+| `scripts/list_drafts.py` | 草稿箱 DOM 盘点（`.wechat-build/draft-inventory.json`） |
+| `scripts/cleanup_drafts.py` | 批量删除测试草稿（dry-run 默认，`--delete` 执行） |
 | `Makefile` | `wechat-prepare` / `wechat-publish-mp`（传 `album=`） |
 | `content/link-map.json` | slug → 平台草稿 ID / 永久链接 映射表 |
 | `wechat-profile/` | Playwright 持久登录态（gitignore） |
