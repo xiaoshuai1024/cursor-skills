@@ -160,8 +160,8 @@ class MpSession:
                     wp_config.WECHAT_PROFILE_DIR,
                     channel=wp_config.BROWSER_CHANNEL,
                     headless=headless,
-                    args=["--disable-blink-features=AutomationControlled"],
-                    viewport={"width": 1440, "height": 900},
+                    args=["--disable-blink-features=AutomationControlled", "--start-maximized"],
+                    viewport=None if not headless else {"width": 1440, "height": 900},
                 )
                 break
             except Exception as exc:  # Windows 上强杀实例后 profile 短暂不可用，重试即恢复
