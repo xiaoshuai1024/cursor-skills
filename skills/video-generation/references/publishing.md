@@ -138,7 +138,7 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 
 ### 粉丝群追更联动（C4，发布后节拍）
 
-- 前置：`scripts/pub/config.py::DOUYIN_FAN_GROUP_URL` 配置群链接（**HUMAN**：用户从抖音 App 群分享页复制；2026-08-30 时点仍为空，置顶评论私域挂尾实际未生效）。
+- 前置（已就绪，2026-08-30）：`scripts/pub/config.py::DOUYIN_FAN_GROUP_URL = https://v.douyin.com/group/468641640402`——用户实证 **v.douyin.com 短链在抖音评论区可直接发送**（站内域名不触外链红线，无需口令/特殊格式）；douyin_pin_comment 挂尾自动去重（文案已含不重复）。存量视频在 48h 承接窗口补挂时生效。
 - 节拍：新集发布确认后 → 粉丝群内人工推一条更新消息（新集标题 + 一句话价值）——群是当前唯一私域入口，合集更新触达靠粉丝信息流 + 群推送双通道。
 
 ### 实验挂账（C6）
