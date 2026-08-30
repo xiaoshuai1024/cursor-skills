@@ -291,7 +291,7 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 1. **能浏览器截图的步骤 → 全部浏览器截图（主原则）**：`cd scripts && PYTHONIOENCODING=utf-8 python -m video.capture_shots --slug <slug>` → `video-generation/assets/<slug>/<key>.png` + `manifest.json`（Playwright 抓官网实拍 1600×900，热点框坐标记百分比）。`Shot._locate` 支持 `{sel}`（精确选择器）或 `{text, after_heading}`（README 段内文本定位）。**任何能在浏览器呈现的 UI 都截**——官网 / 市场 / GitHub / 控制台 / 在线编辑器（如 vscode.dev），不限于下载页
 2. **deck 加 realshot 卡**：`{"type":"tool","tool":"realshot","slug":<slug>,"shot":"<key>","points":[...],"hotspots":[null,{x,y,w,h,label},...]}`——`hotspots` 数组按 `points` 索引对齐，`null` 表示该步无箭头
 3. **CSS 仿真窗口只兜底**：浏览器截不到的本地桌面应用 / 登录态界面，才用 `tool:"vscode"`（拟物化 VSCode）等 mockup，卡字段 `req`/`resp`/`points` 驱动
-4. **封面**：`cd scripts && PYTHONIOENCODING=utf-8 python -m video.cover_vscode --slug <slug>` → 复用视频主体视觉做封面（realshot 截图或写实窗口），再 `make video-cover-check slug=<slug>` 过验收
+4. **封面**：`make video-cover slug=<slug>` 生成横竖双封面（cover.py v3/v4 hero 体系；`ensure_covers` 对早于 metadata.txt 的旧封面强制重生成——2026-08-30 新鲜度定规，`cover_vscode` 模块已不存在、死引用已清除）→ `make video-cover-check slug=<slug>` 过验收
 5. **本地桌面应用窗口截图**：浏览器截不到的本地应用（Codex / CcSwitch / 客户端等）优先**真实窗口截图**而不是 CSS 仿真——用 `scripts/screenshot_app.py` 只截应用窗口（跨平台：macOS Quartz / Windows 调 .ps1，不截全屏）：
    ```bash
    python skills/app-screenshot/scripts/screenshot_app.py --process "Codex" --title "Codex" --output video-generation/assets/<slug>/01.png
