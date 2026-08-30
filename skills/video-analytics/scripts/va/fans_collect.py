@@ -85,7 +85,8 @@ async def fans_douyin() -> dict:
     daily = []
     prev_total = None
     for d, tot in total_series:
-        if tot is None:
+        if not tot:
+            # 0/None = 当日未结算占位（2026-08-30 实测 08-29 回 0 污染净增 -613），跳过不差分
             continue
         daily.append({"date": d, "total": tot,
                       "new_fans": _i(new_s.get(d)), "cancel_fans": _i(cancel_s.get(d)),
