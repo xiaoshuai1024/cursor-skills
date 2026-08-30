@@ -25,3 +25,6 @@ wechat-profile/
 .video-analytics/
 # mstodo-topic 运行产物(含 token.json 令牌与 config client_id，勿提交)
 .mstodo-topic/
+
+# vpt 运行时台账（state.json 单一事实源在 blog-src/data/video-pipeline，勿落进本仓）
+/data/

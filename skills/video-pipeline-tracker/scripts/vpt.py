@@ -41,16 +41,37 @@ def _utf8() -> None:
 
 
 def project_root() -> Path:
+    """定位项目根（state.json 单一事实源所在）。
+
+    2026-08-29 修复双重数据源：tracker 经 .agents/skills junction 挂进项目，
+    `Path(__file__).resolve()` 会穿透 junction 落到 skills 仓（那里也有 .git），
+    导致 state.json 写进 skills 仓、与项目 data/ 漂移成两份。
+    现按「env → cwd 向上找 hugo.toml → __file__ 向上找 hugo.toml（跳过纯 .git 仓）」解析：
+    cwd 在项目内时必达 blog-src；__file__ 穿透 junction 后向上也只认 hugo.toml（skills 仓无）。
+    """
     env = os.environ.get("VIDEO_PROJECT_ROOT")
     if env and Path(env).exists():
         return Path(env)
-    cur = Path(__file__).resolve()
-    for parent in cur.parents:
-        if (parent / "hugo.toml").exists() or (parent / ".git").exists():
+
+    def _walk(base: Path):
+        for parent in [base, *base.parents]:
+            if (parent / "hugo.toml").exists():
+                return parent
+        return None
+
+    hit = _walk(Path.cwd())
+    if hit:
+        return hit
+    hit = _walk(Path(__file__).resolve())
+    if hit:
+        return hit
+    for parent in Path(__file__).resolve().parents:
+        # 双条件：必须同时有 hugo.toml（项目仓）——防穿透 junction 落进 skills 仓
+        if (parent / "hugo.toml").exists() and (parent / "data" / "video-pipeline" / "state.json").exists():
             return parent
     home = Path(os.environ.get("USERPROFILE", str(Path.home())))
     fallback = home / "codes" / "blog-src"
-    return fallback if fallback.exists() else cur.parents[-1]
+    return fallback if fallback.exists() else Path.cwd()
 
 
 ROOT = project_root()
