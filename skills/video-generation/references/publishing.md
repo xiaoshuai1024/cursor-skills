@@ -28,7 +28,7 @@ make pub-video slug=xxx platforms=douyin confirm=yes schedule="2026-08-25 20:00"
 | 话题 | ✅ 面板选择 ≤4 | ✅ 描述内 # 文本（快手解析为标签，**必须 ≤4**，超出在描述阶段裁剪） | ✅ | ✅ `--tag` ≤6 |
 | 封面 | ✅ 横版 | ✅ v2 封面步骤（上传+预览等待+失败即中止） | ✅ 横竖 | ✅ `--cover` 横版 |
 | 定时 | ✅ | ✅ v2 | ✅ | ✅ `--dtime`（距提交 >4h） |
-| 合集 | ⚠️ apply_collection 选已有；下拉易被浮层拦截（大量 WARNING 实证），**Web 端无合集管理页/编辑页无合集字段** → App 端补 | ✅ 合集内发布：v2 `argv[3]=collectionId`（「AI 研发实战」=263304580）；合集建页 `cp.kuaishou.com/article/manage/collection` 双击卡片→编辑合集 | ✅ apply_collection | ❌ 需权益中心 Lv2（未达标） |
+| 合集 | ✅ apply_collection 选已有（下拉易被浮层拦截，先清浮层再点）；**合集本体 Web 可管理（2026-08-30 实证，推翻「Web 无入口 App 手动」旧论）：`creator.douyin.com/creator-micro/content/manage?tab=collections` → 编辑合集（标题≤20/简介≤200/封面 1080×1080 ≤5M/添加作品/拖拽排序）；添加作品抽屉必须搜索关键词触发且 headless 不渲染列表（headful + `[class*=plus-area]`）；元信息变更触发约 1h 平台审核；工具 `scripts/pub/douyin_collection_edit.py`（meta\|members\|verify）** | ✅ 合集内发布：v2 `argv[3]=collectionId`（现役合集「AI 编程实战课」=263304580，2026-08-30 由「AI 研发实战」改名、ID 不变）；合集本体编辑页只有标题(≤12)/展示设置/添加作品（无封面/简介字段，封面取首成员缩略图）；**一个作品只能在一个合集**（补挂自动迁出旧合集）；公开展示门槛=有效剧集数（6/9 集均「未公开展示」、38 集过）；工具 `scripts/pub/kuaishou_collection_edit.py` | ✅ apply_collection | ❌ 权益两级门：Lv2 仅解锁入口，创建受「合集个数」配额限（2026-08-30 API 实证 20082「您创建的合集个数太多了」而 seasons total=0，配额按粉丝量定级）；全流程 API 脚本已备好 `scripts/pub/bilibili_collection_create.py`（封面上传 `/x/vu/web/cover/up` base64 需 `data:image/png;base64,` 前缀），配额达标一键建 |
 | 原创/AI 声明 | ✅ 自主声明→内容由AI生成（失败拒发） | ✅ v2 作者声明→内容为AI生成（单选下拉，失败抛错阻断） | ✅ 视频标注→含AI生成内容（strict，失败阻断） | ✅ biliup `--extra-fields` 传 creation_statement + `--copyright 1 --no-reprint 1` |
 
 **合规口径（2026-08-30 定规，最高优先）**：四平台发布必须带 **AI 生成声明 + 原创（自制/禁转载）双声明**，声明失败一律阻断发布、禁止裸发。平台实现与坑：抖音「自主声明→内容由AI生成」；快手 v2「作者声明→内容为AI生成」（单选下拉，实测选项：内容为AI生成/演绎情节/个人观点/素材来源于网络，**绝不能选素材来源于网络=否认原创**）；视频号「视频标注→含AI生成内容」strict 模式（另有创作分成弹窗点「声明原创」保流量收益）；B站 biliup `--extra-fields` 传 `creation_statement:{"id":1,"content":"含AI生成内容"}`（**只认对象形态，传 neutral_mark 整数报 21001**；枚举同源 archive/pre）+ `--copyright 1 --no-reprint 1`。dry-run 不回收 link-map（曾把正式记录覆盖成 dry-run 结果）。
@@ -116,9 +116,10 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 ### 三平台合集现状与数据通道（2026-08-30 实查）
 
 - **抖音**：Web 合集管理在创作者中心「内容管理 → 作品合集」tab（旧结论「Web 无入口」作废）。数据接口 `web/api/mix/list`（清单+浅层 statis）+ `web/api/creator/item/mix/mget?fields=metrics`（完整 14 项：播放/点赞/评论/收藏/分享/完播率/2S跳出率/人均时长/封面曝光/封面点击/封面CTR/**追更订阅 subscribe_count**/退订/总时长）——追更订阅与封面 CTR 是合集特有转化位，UI 行不显示，采集器被动拦截两个端点。
-- **快手**：合集数据只有 `rest/cp/works/v2/collection/list`（viewCount 等基础字段 + `offlineReason`/`urgeUpdateCount` 催更数）；数据中心无合集维度。`collection/tab` 是纯 tab 计数（collect.py SKIP_PAT 保持）。**⚠️ 2026-08-30 实查两个合集均 size=0 离线（「有效剧集数不足，不公开展示」）——合集从未公开生效，成员补挂是前置缺口（collection-packaging-optimize 0.4），数据全 0 是离线导致不是没流量。**
-- **B站**：合集权益未解锁（内容管理无合集 tab；候选直达 URL 重定向首页；粉丝 19 未达改版后门槛）。2026-08-30 搜索佐证：电磁力改版后合集权益按粉丝量定级放宽（90 粉 Lv1 可用，旧「需 Lv2」口径过期）——**粉丝过 90 后重查权益页，达标即建合集并按抖音款式补采集**。
+- **快手**：合集数据只有 `rest/cp/works/v2/collection/list`（viewCount 等基础字段 + `offlineReason`/`urgeUpdateCount` 催更数）；数据中心无合集维度。`collection/tab` 是纯 tab 计数（collect.py SKIP_PAT 保持）。~~2026-08-30 两个合集均 size=0 离线~~ **2026-08-30 下午已解（collection-packaging-optimize）：双合集归一为「AI 编程实战课」38 集并公开展示（总播放 4.1w+），空壳旧合集已解散**；数据通道随公开生效自然恢复。
+- **B站**：合集权益两级门——Lv2 解锁入口，但创建受「合集个数」配额限（API 20082，配额按粉丝量定级）；`/upload-manager/ep` 合集管理页 SPA headless/headful 均不渲染 tab（页面壳正常、seasons API 正常），管理一律走 API。脚本 `scripts/pub/bilibili_collection_create.py` 已闭环封面上传→建合集→挂成员全流程，配额开通后一键执行。
 - 视频号无合集功能，永久排除。
+- **合集包装定规（2026-08-30，openspec collection-packaging-optimize）**：三平台合集名严格统一《AI 编程实战课》；简介结构=价值承诺（工具怎么用/源码怎么读）→主线三条→「配置判据直接拷走」→更新节奏+收藏钩子（抖音 200 字内无外链版/B站带博客链接+三连版）；封面=`scripts/video/collection_cover.py` 生成（抖音 1080×1080 方图/B站 1920×1080，色板走 palette.py 单源，青色≥0.8%/字形≥2.0% 双门禁）；文案发布前过 platform-compliance 扫描。
 
 ### 合集内排序策略（C1 定规 + 实操清单）
 
