@@ -123,7 +123,8 @@ python scripts/pub/kuaishou_publish_v2.py <slug> "YYYY-MM-DD HH:MM" [collectionI
 
 ### 合集内排序策略（C1 定规 + 实操清单）
 
-- **策略**：首位放系列最强单集（承接主页/搜索进合集的流量，当前最强 = deepseek-harness-plugin-system）；其余按系列正序（EP.1 → EP.N），追更动线自然。新爆款产生时更新首位。
+- **策略**：首位放系列最强单集（承接主页/搜索进合集的流量）；其余按系列正序（EP.1 → EP.N），追更动线自然。新爆款产生时更新首位。
+- **抖音执行记录（2026-08-30，已保存并回读验证）**：首位=「我肝了一天，DeepSeek Harness 的源码解析」(28,268 播放) → ep1(19,961) → 安装(11,866) → 必装插件(7,283) → 桌面CLI(5,934)，尾部 20 条保持主题序。**两处修订**：① 原 strategy 点名 deepseek-harness-plugin-system 经查无抖音作品（link-map 27,324 是误映射到 source-code 的播放），champion 按抖音实况取 source-code；② 编辑面板拖拽持久化行为诡异（点「取消」后顺序仍生效）——实改后必须用 verify 回读为准。ep2~ep11 定时中，发布后需核合集挂载并补插到 ep1 之后。
 - **实操**（抖音 Web：内容管理 → 作品合集 →「设置排序」）：① 置顶 deepseek-harness-plugin-system；② dsh-source-deep-dive ep1~ep11 按期号正序；③ deepseek-harness 系列按期号正序；④ 其余散集作品按播放降序垫后。快手合集编辑页无拖拽排序入口（App 内核对，补成员时顺手确认）。
 - **门禁**：排序是平台写操作且对外可见——会话内操作前报用户确认，改完回读截图。
 
