@@ -34,14 +34,18 @@ REVENUE_TARGETS = {
         "fetch_candidates": [],"depth_note": "income_judge_report.current_month_income/last_month_income",
     },
     "shipinhao": {
-        # 2026-08-30 开通创作分成后实测：收益页直连 /platform/income（菜单「收入与服务→收入权益」
-        # 子项隐藏态，常规 text 点击超时，SPA 需 JS 强制点击；直接 URL 进页最稳）
-        "url": "https://channels.weixin.qq.com/platform/income",
-        "match_sub": ["profit", "income", "revenue", "award", "balance", "monetize"],
+        # 2026-08-30 晚抓包固化：直连 /platform/income 缺 SPA 状态会被重定向回 /platform 首页，
+        # 收益数据端点只在 JS 点开「收入与服务→收入权益」子菜单后才触发
+        # （text= 点击超时，子项隐藏态，须 evaluate el.click() 强制点击）。
+        # 真端点 = /micro/content/cgi-bin/mmfinderassistant-bin/income/get-my-finder-income-detail
+        # （老前缀 /cgi-bin/.../profit|income/* 均 Cannot GET/POST，不存在）。
+        # 返回 incomeDetails[]：创作分成计划/直播收入/带货中心/视频变现任务 × wordingInfos 金额。
+        "url": "https://channels.weixin.qq.com/platform",
+        "match_sub": ["income"],
         "nav_clicks": [],
+        "nav_clicks_js": ["收入与服务", "收入权益"],
         "fetch_candidates": [
-            "/cgi-bin/mmfinderassistant-bin/profit/overview",
-            "/cgi-bin/mmfinderassistant-bin/income/overview",
+            "/micro/content/cgi-bin/mmfinderassistant-bin/income/get-my-finder-income-detail",
         ],
     },
     "douyin": {
@@ -130,6 +134,40 @@ def _unwrap(bodies: list) -> list:
     return out
 
 
+def _shipinhao_income_fields(captured: list) -> dict[str, float]:
+    """视频号 get-my-finder-income-detail 结构化提取：incomeDetails[].wordingInfos[].number。
+
+    通用 _deep_find 挖不到金额（数字在 wording/number 键对里，键名不含收益关键字），
+    本提取器按 incomeTitle + wording 组合出「创作分成计划·可提现收入」这类可读字段。
+    """
+    fields: dict[str, float] = {}
+    for body in _unwrap(captured):
+        details = (
+            body.get("data", {}).get("incomeDetails")
+            if isinstance(body, dict) and isinstance(body.get("data"), dict) else None)
+        for item in details or []:
+            title = item.get("incomeTitle") or f"incomeType{item.get('incomeType')}"
+            for w in item.get("wordingInfos") or []:
+                wording, num = w.get("wording"), w.get("number")
+                try:
+                    fields[f"{title}·{wording}"] = float(num)
+                except (TypeError, ValueError):
+                    continue
+    return fields
+
+
+# 菜单强制点击（视频号子项隐藏态 text= 选择器超时，须 evaluate 直点）
+JS_CLICK_TEXT = """(txt) => {
+    const els = [...document.querySelectorAll('a,span,div,li,button')];
+    const el = els.find(e => e.childElementCount === 0 && e.textContent.trim() === txt)
+        || els.find(e => e.childElementCount === 0 && e.textContent.trim().includes(txt));
+    if (!el) return null;
+    el.scrollIntoView({block: 'center'});
+    el.click();
+    return el.textContent.trim();
+}"""
+
+
 def _bili_storage_state() -> dict:
     """bilibili.json 是 biliup 的 cookie_info 格式，Playwright 不能直接加载（会零 cookie 被
     重定向登录页——2026-08-30 实锤）。转成 storage_state：domain 缺省 .bilibili.com、secure、Lax。"""
@@ -165,7 +203,9 @@ async def collect_browser(which: str) -> dict:
     async def on_response(resp):
         try:
             u = resp.url
-            if not any(m in u for m in conf["match_sub"]):
+            # 只按 path 匹配：视频号 XHR 的 _pageUrl 查询参数含 /platform/income，
+            # 按全 URL 匹配会把 helper/埋点噪音全拦进来（2026-08-30 实锤）
+            if not any(m in u.split("?")[0] for m in conf["match_sub"]):
                 return
             if any(s in u for s in NOISE):
                 return
@@ -193,6 +233,12 @@ async def collect_browser(which: str) -> dict:
                 break  # 点进第一个命中的菜单即可
             except Exception:
                 continue
+        for nav in conf.get("nav_clicks_js", []):
+            try:
+                await page.evaluate(JS_CLICK_TEXT, nav)
+                await page.wait_for_timeout(6000)
+            except Exception:
+                continue
         for ep in conf.get("fetch_candidates", []):
             try:
                 body = await page.evaluate(
@@ -214,9 +260,12 @@ async def collect_browser(which: str) -> dict:
         {"urls": urls, "bodies": captured}, ensure_ascii=False), encoding="utf-8")
 
     fields: dict[str, object] = {}
-    for body in _unwrap(captured):
-        for p, v in _deep_find(body):
-            fields[p] = v
+    if which == "shipinhao":
+        fields = _shipinhao_income_fields(captured)
+    if not fields:
+        for body in _unwrap(captured):
+            for p, v in _deep_find(body):
+                fields[p] = v
     if not fields:
         raise RuntimeError(
             f"未从拦截响应中挖到收益字段（原始证据已留 {raw_path.name}，按其迭代 KEYWORDS）")
