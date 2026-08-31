@@ -5,12 +5,13 @@ description: 视频生产全生命周期状态台账。单一事实源 state.jso
 
 # Video Pipeline Tracker — 视频生产状态台账
 
-**SSOT**：`data/video-pipeline/state.json`（进 git，多窗口共享）；**呈现**：`data/video-pipeline/dashboard.md`（每次变更自动重生成）。本 skill 只**记录与呈现**——发布走 video-generation 的 publish 链、数据采集走 video-analytics、渲染走 video-generation；台账在流程节点被调用。
+**SSOT**：`data/video-pipeline/state.json`（进 git，多窗口共享）；**呈现**：`data/video-pipeline/dashboard.md`（每次变更自动重生成）。本 skill 只**记录与呈现**——发布走 video-generation 的 publish 链、数据采集走 video-analytics、渲染走 video-generation；台账在流程节点被调用。发布在途/风控冷却由 blog-src `scripts.pub.pub_guard` 登记制维护（`publish-jobs.json` + `publish-log.jsonl`，2026-08-31 起），本台账 **queue/report 只读呈现、绝不回写**。
 
 ## 何时用
 
 - 视频流程推进到节点（文章完成/口播确认/合成/渲染完成/挂定时/出片/归档）→ `stage` 记录
-- 「现在队列里有什么、排到哪天、有没有撞档」→ `queue`
+- 「现在队列里有什么、排到哪天、有没有撞档」→ `queue`（含发布在途/风控冷却一行摘要）
+- 「有没有别的会话正在发布、平台风控冷却中」→ `make pub-status`（blog-src，pub_guard 看板，纯本地）
 - 怀疑台账与现实漂移 → `sync`（从目录/link-map/analytics 快照推导并入，只读外部源）；日循环发布后收尾直接 `make reconcile`（blog-src，批量 sync + 复算 make next）
 - 看全貌 → `report` 或直接打开 `data/video-pipeline/dashboard.md`
 
@@ -41,6 +42,7 @@ py -3.11 vpt.py report                                         # 重生成 dashb
 |------|------|
 | `content/link-map.json` | 发布证据源，`sync` 只读并入，**不回写**（单向数据流，根治覆盖事故） |
 | `data/analytics/snapshots/` | 数据源（video-analytics 采集），dashboard 数据列引用最新值 |
+| `data/video-pipeline/publish-jobs.json` + `risk-backoff.json` | 发布在途登记/平台风控冷却，`scripts.pub.pub_guard` 与 `scripts.pub.backoff`（blog-src）独占写，queue/report **只读呈现** |
 | `video-generation` build/archive 目录 | stage 下限证据（sync 推导）；其 SKILL.md 流程节点含 vpt 调用示例 |
 
 ## 工程约束

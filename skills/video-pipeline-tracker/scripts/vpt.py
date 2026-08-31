@@ -81,6 +81,34 @@ DASH_PATH = DATA_DIR / "dashboard.md"
 LINK_MAP = ROOT / "content" / "link-map.json"
 VG_DIR = ROOT / "video-generation"
 SNAP_DIR = ROOT / "data" / "analytics" / "snapshots"
+JOBS_PATH = DATA_DIR / "publish-jobs.json"    # pub_guard 发布在途登记（blog-src 侧维护，此处只读呈现）
+BACKOFF_PATH = DATA_DIR / "risk-backoff.json"  # 平台风控冷却（scripts.pub.backoff 维护，只读呈现）
+
+
+def guard_summary() -> str:
+    """发布在途 + 风控冷却一行摘要（pub_guard/backoff 的落盘数据；缺文件或坏数据静默为空）。"""
+    import time as _t
+    segs = []
+    try:
+        jobs = (json.loads(JOBS_PATH.read_text(encoding="utf-8")).get("jobs")) or {}
+        live = [j for j in jobs.values() if j.get("status") == "in_flight"
+                and float(j.get("expires_at") or 0) > _t.time()]
+        stale = [j for j in jobs.values() if j.get("status") == "stale"]
+        if live:
+            segs.append("在途 " + "、".join(f"{j.get('platform')}:{j.get('slug')}" for j in live))
+        if stale:
+            segs.append(f"僵死任务 {len(stale)} 个待清理（py -3.11 -m scripts.pub.pub_guard status）")
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        pass
+    try:
+        bk = json.loads(BACKOFF_PATH.read_text(encoding="utf-8"))
+        cooling = [f"{p} 剩 {int(max(0, int(r.get('until', 0)) - _t.time())) // 60}min"
+                   for p, r in bk.items() if int(r.get("until", 0)) - _t.time() > 0]
+        if cooling:
+            segs.append("风控冷却 " + "、".join(cooling))
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return "；".join(segs)
 
 
 def now_iso() -> str:
@@ -173,6 +201,9 @@ def _queue_rows(state: dict) -> list[dict]:
 
 def cmd_queue(args) -> int:
     state = load_state()
+    g = guard_summary()
+    if g:
+        print(f"🛡️ 发布登记: {g}")
     rows = _queue_rows(state)
     if not rows:
         print("（队列空：没有任何带 schedule 的视频）")
@@ -376,7 +407,18 @@ def write_dashboard(state: dict) -> None:
     if not blocked and not backlog:
         lines += ["（无阻塞、无库存）"]
     lines.append("")
-    lines.append(f"> 数据列引用 `data/analytics/snapshots/` 最新快照；发布证据源 `content/link-map.json`（sync 只读并入）。")
+
+    # ⑤ 发布在途与风控（pub_guard 登记制，只读呈现）
+    lines += ["## 发布在途与风控", ""]
+    g = guard_summary()
+    if g:
+        for seg in g.split("；"):
+            lines.append(f"- 🛡️ {seg}")
+    else:
+        lines += ["（无在途任务、无风控冷却）"]
+    lines.append("")
+    lines.append("> 数据列引用 `data/analytics/snapshots/` 最新快照；发布证据源 `content/link-map.json`（sync 只读并入）；"
+                 "在途/冷却源 `publish-jobs.json` + `risk-backoff.json`（`scripts.pub.pub_guard` 维护，只读呈现）。")
 
     DASH_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = DASH_PATH.with_suffix(".md.tmp")
