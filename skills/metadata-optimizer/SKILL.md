@@ -49,7 +49,7 @@ python <skill目录>/scripts/score_title.py "候选1" "候选2" --platform douyi
 人挑出主标题后，产出平台变体（规则见 `references/platform-limits.md`）：
 
 - `标题_抖音:` ≤30 字，钩子前 10 字
-- `标题_B站:` 20-40 字，含可搜索关键词，可带【】标签
+- `标题_B站:` 20-40 字，**检索词前置**——工具名/技术名词放标题前半（B站冷启动期推荐流量近零，分发靠搜索长尾命中，2026-08-31 openspec platform-content-variant-research P1 定规），可带【】标签
 - `标题_公众号:` ≤25 字推送折叠线内，钩子/冲突点前 13 字，不复用博客 SEO 长标题；摘要变体（`wechat_digest`）前 40 字含痛点或硬数字
 
 视频侧连同主标题写进 `video-generation/build/<slug>/metadata.txt`（中文键，续行规则见 blog-src `scripts/pub/meta.py`）；**文章侧**公众号变体写源文件 front matter 可选字段 `wechat_title` / `wechat_digest`（缺省回退 `title` / `description`，发布链路 prepare.py 自动读取）。文章 front matter `description` 保持 54-120 字三段式（痛点+给什么+数字背书），且**前 40 字承担公众号推送打开转化**（正文前 54 字会被默认抓去当摘要，不能不管）。

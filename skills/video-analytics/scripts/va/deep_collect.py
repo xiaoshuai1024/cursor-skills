@@ -4,10 +4,18 @@
 抖音: 页面上下文裸 fetch `web/api/creator/data/item/summarize/`（免签名，实测通过）
       + `janus/.../item_analysis/metrics_trend`（metrics=view_count 逐小时，冷启动分析）
 B站: HTTP GET `x/web/data/archive_diagnose/compare?size=N`（stat 下含 full_play_ratio/crash_rate/tm_rate）
-快手: 数据中心接口未探测 → P2（当前播放量级低，优先级最低）
+快手: 作品分析列表 `/rest/cp/creator/analysis/pc/photo/list`（/statistics/article 页被动拦截，
+      __NS_sig3 签名页内自签无法裸 fetch；item 含 photoId/fpr(完播率 fraction)/playCount/
+      followCount(涨粉)/duration(ms)，2026-08-31 探针实证，openspec
+      platform-content-variant-research P0-1）。单视频详情族 `analysis/pc/photo/single/overview`
+      （含 AVG_PLAY_DURATION/流量来源/trending）需逐条点入，暂不采——列表 fpr 已覆盖核心完播锚点。
+
+量纲注意: 抖音 play_finish_ratio 与快手 fpr 原生 fraction(0-1)；B站 stat 万分比经
+deep_bilibili::pick()/100 转成 percent(0-100)。原始快照保持平台原样不归一，
+量纲声明集中在 va/ts_db.py::_RATE_*（入库 percent）与 va/standardize.py（metrics.json fraction）。
 
 产出: data/analytics/snapshots/deep/{platform}.jsonl（append + 同日去重，与列表快照分离）
-用法: python -m va.deep_collect [--platform douyin,bilibili] [--limit N]
+用法: python -m va.deep_collect [--platform douyin,bilibili,kuaishou] [--limit N]
 """
 from __future__ import annotations
 
@@ -60,7 +68,8 @@ def append_deep(platform: str, records: list[dict]) -> tuple[int, int]:
 def mapped_ids(platform: str) -> dict[str, str]:
     """item_id -> slug（link-map 已回填的）。"""
     lm = common.load_link_map()
-    field = {"douyin": "douyin_id", "bilibili": "bilibili_id"}[platform]
+    field = {"douyin": "douyin_id", "bilibili": "bilibili_id",
+             "kuaishou": "kuaishou_id"}[platform]
     out = {}
     for slug, v in lm.items():
         pv = v.get("pub_video") if isinstance(v, dict) else None
@@ -137,6 +146,68 @@ class CollectDataError(Exception):
     pass
 
 
+# ---------------------------------------------------------------- 快手
+
+async def deep_kuaishou() -> list[dict]:
+    """作品分析列表被动拦截 + 滚动分页（__NS_sig3 只能靠页面自身请求，与 va.collect 同套路）。"""
+    sys.path.insert(0, str(ROOT / "scripts" / "pub" / "vendor"))
+    from patchright.async_api import async_playwright
+
+    ids = mapped_ids("kuaishou")
+    captured: list[dict] = []
+
+    async def on_response(resp) -> None:
+        try:
+            if "analysis/pc/photo/list" not in resp.url:
+                return
+            captured.append(await resp.json())
+        except Exception:
+            pass
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True, args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
+        context = await browser.new_context(storage_state=str(PUB_COOKIES / "kuaishou.json"))
+        page = await context.new_page()
+        page.on("response", lambda r: asyncio.ensure_future(on_response(r)))
+        await page.goto("https://cp.kuaishou.com/statistics/article",
+                        wait_until="domcontentloaded", timeout=90000)
+        await page.wait_for_timeout(6000)
+        for _ in range(12):  # 滚动分页拉全量（页内按钮翻页，滚动不触发时至少首页已捕获）
+            await page.mouse.wheel(0, 4000)
+            await page.wait_for_timeout(1800)
+        await browser.close()
+
+    if not captured:
+        raise CollectDataError("analysis/pc/photo/list 未拦截到（登录态失效或页面改版）")
+    records, seen = [], set()
+    for body in captured:
+        items = (((body.get("data") or {}).get("photoList") or {}).get("photoItems")) or []
+        for it in items:
+            pid = str(it.get("photoId") or "")
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            slug = ids.get(pid)
+            if not slug:
+                continue
+            dur_ms = it.get("duration")
+            records.append({
+                "platform": "kuaishou", "item_id": pid, "slug": slug, "fetched_at": now_iso(),
+                "raw": {
+                    "play_finish_ratio": it.get("fpr"),  # 完播率，fraction(0-1)
+                    "play_count": it.get("playCount"),
+                    "new_fans_count": it.get("followCount"),
+                    "like_count": it.get("likeCount"),
+                    "comment_count": it.get("commentCount"),
+                    "collect_count": it.get("collectCount"),
+                    "duration_second": round(dur_ms / 1000, 1) if isinstance(dur_ms, (int, float)) else None,
+                },
+            })
+            print(f"  [{slug[:36]}] 完播率={it.get('fpr')} 播放={it.get('playCount')} 涨粉={it.get('followCount')}")
+    return records
+
+
 # ---------------------------------------------------------------- B站
 
 def deep_bilibili() -> list[dict]:
@@ -189,7 +260,7 @@ def deep_bilibili() -> list[dict]:
 def main() -> int:
     setup_utf8()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--platform", default="douyin,bilibili")
+    ap.add_argument("--platform", default="douyin,bilibili,kuaishou")
     ap.add_argument("--limit", type=int, default=0, help="抖音最多采 N 条（0=全部已映射）")
     args = ap.parse_args()
     ok = []
@@ -197,7 +268,8 @@ def main() -> int:
         plat = plat.strip()
         try:
             records = asyncio.run(deep_douyin(args.limit)) if plat == "douyin" else (
-                deep_bilibili() if plat == "bilibili" else None)
+                deep_bilibili() if plat == "bilibili" else (
+                    asyncio.run(deep_kuaishou()) if plat == "kuaishou" else None))
             if records is None:
                 print(f"[{plat}] 未知平台，跳过")
                 continue

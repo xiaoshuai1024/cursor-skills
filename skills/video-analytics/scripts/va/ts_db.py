@@ -65,7 +65,15 @@ def _fnum(v):
 
 
 def _slug_from_raw(rec: dict, raw: dict) -> str:
-    """快照行没有 slug 字段——用标题反查 link-map，退化为 item_id。"""
+    """快照行没有 slug 字段——用标题反查 link-map，退化为 item_id。
+
+    deep/fans 采集行自带 rec.slug（采集时已按 link-map 映射），直接优先采用——
+    B站/快手/视频号标题是中文、不含 slug 串，纯标题反查会把整平台 deep 数据
+    全部退化成 item-* 被 import 跳过（2026-08-31 openspec
+    platform-content-variant-research P0-1 修复）。
+    """
+    if rec.get("slug"):
+        return str(rec["slug"])
     title = rec.get("title") or raw.get("title") or ""
     lm_path = ROOT / "content" / "link-map.json"
     try:
@@ -75,7 +83,8 @@ def _slug_from_raw(rec: dict, raw: dict) -> str:
                 continue
             pv = e.get("pub_video") or {}
             if title and slug in title.replace(" ", "-") or \
-               (pv.get("results") and rec.get("item_id") == str(pv.get("douyin_id") or "")):
+               any(rec.get("item_id") is not None and rec.get("item_id") == str(pv.get(f) or "")
+                   for f in ("douyin_id", "kuaishou_id", "bilibili_id", "shipinhao_id")):
                 return slug
             for md in (e.get("metadata") or {}).get("titles", []) if isinstance(e.get("metadata"), dict) else []:
                 pass
@@ -97,6 +106,35 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+# 量纲表（2026-08-31 openspec platform-content-variant-research P0-2）：rate 字段的原始
+# 量纲随平台/来源不同——抖音 summarize 的 play_finish_ratio/cover_click_ratio、快手作品
+# 分析 fpr、视频号列表 fullPlayRate 都是 fraction(0-1)；B站 archive_diagnose 经
+# deep_collect::pick()/100 后是 percent(0-100)。原始快照保持平台原样，入库统一成 percent，
+# 显式声明各字段的候选键与量纲——禁止再用「值<=1 即 fraction」猜测（percent 值 <=1 的
+# 弱视频完播/CTR 会被错乘 100）。改字段先对齐 deep_collect 的 raw 键名注释。
+_RATE_FRACTION = {  # fraction(0-1) → 入库 ×100 成 percent
+    "completion_rate": ("play_finish_ratio", "completion_rate"),
+    "cover_ctr": ("cover_click_ratio",),
+}
+_RATE_PERCENT = {  # percent(0-100) → 入库原值
+    "completion_rate": ("full_play_ratio",),
+    "crash_3s_rate": ("crash_rate_3s", "crash_3s_rate"),
+    "cover_ctr": ("cover_ctr",),
+}
+
+
+def _rate_field(raw: dict, col: str):
+    for k in _RATE_FRACTION.get(col, ()):
+        v = raw.get(k)
+        if v is not None:
+            return round(float(v) * 100, 2)
+    for k in _RATE_PERCENT.get(col, ()):
+        v = raw.get(k)
+        if v is not None:
+            return round(float(v), 2)
+    return None
+
+
 def _row_from_snapshot(rec: dict) -> dict | None:
     """快照行（platform/item_id/title/published_at/fetched_at/raw）→ metrics 行。"""
     plat = rec.get("platform")
@@ -112,7 +150,6 @@ def _row_from_snapshot(rec: dict) -> dict | None:
     except ValueError:
         return None
     slug = _slug_from_raw(rec, raw)
-    rate = lambda v: (round(float(v) * 100, 2) if v is not None and float(v) <= 1 else _fnum(v))
     return {
         "slug": slug, "platform": plat,
         "item_id": str(rec.get("item_id") or raw.get("aweme_id") or ""),
@@ -120,14 +157,14 @@ def _row_from_snapshot(rec: dict) -> dict | None:
         "collected_date": dt.strftime("%Y-%m-%d"),
         "fetched_at": fetched,
         "play": _num(raw.get("play_count") or raw.get("play") or raw.get("view")),
-        "like": _num(raw.get("digg_count") or raw.get("like") or raw.get("attitude_count")),
+        "like": _num(raw.get("digg_count") or raw.get("like_count") or raw.get("like") or raw.get("attitude_count")),
         "comment": _num(raw.get("comment_count") or raw.get("comment")),
         "share": _num(raw.get("share_count") or raw.get("share")),
         "new_fans": _num(raw.get("new_fans_count") or raw.get("new_fans")),
-        "completion_rate": rate(raw.get("play_finish_ratio") or raw.get("full_play_ratio")),
-        "crash_3s_rate": rate(raw.get("crash_rate_3s") or raw.get("crash_3s_rate")),
-        "cover_ctr": rate(raw.get("cover_click_ratio") or raw.get("cover_ctr")),
-        "avg_play_time_s": _fnum(raw.get("play_avg_time") or raw.get("avg_play_time")),
+        "completion_rate": _rate_field(raw, "completion_rate"),
+        "crash_3s_rate": _rate_field(raw, "crash_3s_rate"),
+        "cover_ctr": _rate_field(raw, "cover_ctr"),
+        "avg_play_time_s": _fnum(raw.get("play_avg_time") or raw.get("avg_play_time") or raw.get("avg_play_sec")),
         "home_visits": _num(raw.get("home_page_view_count") or raw.get("home_visits")),
         "first_hour_share": _fnum(raw.get("first_hour_share")),
         "duration_s": _fnum(raw.get("duration_second") or raw.get("duration")),

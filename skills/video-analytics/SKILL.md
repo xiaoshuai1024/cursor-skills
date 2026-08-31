@@ -55,7 +55,8 @@ make experiment ARGS="list"       # 实验台账：假设→落地→验证闭�
 
 - `make analytics-revenue` = `va.revenue_collect`（B站/视频号收益页 XHR 宽匹配拦截，原始证据 `snapshots/revenue_raw/`）+ `va.monetize`（门槛进度表）。快照落 `snapshots/revenue/<platform>.jsonl`（进 git）。
 - `data/analytics/monetize-report.md`（进 git）：各平台变现门槛进度（现状/差距/近7日净增/按速度外推达标日）+ 收益摘要。门槛数值在 `monetize-thresholds.json` 维护（含来源注记，以后台页面为准）。
-- 已知缺口（2026-08-30 首采）：视频号 141 粉后台无收益中心入口（未达开通条件，属预期）；~~B站浏览器登录态失效~~ → **B站已采通（openspec bilibili-income-endpoint，2026-08-30）**：真端点 `api.bilibili.com/x/earnings/up/index/income*`（老 member 域 x2/creative/web/income* 已 404）；bilibili.json 是 biliup cookie_info 格式，浏览器加载须转 storage_state（revenue_collect 已内置转换）——当前真实 0，符合 18 粉未达激励门槛现状。
+- ~~视频号 141 粉后台无收益中心入口（未达开通条件，属预期）~~ → **视频号创作分成已采通（2026-08-30 晚抓包固化）**：真端点 `micro/content/cgi-bin/mmfinderassistant-bin/income/get-my-finder-income-detail`（老前缀 `/cgi-bin/.../profit|income/*` 均 404 不存在）。入口坑：直连 `/platform/income` 缺 SPA 状态会被重定向回首页，必须 JS 强制点开「收入与服务→收入权益」子菜单后端点才触发（`nav_clicks_js`）；XHR 匹配只按 path（`_pageUrl` 查询参数含 income 会把 helper 埋点全拦进来）；金额在 `incomeDetails[].wordingInfos[].number`，键名不含收益关键字，通用深挖挖不到、走 `_shipinhao_income_fields` 结构化提取（创作分成计划/直播收入/带货中心/视频变现任务 ×可提现/累计）。当前真实 0（刚开通待首笔分成）。
+- ~~B站浏览器登录态失效~~ → **B站已采通（openspec bilibili-income-endpoint，2026-08-30）**：真端点 `api.bilibili.com/x/earnings/up/index/income*`（老 member 域 x2/creative/web/income* 已 404）；bilibili.json 是 biliup cookie_info 格式，浏览器加载须转 storage_state（revenue_collect 已内置转换）——当前真实 0，符合 18 粉未达激励门槛现状。
 
 ## 实验台账（ops-hardening，2026-08-30）
 
@@ -65,7 +66,7 @@ directives 提出假设，`va.experiment` 补验证闭环：`add`（登记 direc
 
 平台 web 端不开放秒级留存曲线（已实测：抖音 `video_data/detail`/`play_curve` 均 url doesn't match），过程分析用**真实锚点 × 句级时间轴**：
 
-- **锚点**（`va/deep_collect.py`）：抖音 `summarize`（完播率/平均播放时长/封面点击/主页访问/涨粉 + 逐小时播放）、B站 `archive_diagnose`（完播比/3s退出率/封标点击/播转粉；`not_ready_field` 诚实置空）
+- **锚点**（`va/deep_collect.py`）：抖音 `summarize`（完播率/平均播放时长/封面点击/主页访问/涨粉 + 逐小时播放）、B站 `archive_diagnose`（完播比/3s退出率/封标点击/播转粉；`not_ready_field` 诚实置空）、快手作品分析列表 `analysis/pc/photo/list`（fpr 完播率/播放/涨粉/时长，2026-08-31 接入，openspec platform-content-variant-research P0-1）；视频号无独立 deep 通道，列表快照自带完播（fullPlayRate）/平均时长直接进对比口径（P0-3）。**量纲**：抖音/快手/视频号原生 fraction，B站万分比经采集端 /100 成 percent——原始快照不归一，入库/报告换算声明集中在 `va/ts_db.py::_RATE_*`（入库 percent）与 `va/standardize.py`（metrics.json fraction），勿用「值≤1 即 fraction」猜测
 - **时间轴**（`va/retention.py`）：faster-whisper `small` 本地转写 → 句级时间戳（缓存复用，`initial_prompt` 偏置技术词）
 - **对齐产出**：「平均观众停在第 N 句（时间码、深度%）」+ ≤6 段落表（时间码/内容摘要/留存提示），报告明确标注为锚点推断非全量曲线
 - 诊断分支：深度 <10% → 开头 30 秒流失主导；完播 <1% 且 ≥3min → 拆系列；3s 退出 ≥40%（B站）→ 钩子/封面承诺不匹配；封面点击 <3% → 换封面版式
@@ -97,7 +98,7 @@ directives 提出假设，`va.experiment` 补验证闭环：`add`（登记 direc
 - **数据成熟**：发布满 24h 且播放 ≥50 才算率值；未满 24h 标「数据未熟」
 - **抖音流量池**：72h 播放对照梯度 [300 / 3k / 2w / 10w / 50w]，落位 + 差多少 + 晋级指标
 - **诊断树**：卡第 1 级=冷启动问题（封面/标题/发布时间）；播放过千互动率 <5%=流量承接弱（压时长提密度）；单项率低=对应 CTA 缺失
-- **已知边界**：秒级留存曲线平台 web 端不开放，过程分析为锚点推断（`make analytics-deep`）；快手深度指标 P2；5s 留存无（用平均时长深度 + B站 3s 退出率近似定位钩子问题）
+- **已知边界**：秒级留存曲线平台 web 端不开放，过程分析为锚点推断（`make analytics-deep`）；快手单视频详情族（`analysis/pc/photo/single/overview` 含 AVG_PLAY_DURATION/流量来源/trending）需逐条点入暂未采，列表 fpr 覆盖完播锚点；5s 留存无（用平均时长深度 + B站 3s 退出率近似定位钩子问题）
 
 ## 反哺闭环
 

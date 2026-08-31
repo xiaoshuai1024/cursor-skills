@@ -121,11 +121,19 @@ def build() -> dict:
             m["title"] = snap.get("title")
             m["completion_rate"] = None  # 深度快照存在时下方覆盖
             m["retention_5s"] = None
+            if plat == "shipinhao" and raw.get("completion_rate") is not None:
+                # 2026-08-29 改版后列表自带完播(fullPlayRate, fraction)/平均时长——
+                # 视频号无独立 deep 通道，列表级字段直接进对比口径（P0-3，2026-08-31）
+                m["completion_rate"] = raw["completion_rate"]
+                if raw.get("avg_play_sec") is not None:
+                    m["avg_play_time_s"] = raw["avg_play_sec"]
+                if m.get("avg_play_time_s") and m.get("duration_s"):
+                    m["watch_depth"] = round(m["avg_play_time_s"] / m["duration_s"], 4)
             entry[plat] = m
         videos[slug] = entry
 
     # 深度过程锚点合并（deep_collect 产物）
-    for plat in ("douyin", "bilibili"):
+    for plat in ("douyin", "bilibili", "kuaishou"):
         deep_file = common.SNAP_DIR / "deep" / f"{plat}.jsonl"
         if not deep_file.exists():
             continue
@@ -148,6 +156,13 @@ def build() -> dict:
             m["avg_play_time_s"] = raw.get("play_avg_time") or raw.get("avg_play_time")
             m["crash_3s_rate"] = raw.get("crash_rate_3s")
             m["cover_ctr"] = raw.get("cover_click_ratio") or raw.get("cover_ctr")
+            if plat == "bilibili":
+                # deep_bilibili 的 pick() 已把万分比 /100 成 percent(0-100)；metrics.json
+                # 约定 fraction（diagnose 阈值 0.01/0.40 与 report 的 {:.1%} 都按 fraction），
+                # 三个 percent 字段再 /100——否则 B站完播会以 4319.0% 的形态进报告
+                for _k in ("completion_rate", "crash_3s_rate", "cover_ctr"):
+                    if m.get(_k) is not None:
+                        m[_k] = round(m[_k] / 100, 4)
             m["new_fans"] = raw.get("new_fans_count")
             m["follow_rate"] = _rate(raw.get("new_fans_count"), raw.get("play_count") or m.get("play"))
             m["home_visits"] = raw.get("home_page_view_count")
