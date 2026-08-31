@@ -1,6 +1,6 @@
 # xiaoshuai skills
 
-技术内容创作与多平台运营 Agent Skills 集合 —— 把「选题 → 写作 → 配图 → 发布 → 视频 → 评论承接 → 数据回看」全链路沉淀成 21 个可复用的 skill。
+技术内容创作与多平台运营 Agent Skills 集合 —— 把「选题 → 写作 → 配图 → 发布 → 视频 → 发布后运营 → 评论承接 → 数据回看」全链路沉淀成 22 个可复用的 skill。
 
 所有 skill 兼容 [Agent Skills 规范](https://agentskills.io)，可在 Claude Code、Codex、Cursor、Gemini CLI 等编码 Agent 里通用。
 
@@ -18,7 +18,7 @@ npx skills add xiaoshuai1024/skills
 
 ### 按场景选装（装哪些）
 
-`npx skills add` 会装全部 21 个；真正的「选装」是**配置**——只有配了登录态/密钥的 skill 才能跑通完整链路，其余 skill 纯本地即可用：
+`npx skills add` 会装全部 22 个；真正的「选装」是**配置**——只有配了登录态/密钥的 skill 才能跑通完整链路，其余 skill 纯本地即可用：
 
 | 你要做的事 | 必装（自动发现即用） | 需要额外配置才能跑满 |
 |-----------|---------------------|---------------------|
@@ -27,7 +27,7 @@ npx skills add xiaoshuai1024/skills
 | + 标题与合规 | metadata-optimizer、platform-compliance | 无（词表+脚本自包含） |
 | + 公众号 | wechat-publishing、wechat-analytics | wechat-publishing/analytics 需 mp 后台登录态 + `.env.local`（见下） |
 | + 视频 | video-generation、stock-footage、video-detail-site | 视频发布需四平台登录态（cookies/）；IndexTTS-2 克隆链需 WSL 环境（可降级 edge-tts） |
-| + 全平台运营闭环 | comment-auto-reply、video-analytics、video-pipeline-tracker | 需各平台创作者登录态；B站走 biliup-rs 双轨 |
+| + 全平台运营闭环 | comment-auto-reply、video-analytics、video-pipeline-tracker、post-publish-ops | 需各平台创作者登录态；B站走 biliup-rs 双轨 |
 | 写口播稿/文章加梗 | talkshow | 无（点名触发，联网搜热梗需网络） |
 | 爬虫 / 文档 | crawl、code-doc-maker | 无 |
 
@@ -126,7 +126,7 @@ mstodo-topic 拉清单分析（三维：仿写价值/潜力/方向匹配）→ �
 
 ---
 
-## 全景：21 个 skill 按场景选用（渐进叠加）
+## 全景：22 个 skill 按场景选用（渐进叠加）
 
 这些 skill 设计为**配合使用**，按内容运营需求分层叠加。每一层独立可用，装到哪层用哪层：
 
@@ -151,6 +151,7 @@ mstodo-topic                                                        ✅
 comment-auto-reply                                                  ✅
 video-analytics                                                     ✅
 video-pipeline-tracker                                              ✅
+post-publish-ops                                                    ✅
 ```
 
 ---
@@ -228,13 +229,14 @@ video-pipeline-tracker                                              ✅
 
 ### Level 6 — + 多平台运营闭环
 
-**新增能力**：视频四平台（抖音/快手/B站/视频号）一键定时发布、评论区自动承接、数据回看反哺选题——运营从手动变成闭环。
+**新增能力**：视频四平台（抖音/快手/B站/视频号）一键定时发布、发布后运营位（置顶作品/动态/私信/免费活动）、评论区自动承接、数据回看反哺选题——运营从手动变成闭环。
 
 | 新增 Skill | 作用 |
 |------------|------|
 | [comment-auto-reply](skills/comment-auto-reply/) | 评论承接（手动单命令）：采集 B站/抖音近 14 天未回复一级评论 → 规则分诊（无信息量跳过/技术提问 LLM 草稿/负面转人工）→ 逐条确认 → 自建通道发送（B站公开 API / 抖音评论管理页 DOM）+ 回读验证；配套置顶评论发布器 |
 | [video-analytics](skills/video-analytics/) | 多平台运营数据分析：四平台创作者后台只读采集 → 增量快照 + SQLite 时间序列库 → 单视频漏斗诊断（3s 退出/完播/CTR/涨粉）→ 横向因子对比 → 「证据→诊断→动作」建议 → 选题关键词反哺 |
 | [video-pipeline-tracker](skills/video-pipeline-tracker/) | 视频生产全生命周期状态台账：单一事实源 state.json（10 态 stage + blocked 标志 + history 追溯）+ vpt CLI（stage/queue/sync/report）+ 自动重生 Markdown 看板（进行中/队列日历含冲突标记/归档近况/平台数据），多任务窗口共享 |
+| [post-publish-ops](skills/post-publish-ops/) | 视频发布后运营统一入口：发布后时间线（复查→置顶评论→承接→回看→转化判断）+ 新运营位（抖音主页置顶作品/B站稿件编辑与弹幕/视频号评论弹幕私信三件套/四平台免费活动与话题借势/视频号×公众号联动）；硬定规=不做直播、不投流；只读实查 SOP + 留证 |
 
 **依赖**：Python 3 + patchright/playwright；各平台登录态（cookie 持久化，扫码一次长期复用；B站走 biliup-rs 双轨）。
 

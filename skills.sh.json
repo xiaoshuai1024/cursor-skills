@@ -56,11 +56,12 @@
     },
     {
       "title": "运营闭环 / Operations",
-      "description": "评论自动承接、四平台数据快照与漏斗诊断、视频生产全生命周期台账——发布后闭环。",
+      "description": "评论自动承接、四平台数据快照与漏斗诊断、发布后运营位（置顶作品/动态/私信/免费活动）、视频生产全生命周期台账——发布后闭环。",
       "skills": [
         "comment-auto-reply",
         "video-analytics",
-        "video-pipeline-tracker"
+        "video-pipeline-tracker",
+        "post-publish-ops"
       ]
     },
     {
