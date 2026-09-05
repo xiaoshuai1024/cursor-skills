@@ -23,7 +23,7 @@
 
 > 病根（本片实测）：单卡口播 15-50s 只有一组一次性入场动画，主画面随后长时间零变化；无流程图的卡主内容区只剩空占位框（约 40% 画面空白挂整卡）。**解法：每张卡按口播句边界切 2-5 个镜头轮换，主内容区永远有实料。**
 
-1. **deck 字段**：每张非 intro 卡必填 `shots` 数组（intro 封面卡不加，首帧三件套另行保护）：
+1. **deck 字段**：每张卡必填 `shots` 数组（**2026-09-05 用户定规取代旧「intro 不加」口径**：intro 卡也要带 2-3 个镜头并给 `points`——`points` 为空会触发 `is_cover` 剥离全部 shots，首屏沦为纯标题静态画面，GPT-6 片首屏 23s 静态实录）：
    ```json
    "shots": [
      {"from_s": 0.0, "kind": "flow"},
@@ -36,5 +36,5 @@
 3. **节奏门禁（硬规则）**：任何镜头停留 **≤15s**；卡 >25s ≥3 镜头、15-25s ≥2 镜头、<15s 1-2 镜头；`from_s` 必须对齐该卡口播**句边界**（`boundaries_*.json` 的 start_ms），禁止句中切；占位符（「讲解中…」）禁止出现在成片。写 deck 后跑节奏自检（镜头 span + 数量下限）。
 4. **素材真实性**：code/term 镜头素材必须来自真实仓库文件（如 DSH 片用本地 deepseek-harness 仓的 AGENTS.md、agent.cordis.yml、包名清单），分镜表备注溯源路径；终端演示可重构命令序列但机制必须真实存在，不得虚构源码行。
 5. **写 deck 流程步**：每卡产出「分镜表」（时间轴 | kind | 素材内容 | 对应口播句），随 deck.json 一起交付。
-6. **实现**：`tutorial.py::_shots_stage/_shot_content`（亮色系渲染器）+ `courseware.py`（深色系同套支持）+ `frames.py`（每帧算 `shot_idx/shot_birth/shot_t_ms`）。动画：新镜头 8 帧浮入 + 前镜头 6 帧淡出 + 行级 2 帧/行 stagger，帧驱动铁律不变，静止段 HTML 等值（PNG 复用优化保持）。
+6. **实现**：`prism.py::_shots_stage/_shot_html`（prism 白色主管线，2026-09-05 起默认；镜头切换为 slideleft 主流向——新镜头右缘推入、旧镜头左移退场）+ `tutorial.py::_shots_stage/_shot_content`（tutorial 存量管线）+ `frames.py`（每帧算 `shot_idx/shot_birth/shot_t_ms`）。动画：新镜头 8 帧浮入 + 前镜头 6 帧淡出 + 行级 2 帧/行 stagger，帧驱动铁律不变，静止段 HTML 等值（PNG 复用优化保持）。⚠️ 原深色系渲染器随 2026-09-05 管线换代删除（openspec prism-motion-pipeline，用户定规），`courseware.py` 只剩调度器 + mascot 外壳。
 7. **from_s 两段式（2026-08-28 定规，配 `_align_shots.py`）**：写稿时 from_s 用「卡内逐句累计 ÷5.5 字/秒」估算即可；**合成后必须跑** `PYTHONIOENCODING=utf-8 py -3.11 scripts/video/_align_shots.py <slug>`，把每卡镜头切点贴到真实句边界（读 `audio/<slug>_t/boundaries_XX.json`，找离估算最近且不早于前一镜 +0.8s 的起点）。禁止拿估算值直接渲染——估算与真实边界偏差实测 0.1-0.5s/句。

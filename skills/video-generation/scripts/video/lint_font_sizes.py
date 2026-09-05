@@ -26,18 +26,26 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # 元素级字号下限表（file, selector 子串, 最小 px）。值为 2026-08-24 定规的实现值，
 # 只许升不许降——改动模板时同步改这张表，降字号必须先过 spec 变更。
 FONT_RULES: list[tuple[str, str, int]] = [
-    # courseware 暗色主讲模板
-    ("courseware.py", ".title", 72),
-    ("courseware.py", ".point.active", 56),
-    ("courseware.py", ".point", 48),
-    ("courseware.py", ".sp-item.active .sp-text", 48),
-    ("courseware.py", ".subtitle", 48),
-    ("courseware.py", ".outline li .num", 48),
-    ("courseware.py", ".outline li", 36),
-    ("courseware.py", ".sp-item.done", 28),
-    ("courseware.py", ".eyebrow", 24),
-    ("courseware.py", ".footer-bar", 24),
-    ("courseware.py", ".sp-item.active::before", 24),
+    # prism 白色科技感主管线（2026-09-05 起 courseware 深色模板退役删除）
+    ("prism.py", ".h1", 72),
+    ("prism.py", ".big", 84),
+    ("prism.py", ".pt.active", 56),
+    ("prism.py", ".pt", 48),
+    ("prism.py", ".sp-item.active .sp-text", 48),
+    ("prism.py", ".subtitle", 46),
+    ("prism.py", ".outline li .num", 44),
+    ("prism.py", ".outline li", 36),
+    ("prism.py", ".sp-item.done", 28),
+    ("prism.py", ".eyebrow", 24),
+    ("prism.py", ".footer-bar", 24),
+    ("prism.py", ".sp-item.active::before", 24),
+    ("prism.py", ".secnum", 200),
+    ("prism.py", ".rrow .rtxt", 42),
+    ("prism.py", ".shot-stat .big", 150),
+    ("prism.py", ".shot-stat .label", 42),
+    ("prism.py", ".cl", 27),
+    ("prism.py", ".tline", 27),
+    ("prism.py", ".agenda .a", 25),
     # screencast 屏录感模板
     ("screencast.py", ".warnbox .wrow .wmark", 48),
     ("screencast.py", ".warnbox .wrow", 44),
@@ -134,7 +142,31 @@ def lint_deck(slug: str) -> list[str]:
                 violations.append(
                     f"[要点] {slug} 卡{i:02d}-{j + 1} {len(str(t))} 字：「{t}」"
                 )
+    violations += lint_assertion_titles(slug, cards)
     return violations
+
+
+_NOUNY_TAIL = ("问题", "方案", "机制", "原理", "流程", "架构", "对比", "介绍",
+               "概述", "说明", "分析", "盘点", "总结", "方法", "工具", "系统")
+
+
+def lint_assertion_titles(slug: str, cards: list[dict]) -> list[str]:
+    """断言式标题连读自检（openspec prism-motion-pipeline，PPT 方法论 R1/R2）：
+    卡标题应是结论句而非名词短语——只读标题要能读出故事线。启发式 WARN：
+    短于 6 字、或以名词性后缀收尾且无动词/标点的标题记警告（不阻塞）。"""
+    warns: list[str] = []
+    titles = []
+    for i, card in enumerate(cards):
+        t = str(card.get("title") or card.get("hook") or card.get("text") or "").strip()
+        if not t:
+            continue
+        titles.append(t.replace("\n", " "))
+        if len(t) < 6 or (t.endswith(_NOUNY_TAIL) and not any(
+                v in t for v in ("是", "会", "能", "要", "别", "该", "为什么", "怎么", "：", "，", "了"))):
+            warns.append(f"[标题] {slug} 卡{i:02d} 疑似名词短语（断言句更好读）：「{t}」")
+    if len(titles) >= 3:
+        print(f"  ▣ 只读标题连读（{slug}）：{' / '.join(titles)}")
+    return warns
 
 
 def main() -> None:

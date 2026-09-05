@@ -29,7 +29,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REMOTION_SRC = SCRIPT_DIR.parents[1] / "remotion" / "src"   # scripts/video → video-generation/remotion
 
 # 漂移扫描目标：Python 模板 + 封面横竖模板（palette/lint/cover.py 注入器不扫）
-_TEMPLATE_FILES = ["courseware.py", "graph.py", "tutorial.py", "screencast.py"]
+# 2026-09-05：courseware 深色模板退役删除（瘦身为调度器，无 CSS），扫描目标换 prism
+_TEMPLATE_FILES = ["prism.py", "graph.py", "tutorial.py", "screencast.py"]
 
 _HEX_RE = re.compile(r"#[0-9a-fA-F]{3,8}\b")
 _RGB_RE = re.compile(r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)")

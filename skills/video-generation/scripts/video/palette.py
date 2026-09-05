@@ -188,6 +188,12 @@ EXEMPT: dict[str, str] = {
     "#c7d2fe": "graph light 中心节点渐变深端（indigo-200）",
     "#bfdbfe": "graph light active 节点渐变（blue-200）",
     "#dbeafe": "同 HIGHLIGHT（blue-100），此处独立注册避免歧义",
+    # --- prism 白色科技感管线（openspec prism-motion-pipeline，非文字氛围/描边） ---
+    "#dbe4f0": "prism 玻璃卡渐变描边端1（非文字装饰）",
+    "#c7e6f2": "prism 玻璃卡渐变描边端2（非文字装饰）",
+    "#eaf1fb": "prism 隔页/recap 装饰带浅底（非文字）",
+    "rgb:96,165,250": "prism 极光斑 blue（rgba(96,165,250,≤.10) 氛围层，非文字）",
+    "rgb:8,145,178": "prism 渐变大字青端 ACCENT_DEEP 的 rgb 形态（含 alpha 渐变）",
 }
 
 
@@ -325,6 +331,15 @@ PAIRS: list[tuple[str, str, float, str]] = [
     (SUCCESS_TEXT, "#f6fdf8", 3.0, "教程 done步骤/要点绿字(24px+)"),
     (LIGHT_MUTED, "#fbfcfe", 3.0, "教程 终端done行(30px,升档后)"),
     ("#334155", "#fbfcfe", 4.5, "教程 终端正文"),
+    # --- prism 白色科技感管线（底 #f6f8fb；2026-09-05 openspec prism-motion-pipeline） ---
+    (TUTORIAL_INK, LIGHT_BG, 4.5, "prism 标题/要点/字幕墨色"),
+    (LIGHT_ACCENT, LIGHT_BG, 3.0, "prism eyebrow/要点active 主蓝(34px+)"),
+    (ACCENT_DEEP, LIGHT_BG, 3.0, "prism 渐变大字青端(section章节数字/hero,≥40px)"),
+    (LIGHT_MUTED, LIGHT_BG, 3.0, "prism mini-agenda未讲章节/eyebrow弱化(24px+)"),
+    (LIGHT_DONE, LIGHT_BG, 3.0, "prism done要点次态文字(28px)"),
+    (SUCCESS_TEXT, LIGHT_BG, 3.0, "prism recap✓/done绿字(28px)"),
+    (TUTORIAL_INK, "rgba(255,255,255,0.92)|#f6f8fb", 4.5, "prism 字幕（白胶囊叠亮底）"),
+    (TUTORIAL_INK, "#eaf1fb", 4.5, "prism 隔页/recap 装饰带上墨色"),
     # --- Remotion / screencast（底 #0a0e1a 系） ---
     (TEXT, BG_DARK, 4.5, "Remotion 正文白"),
     (ACCENT, BG_DARK, 3.0, "Remotion 主青大字/强调"),

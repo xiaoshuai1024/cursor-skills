@@ -8,7 +8,7 @@ description: 把技术博客文章/主题生成为横屏 16:9 视频。三种模
 把一篇技术博客文章 / 一个技术主题生成为**横屏 16:9 视频**。三种程序化模式：
 
 - **remotion（默认）**：数据可视化 + 真实素材——深色科技网格底 + 真实数据图表 + 素材标注，适合发布速报、性能对比、教程步骤（Remotion 管线，`remotion/` 目录）。**默认主题，参照 `after-million-loc-my-skills.mp4`**
-- **courseware**：课件式——左栏要点逐条浮现 + 右栏知识卡片（或 flow 流程图逐节点动画）+ 底部字幕带（Playwright 管线）。**全元素动画 + 主锚联动零配置自动带**（2026-08-25 起，见「动画与特效强制规范」）：口播分句驱动每个元素的出生帧，要点弹入/知识卡 spring/标题条与进度条脉冲/字幕上滑同拍联动，flow 卡的节点弹出+连线生长+跑线扫光+逐字标签讲到哪步动到哪步
+- **courseware**：课件式（Playwright 管线）。**2026-09-05 管线换代（openspec `prism-motion-pipeline`，用户定规）：深色科幻课件退役删除，默认渲染 = prism 白色科技感动效管线**——亮底极光渐变斑 + 细网格 + 玻璃白卡 + 渐变标题条/进度条，代码/终端/flow 保留深色拟物窗；全元素动画 + 主锚联动零配置自动带（口播分句驱动出生帧）；新卡型 `section`（章节隔页：大号数字 stamp + mini-agenda 章节导航）/ `recap`（章末 ≤3 条 takeaway 拍落）；转场升级章节感知三级制（章界 circleopen/radial 重转场、卡间 slideleft 族方向一致，PPT 方法论 R7）；断言式标题第一视觉层级。原深色路径的 16 支存量 deck 重渲时自动切 prism（已发布视频不重渲）
 - **screencast（courseware 子模式）**：屏录感工具界面——**浏览器真实网页截图打底 + 箭头标注是主角**（`realshot`：任何能在浏览器里呈现的步骤都截图，官网 / 市场 / GitHub / 控制台 / 在线编辑器都行），CSS 仿真窗口（VSCode mockup / 终端）只在浏览器截不到时才兜底（本地桌面应用、需登录态的真实界面）。标题栏下方**顶部常显步骤条**（全部步骤：done/active/future 三态），`active_idx` 高亮当前操作 + 光标箭头，对标抖音「录屏+标注」爆款（Ai小白Lab 26.2 万赞）。deck 卡 `type:"tool"` 即触发
 - **graph**：节点图/知识图谱——中心辐射布局，节点逐个高亮 + 连线生长，适合概念关系/体系架构（Playwright 管线）
 
@@ -88,6 +88,12 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ## 内容创作规范：开头 · 呈现 · 互动（数据驱动，2026-08-17 定规）
 
+### 口播稿默认档：普通档；脱口秀按题材触发（2026-09-05 再定规，取代 08-31 全默认制）
+
+> **核心观点与表达流程先行（2026-09-05 用户定规，视频与文章一体适用，动笔硬前置）**：口播稿/分镜一个字不许先写——先出两件产物：① **核心观点清单**（本片要立住的观点逐条列出，每条挂证据与「观众现状→看完改变什么」，观点立不住回选题重判）② **表达流程**（观点输出顺序、3s 钩子与逐点回收映射、转场承接、收藏物/置顶评论备查卡放哪）。落 `.tmp/<slug>-core-points.md`，成片前复验漏点即返工。配套格式细则见 blog-writing skill 第 3 步同名定规。
+
+视频口播稿**缺省普通档**；**题材自带戏剧冲突（事故复盘/翻车/踩坑/荒诞机制）时默认启用 talkshow skill「超级炸场 + 职场自嘲」**；知识/工具类题材点名才用脱口秀。依据（2026-09-05 抖音实读复盘）：脱口秀正片族基线 0~226 播 vs 账号中位 1,856，但正片全压弱题材带，风格与选题未解耦，**「强题材 × 脱口秀」A/B 未测**——下一个破万族选题（具名热门产品+工具价值）排产时由用户点名留一格对照实验。启用脱口秀时：职场梗当主菜、笑点位 ≥2.5/卡、每梗驮知识点、数据句/CTA/签名句零玩笑，成片朗读走乐子哥腔（punch 句 --emo dyn）。无论哪档，**标题/封面标题必须守「可识别实体 + 工具价值」**（talkshow skill 包装层红线 2026-09-05）。首次定稿前 talkshow 工作流照常走（联网搜梗 + 多版本竞争 + 六维诊断）。
+
 ### 视频三要素（2026-08-24 用户定规，每条视频强制，优先级高于本节其余技巧）
 
 ① **提问式开头**（引导语固定「问你一个问题」/「你有没有想过」二选一，问题 ≤20 字、正文必回答）② **钩子设计且必须消费**（钩子→回收映射表，无回收点的钩子不许埋）③ **BGM + 音效 + 转场**（六情绪档/四类音效/15 种转场，管线零配置自动带）。开拍前先对照 `make analytics-report` 产出的运营 directives。**三要素逐条展开与 directive 自查法见 `references/content-rules.md`。**
@@ -158,9 +164,11 @@ video-generation/                        ← 项目根：所有内容配置 + �
 6. **换态强调配方**（swap/countup/typewriter/shimmer/grow/stamp/sting）参数见 `references/motion-patterns.md`；编舞三条（禁整体加速/位移优先于淡出/换卡先退后进）与渲染门禁五条同文件
 7. **flow 字段格式与实现细则见 `references/animation-shots.md`。**
 
-### 卡内分镜 shots（2026-08-26 定规，openspec card-shots，每张非 intro 卡强制）
+### 卡内分镜 shots（2026-08-26 定规，openspec card-shots；2026-09-05 首屏与静置增补）
 
 每张非 intro 卡必配 `shots` 镜头序列（`code/tree/term/stat/table/quote/flow` 七种）；**任何镜头停留 ≤15s**（卡 >25s ≥3 镜头、15-25s ≥2 镜头）；`from_s` 必须对齐口播句边界——**合成后必须跑 `_align_shots.py <slug>` 贴真实边界，禁拿估算值直接渲染**；code/term 素材必须真实可溯源；占位框禁止出现在成片。deck 字段格式、节奏门禁与实现见 `references/animation-shots.md`。
+
+**2026-09-05 用户定规（首屏与镜头静置，违者返工）**：任何镜头不得长时间停留在静态内容——除非该镜头已展示核心要点且正在讲解中。**intro 卡同样受 >10s 纯静态禁令约束：首屏必须带核心要点与镜头轮换（纯标题静态首屏 = 返工，2026-09-05 GPT-6 片首屏 23s 静态实录）**。工程坑：deck 卡 `points` 为空会触发 builder `is_cover` 判定并**剥离该卡全部 shots**（`is_cover = bool(card.get("is_cover")) or len(points_raw)==0`）——intro 卡要上镜头必须先给 `points`。
 
 ### 价值与互动：可带走 + 留讨论钩子（强制）
 
@@ -272,10 +280,15 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 
 ## 新文章复用
 
-### courseware
-1. `video-generation/deck/<slug>/deck.json`（含 points + sub_points + footer；流程类内容用 `flow` 字段替代 sub_points，见「动画与特效强制规范」第 6 条——节点/连线/跑线/逐字标签按口播分句自动逐节点动画）
+### courseware（prism 白色科技感管线，2026-09-05 起默认）
+1. `video-generation/deck/<slug>/deck.json`（含 points + sub_points + footer；流程类内容用 `flow` 字段替代 sub_points，见「动画与特效强制规范」第 6 条——节点/连线/跑线/逐字标签按口播分句自动逐节点动画）。**prism 卡型**（多章节内容建议按「hook → agenda → 章节(隔页→内容卡→recap) → cta」结构模板组织，断言式标题）：
+   - 默认/insight/intro 卡：断言句标题 + points(≤3) + shots/flow/sub_points
+   - 章节隔页：`{"type":"section","title":"钱省在哪","subtitle":"第二章","section_no":2,"sections":["能力盘点","价格结构","决策纪律"]}`——大号数字 stamp + mini-agenda 当前章高亮
+   - 章末回顾：`{"type":"recap","title":"本章三个可带走结论","subtitle":"回顾","points":["重活配它","前缀吃缓存","控输出"]}`——≤3 条 takeaway 拍落
+   - 转场微调：deck 顶层 `"transitions": ["circleopen","slideleft",...]`（长度 n-1）整体覆盖自动规划
 2. 口播 `video-generation/narrations/<slug>.json`，格式 `{voice, rate, outline:[论点], cards:[文案]}`
 3. `make video slug=<slug>`（动画零配置：分句时间轴自动生成每元素出生帧，无需任何 anim 配置）
+4. 预览样例帧：`cd scripts && PYTHONIOENCODING=utf-8 python -m video.prism` → `build/prism-preview/prism_*.png`
 
 ### screencast（屏录感教程：对齐抖音「录屏+标注」爆款）
 1. `video-generation/deck/<slug>/deck.json`，每卡 `type:"tool"`：

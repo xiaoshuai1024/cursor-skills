@@ -126,10 +126,13 @@ def concat_with_transitions(
     bgm_volume: float = 0.35,
     transition_sfx_every: int = 4,
     extra_sfx: list[tuple[Path, float]] | None = None,
+    transitions: list[str] | None = None,
 ) -> None:
     """用 FFmpeg xfade 滤镜做段间转场，BGM/音效同图混入（单 pass 装配）。
 
-    转场类型循环使用：fade, wipeleft, wipeup, slideleft, slideup, fadeblack。
+    转场选择（openspec prism-motion-pipeline）：调用方传 `transitions`（per-boundary
+    列表，长度 n-1）则逐边界使用（章节感知三级预算，方向一致性由 build 层规划）；
+    不传 → 默认中转场轮换（向后兼容，原 6 种固定轮换退役）。
     transition_dur: 转场持续时间（秒），默认 0.8s。
     bgm: BGM wav 路径（-stream_loop 循环垫底，None 则不加）。
     sfx: {"opening": Path, "transition": Path}（None 则不加）。开场音 @0.08s；
@@ -144,8 +147,18 @@ def concat_with_transitions(
         shutil.copy(segments[0], out)
         return
 
-    # 转场效果循环列表
-    transitions = ["fade", "wipeleft", "wipeup", "slideleft", "slideup", "fadeblack"]
+    # 默认转场：中档轮换（slideleft 族方向一致；原 fade/wipeleft/wipeup/
+    # slideleft/slideup/fadeblack 固定轮换已退役）
+    default_transitions = ["slideleft", "smoothleft", "wipeleft", "fade"]
+    n = len(segments)
+    if isinstance(transitions, list) and len(transitions) == n - 1:
+        trans_seq = [str(t) for t in transitions]
+    else:
+        if transitions is not None:
+            print(f"  [warn] transitions 长度 {len(transitions)} ≠ {n - 1}，回退默认轮换")
+        trans_seq = None
+
+    n = len(segments)
 
     # 获取每段时长
     durations = []
@@ -163,8 +176,6 @@ def concat_with_transitions(
             concat(segments, out)
             return
 
-    n = len(segments)
-
     # 构建输入参数
     inputs = []
     for seg in segments:
@@ -177,7 +188,8 @@ def concat_with_transitions(
     boundaries: list[float] = []
 
     for i in range(n - 1):
-        transition = transitions[i % len(transitions)]
+        transition = (trans_seq[i] if trans_seq is not None
+                      else default_transitions[i % len(default_transitions)])
         seg_dur = durations[i]
         # offset 是当前输出视频的截止时间点（减去转场重叠）
         xfade_offset = offset + seg_dur - transition_dur

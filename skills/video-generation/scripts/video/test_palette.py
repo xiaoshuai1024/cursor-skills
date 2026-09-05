@@ -67,11 +67,11 @@ def test_scan_colors() -> None:
 
 def test_dim_upgrade_regressions() -> None:
     """弱化态升档回归守卫：模板回到旧值时立刻红。"""
-    from . import courseware, graph, tutorial
-    css = courseware._CSS
-    assert "rgba(255,255,255,0.55)" in css          # 未讲要点升档值在场
-    assert "color: #475569; opacity: 0.5" not in css  # 旧写法不许回归
-    assert "rgba(148,163,184,0.75)" in css           # 占位符升档值
+    from . import graph, prism, tutorial
+    css = prism._CSS
+    assert "color: __LIGHT_MUTED__" in css           # prism 未讲要点走 LIGHT_MUTED（4.47:1）
+    assert "opacity: 0.4" not in css                  # 旧深色弱化写法不许回归
+    assert "rgba(148,163,184,0.75)" not in css        # 占位符弱化走 token 不走旧字面量
     assert graph._THEMES["dark"]["text_future"] == P.DIM_GRAPH_DARK
     assert graph._THEMES["dark"]["text_future"].endswith("0.45)")
     assert graph._THEMES["light"]["text_future"] == P.LIGHT_MUTED == "#64748b"

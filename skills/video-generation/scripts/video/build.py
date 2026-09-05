@@ -1,8 +1,9 @@
 """主入口：图文卡片/课件/节点图 → 竖屏口播视频。
 
 三种模式：
-  --mode courseware（默认）：程序化深色科幻课件，要点/字幕按 edge-tts 词级时间戳
-    逐条浮现。依赖 Playwright。
+  --mode courseware（默认）：deck 驱动课件。2026-09-05 起默认渲染为 prism 白色
+    科技感动效管线（深色科幻课件已退役删除，openspec prism-motion-pipeline）；
+    type:"tool" 卡仍走 screencast、type:"tutorial" 卡走 tutorial。
   --mode graph：节点图/知识图谱，中心辐射式布局，适合展示概念关系/知识体系。
     依赖 Playwright。需要 deck-graph.json（而非 deck.json）。
   --mode legacy：静态卡片轮播 + 底部整段 ASS 字幕（旧管线，可回退）。
@@ -129,6 +130,31 @@ def normalize_card(raw: dict) -> dict:
             "is_cover": False,
         })
         return card
+    if ctype == "section":
+        # 章节隔页卡（prism 管线，openspec prism-motion-pipeline）：大号章节数字 +
+        # 断言章标题 + mini-agenda（section_no/sections 透传给 prism）。
+        card = dict(raw)
+        card.update({
+            "type": "section",
+            "title": raw.get("title", ""),
+            "subtitle": raw.get("subtitle", "章节"),
+            "points": [],
+            "footer": raw.get("footer", ""),
+            "is_cover": False,
+        })
+        return card
+    if ctype == "recap":
+        # 章末回顾卡（prism 管线）：≤3 条 takeaway 逐条拍落。
+        card = dict(raw)
+        card.update({
+            "type": "recap",
+            "title": raw.get("title", ""),
+            "subtitle": raw.get("subtitle", "回顾"),
+            "points": list(raw.get("points", [])),
+            "footer": raw.get("footer", ""),
+            "is_cover": False,
+        })
+        return card
     if ctype == "cover":
         title = (raw.get("hook", "") or raw.get("subtitle", "")).replace("\n", " ")
         return {"title": title, "subtitle": raw.get("subtitle", ""),
@@ -137,7 +163,7 @@ def normalize_card(raw: dict) -> dict:
         title = raw.get("text", "") or raw.get("hint", "")
         return {"title": title, "subtitle": raw.get("hint", ""),
                 "points": [], "sub_points": [],
-                "footer": raw.get("hint", ""), "is_cover": True}
+                "footer": raw.get("hint", ""), "is_cover": True, "cta": True}
     return {
         "title": raw.get("title", ""),
         "subtitle": raw.get("label", ""),
@@ -255,6 +281,32 @@ def outro_sfx_point(mood: str | None, total_out_dur: float) -> tuple[Path, float
     return None
 
 
+def plan_transitions(deck: dict, deck_cards: list[dict]) -> list[str]:
+    """章节感知转场表（openspec prism-motion-pipeline，PPT 方法论 R7：转场有方向性，
+    方向突变只允许发生在章节边界）。
+
+    - deck 顶层 "transitions" 列表（长度 n-1）→ 整体覆盖（人工精调口）
+    - 进入 section 章节隔页的边界（i>0 且卡 i 为 section）→ 重转场轮换
+    - 其余卡间 → 中转场（slideleft 族为主，全片主流向从右向左推进）
+    """
+    custom = deck.get("transitions")
+    n = len(deck_cards)
+    if isinstance(custom, list) and len(custom) == max(n - 1, 0):
+        return [str(t) for t in custom]
+    heavy = ["circleopen", "radial", "smoothup", "wipetop", "dissolve"]
+    mid = ["slideleft", "smoothleft", "wipeleft", "slideleft", "fade"]
+    table = []
+    h = m = 0
+    for i in range(1, n):
+        if str(deck_cards[i].get("type", "")) == "section":
+            table.append(heavy[h % len(heavy)])
+            h += 1
+        else:
+            table.append(mid[m % len(mid)])
+            m += 1
+    return table
+
+
 def build_courseware(slug: str, voice: str, rate: str) -> None:
     """课件模式：程序化深色科幻画面 + 配音驱动的逐条浮现。"""
     from playwright.sync_api import sync_playwright
@@ -340,6 +392,7 @@ def build_courseware(slug: str, voice: str, rate: str) -> None:
         segs, final, transition_dur,
         bgm=bgm, sfx=sfx, transition_sfx_every=C.TRANSITION_SFX_EVERY,
         extra_sfx=extra_points,
+        transitions=plan_transitions(deck, deck_cards),
     )
 
     print(f"\n✅ 完成：{final}")
