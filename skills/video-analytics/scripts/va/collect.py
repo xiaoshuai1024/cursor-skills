@@ -33,7 +33,8 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 
 def _bili_cookie_header() -> str:
     data = json.loads((PUB_COOKIES / "bilibili.json").read_text(encoding="utf-8"))
-    cookies = {c["name"]: c["value"] for c in data["cookie_info"]["cookies"]}
+    raw = data["cookie_info"]["cookies"] if "cookie_info" in data else data.get("cookies") or []
+    cookies = {c["name"]: c["value"] for c in raw}
     need = [k for k in ("SESSDATA", "bili_jct", "DedeUserID") if k in cookies]
     if "SESSDATA" not in cookies:
         raise CollectError("bilibili.json 缺 SESSDATA，登录态失效")

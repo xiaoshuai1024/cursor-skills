@@ -212,7 +212,8 @@ async def deep_kuaishou() -> list[dict]:
 
 def deep_bilibili() -> list[dict]:
     data = json.loads((PUB_COOKIES / "bilibili.json").read_text(encoding="utf-8"))
-    cookies = {c["name"]: c["value"] for c in data["cookie_info"]["cookies"]}
+    raw = data["cookie_info"]["cookies"] if "cookie_info" in data else data.get("cookies") or []
+    cookies = {c["name"]: c["value"] for c in raw}
     hdr = "; ".join(f"{k}={cookies[k]}" for k in ("SESSDATA", "bili_jct", "DedeUserID") if k in cookies)
     ids = mapped_ids("bilibili")
     req = urllib.request.Request(

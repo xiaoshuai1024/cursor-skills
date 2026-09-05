@@ -112,7 +112,8 @@ def _i(v):
 
 def fans_bilibili() -> dict:
     data = json.loads((PUB_COOKIES / "bilibili.json").read_text(encoding="utf-8"))
-    cookies = {c["name"]: c["value"] for c in data["cookie_info"]["cookies"]}
+    raw = data["cookie_info"]["cookies"] if "cookie_info" in data else data.get("cookies") or []
+    cookies = {c["name"]: c["value"] for c in raw}
     mid = cookies.get("DedeUserID")
     if not mid:
         raise RuntimeError("bilibili cookie 缺 DedeUserID")
