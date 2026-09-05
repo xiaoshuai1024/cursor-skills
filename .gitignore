@@ -28,3 +28,6 @@ wechat-profile/
 
 # vpt 运行时台账（state.json 单一事实源在 blog-src/data/video-pipeline，勿落进本仓）
 /data/
+
+# skill 稿头工作底稿/梗稿草稿
+.tmp/

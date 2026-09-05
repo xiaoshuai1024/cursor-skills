@@ -156,10 +156,9 @@ def clean_and_style(soup: BeautifulSoup):
 def strip_leading_cover(content) -> bool:
     """剥掉正文开头的封面重复图(weixin 版专用)。
 
-    博客端源稿普遍以 <img cover.png> 题图开头,公众号封面正是从这同一张图裁出
-    (convert_images idx==1)——平台侧推送卡片与文章详情页首屏已经展示过封面
-    (wechat-retention:标题+封面吃掉首屏一半),正文再以同一张图开头就是同图
-    重复,还把首屏 150 字钩子往下挤。
+    2026-09-05 定规后博客正文已不内嵌封面图,本函数常态空转,保留作历史稿件
+    兼容(旧渲染产物/回滚场景里正文仍可能以 <img cover.png> 题图开头,剥掉防
+    推送卡片与首屏同图重复)。
     判据:文档里第一张 <img>,且沿其祖先链向上找不到任何前置兄弟
     (元素或可见文字)——即它是文档的第一个可见内容。首图嵌在段落之间的
     总览图前面有正文,不剥。
@@ -385,8 +384,10 @@ def convert_images(content, svg_dir: str, out_dir: str, src_mode: str = "placeho
             images[placeholder] = png_path
             img["src"] = placeholder
 
-        # 第一张图额外做封面(无论 SVG 还是本地栅格图)
-        if idx == 1:
+        # 兜底封面:仅当 out_dir 还没有专用封面时用第一张图裁(2026-09-05 定规后
+        # 常态走 prepare() 的 static/images/<slug>/cover.png 直取;此分支服务缺
+        # 专用封面的旧文,防架构图意外当封面——有专用封面时永不触发)
+        if idx == 1 and not os.path.exists(os.path.join(out_dir, "cover.png")):
             cover_path = os.path.join(out_dir, "cover.png")
             _make_cover(png_path, cover_path, config.COVER_SIZE)
 
@@ -429,6 +430,12 @@ def prepare(slug: str) -> dict:
     with open(html_path, encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
     content = clean_and_style(soup)
+
+    # 2.5 专用封面(2026-09-05 定规:博客正文不内嵌封面,封面一律从 make_cover.py
+    # 产物 static/images/<slug>/cover.png 直接取,裁 9:5;正文里没有首图可裁了)
+    blog_cover = os.path.join(config.PROJECT_ROOT, "static", "images", slug, "cover.png")
+    if os.path.exists(blog_cover):
+        _make_cover(blog_cover, os.path.join(out_dir, "cover.png"), config.COVER_SIZE)
 
     # 3. 图片转换
     images = convert_images(content, svg_dir=config.SVG_DIR, out_dir=out_dir)

@@ -1,6 +1,6 @@
 # xiaoshuai skills
 
-技术内容创作与多平台运营 Agent Skills 集合 —— 把「选题 → 写作 → 配图 → 发布 → 视频 → 发布后运营 → 评论承接 → 数据回看」全链路沉淀成 22 个可复用的 skill。
+技术内容创作与多平台运营 Agent Skills 集合 —— 把「选题 → 写作 → 配图 → 发布 → 视频 → 发布后运营 → 评论承接 → 数据回看」全链路沉淀成 24 个可复用的 skill。
 
 所有 skill 兼容 [Agent Skills 规范](https://agentskills.io)，可在 Claude Code、Codex、Cursor、Gemini CLI 等编码 Agent 里通用。
 
@@ -18,17 +18,17 @@ npx skills add xiaoshuai1024/skills
 
 ### 按场景选装（装哪些）
 
-`npx skills add` 会装全部 22 个；真正的「选装」是**配置**——只有配了登录态/密钥的 skill 才能跑通完整链路，其余 skill 纯本地即可用：
+`npx skills add` 会装全部 24 个；真正的「选装」是**配置**——只有配了登录态/密钥的 skill 才能跑通完整链路，其余 skill 纯本地即可用：
 
 | 你要做的事 | 必装（自动发现即用） | 需要额外配置才能跑满 |
 |-----------|---------------------|---------------------|
-| 只写技术博客 | blog-writing、drawio、excalidraw、de-ai-smell、app-screenshot | 无（全本地） |
+| 只写技术博客 | blog-writing、drawio、excalidraw、de-ai-smell、app-screenshot、article-quality-check | 无（全本地） |
 | + 选题 | tech-topic、douyin-topic、mstodo-topic | mstodo-topic 需 Microsoft 登录态；douyin-topic 深挖需 patchright + 浏览器 |
-| + 标题与合规 | metadata-optimizer、platform-compliance | 无（词表+脚本自包含） |
+| + 标题与合规 | metadata-optimizer、platform-compliance、media-review | 无（词表+脚本自包含） |
 | + 公众号 | wechat-publishing、wechat-analytics | wechat-publishing/analytics 需 mp 后台登录态 + `.env.local`（见下） |
 | + 视频 | video-generation、stock-footage、video-detail-site | 视频发布需四平台登录态（cookies/）；IndexTTS-2 克隆链需 WSL 环境（可降级 edge-tts） |
-| + 全平台运营闭环 | comment-auto-reply、video-analytics、video-pipeline-tracker、post-publish-ops | 需各平台创作者登录态；B站走 biliup-rs 双轨 |
-| 写口播稿/文章加梗 | talkshow | 无（点名触发，联网搜热梗需网络） |
+| + 全平台运营闭环 | comment-auto-reply、video-analytics、video-pipeline-tracker、post-publish-ops | 需各平台创作者登录态；B站全链路走 web UI 通道 |
+| 写口播稿/文章加梗 | talkshow | 无（口播按题材触发或点名，文章点名触发；联网搜热梗需网络） |
 | 爬虫 / 文档 | crawl、code-doc-maker | 无 |
 
 ### 作为 submodule 接入你自己的项目（进阶）
@@ -49,7 +49,7 @@ cmd /c mklink /J .agents\skills\<name> ..\.skills\skills\<name>
 
 ### 场景 1：写一篇技术博客
 
-需要：blog-writing、drawio、excalidraw、de-ai-smell、app-screenshot、metadata-optimizer（标题打分）
+需要：blog-writing、drawio、excalidraw、de-ai-smell、app-screenshot、article-quality-check（终检）、metadata-optimizer（标题打分）
 
 ```
 用 blog-writing skill 写一篇《【主题】》的技术文章。要求：
@@ -59,7 +59,9 @@ cmd /c mklink /J .agents\skills\<name> ..\.skills\skills\<name>
 4. 配图按字数配额执行（max(2, 字数÷1800) 张）：架构图用 drawio、概念图用 excalidraw
    （先看 excalidraw skill 的 references/examples/real-world/ 找同型骨架改）；
 5. 写完跑 de-ai-smell 扫描（make check-ai-smell），L1 禁词清零、整句重写标红段；
-6. 最后 hugo build 验证再交稿。
+6. 跑 article-quality-check 终检：机检门禁（relref/段落长度/标题数字兑现/重复片段）全绿后，
+   按六大编辑终检组（润色/AI 味复判/趣味/流畅/合理/技术深度）过一遍，问题修完复跑到无阻断；
+7. 最后 hugo build 验证再交稿。
 ```
 
 ### 场景 2：公众号文章（写作 → 发布 → 48h 回看）
@@ -79,7 +81,7 @@ cmd /c mklink /J .agents\skills\<name> ..\.skills\skills\<name>
 
 ### 场景 3：短视频生产（选题 → 口播稿 → 成片）
 
-需要：douyin-topic 或 mstodo-topic、blog-writing、talkshow（可选）、video-generation、stock-footage、metadata-optimizer、platform-compliance
+需要：douyin-topic 或 mstodo-topic、blog-writing、talkshow（可选）、video-generation、stock-footage、metadata-optimizer、platform-compliance、media-review
 
 ```
 把《【文章/主题】》做成横屏视频：
@@ -91,7 +93,8 @@ cmd /c mklink /J .agents\skills\<name> ..\.skills\skills\<name>
 4. 需要实拍素材时用 stock-footage 找免费源，产出溯源清单；
 5. metadata-optimizer 出四平台标题/简介变体（抖音 ≤30 字、简介无外链），
    platform-compliance 扫违禁词，HIGH 命中即改稿；
-6. 成片过四道机检门禁（video-lint），封面必须自定，产出四件套。
+6. 成片过 media-review 转化评审（P0-P3 问题三轮清零）+ 四道机检门禁（video-lint），
+   封面必须自定，产出四件套。
 ```
 
 ### 场景 4：短视频日常运营（发布 → 评论 → 数据 → 反哺）★核心运营场景
@@ -101,7 +104,7 @@ cmd /c mklink /J .agents\skills\<name> ..\.skills\skills\<name>
 ```
 进入日常运营节拍：
 1. 发布：用 video-generation 的发布链把《【视频名】》挂四平台（抖音/快手/B站/视频号）
-   定时，今天只发【中午 12:00 / 晚上 20:00】档（一天最多两个视频，每窗口一个）；
+   定时，今天只发晚上 20:00 黄金档（一天最多一个视频，全平台同日同步同一条）；
    挂定时后必须逐平台回读核验（上传器日志不可信），封面在列确认，link-map 四平台齐全才算发布完成；
 2. 台账：video-pipeline-tracker 记 stage（vpt stage/queue/sync），dashboard 看板更新，
    冲突用「修改定时」顺延，撤卡后平台侧复核到 0；
@@ -126,7 +129,7 @@ mstodo-topic 拉清单分析（三维：仿写价值/潜力/方向匹配）→ �
 
 ---
 
-## 全景：22 个 skill 按场景选用（渐进叠加）
+## 全景：24 个 skill 按场景选用（渐进叠加）
 
 这些 skill 设计为**配合使用**，按内容运营需求分层叠加。每一层独立可用，装到哪层用哪层：
 
@@ -137,10 +140,12 @@ blog-writing             ✅     ✅       ✅       ✅       ✅        ✅
 drawio / excalidraw      ✅     ✅       ✅       ✅       ✅        ✅
 de-ai-smell              ✅     ✅       ✅       ✅       ✅        ✅
 app-screenshot           ✅     ✅       ✅       ✅       ✅        ✅
+article-quality-check    ✅     ✅       ✅       ✅       ✅        ✅
 talkshow                 ✅     ✅       ✅       ✅       ✅        ✅
 tech-topic                      ✅       ✅       ✅       ✅        ✅
 platform-compliance                      ✅       ✅       ✅        ✅
 metadata-optimizer                       ✅       ✅       ✅        ✅
+media-review                             ✅       ✅       ✅        ✅
 wechat-publishing                                ✅       ✅        ✅
 wechat-analytics                                 ✅       ✅        ✅
 video-generation                                          ✅        ✅
@@ -167,7 +172,8 @@ post-publish-ops                                                    ✅
 | [excalidraw](skills/excalidraw/) | 手绘风概念图/流程图/心智模型，真实 Excalidraw 引擎渲染；**附 16 张已发布文章的真实成稿案例库**（时间线/心智模型/阶梯/流水线/门禁，按图型索引，直接拿骨架改） |
 | [de-ai-smell](skills/de-ai-smell/) | 去 AI 味扫描（L1 无例外禁词 + L2 慎用词 + 风格量化检查脚本），全站唯一权威词表 |
 | [app-screenshot](skills/app-screenshot/) | 桌面应用窗口截图 + OCR（跨平台 macOS Vision / Windows WinRT），真实截图拿不到时 Playwright 复刻兜底 |
-| [talkshow](skills/talkshow/) | 脱口秀式改写（**点名制，绝不自动触发**）：写梗管线（态度先行→包袱先行→多版本竞争→六维诊断修梗）+ 联网搜梗引擎 + 密度门禁；同时覆盖口播稿与文章两条链路 |
+| [talkshow](skills/talkshow/) | 脱口秀式改写（**口播按题材触发或点名；文章仍点名制**）：写梗管线（态度先行→包袱先行→多版本竞争→六维诊断修梗）+ 联网搜梗引擎 + 密度门禁；同时覆盖口播稿与文章两条链路 |
+| [article-quality-check](skills/article-quality-check/) | 文章定稿前质量终检统一收口：机检门禁（relref 断链/段落超长/标题数字兑现/代码块行数/收尾形态/重复片段/配图引用）+ 六大编辑终检组（润色复查/AI 味复判/趣味密度/流畅性/合理性/技术深度）+ 多篇隔离检查；编排 de-ai-smell/compliance/talkshow 的终检，不改它们的规则 |
 
 **依赖**：Python 3（de-ai-smell、app-screenshot）；draw.io CLI（drawio）；Node + Playwright（excalidraw 首次渲染）。
 
@@ -187,14 +193,15 @@ post-publish-ops                                                    ✅
 
 ---
 
-### Level 3 — + 合规与元信息（发布前两道闸）
+### Level 3 — + 合规与元信息（发布前三道闸）
 
-**新增能力**：标题/简介/话题有方法论（fact card → 分档候选 → 7 项清单打分 → 平台变体），违禁词有词库机检——发布前的质量与安全双闸。
+**新增能力**：标题/简介/话题有方法论（fact card → 分档候选 → 7 项清单打分 → 平台变体），违禁词有词库机检，内容转化潜力有六维预估评审（选题期 1 万线门禁 + 发布前最后一道内容关）——发布前的质量、安全、转化三闸。
 
 | 新增 Skill | 作用 |
 |------------|------|
 | [metadata-optimizer](skills/metadata-optimizer/) | 标题/简介/话题优化：素材提 fact card → 5 档位候选（数字/问句/反差/后果/克制）→ `score_title.py` 7 项清单打分（≥4 合格）→ 人选定稿 → 平台变体（抖音 ≤30 字 / B站含关键词 / 公众号 ≤25 字钩子前移）→ `metadata-lint` 机检收口；含本地话题推荐（大词+长尾，零外部查询） |
 | [platform-compliance](skills/platform-compliance/) | 多平台违禁词与敏感词检查——广告法极限词、夸大宣传、诱导引流、权威冒用，及抖音/快手/小红书/视频号各自红线；发布视频/口播/标题/封面/简介前扫描，HIGH 命中即拦 |
+| [media-review](skills/media-review/) | 内容转化潜力评审（视频成片+公众号文章两条资产线）：问题分级 P0-P3 + 三轮清零退出、选题期 1 万线预测门禁（六维预估中位 ≥10,000 才算选题完成，不达线按四杠杆迭代 ≤3 轮）、热点冲刺模式、运营配比与转化 KPI、发布后救片哨兵、封面标题 CTR 专项；砍卡撤卡有既定 SOP |
 
 **依赖**：Python 3（纯 stdlib，词表+脚本自包含）。
 
@@ -238,7 +245,7 @@ post-publish-ops                                                    ✅
 | [video-pipeline-tracker](skills/video-pipeline-tracker/) | 视频生产全生命周期状态台账：单一事实源 state.json（10 态 stage + blocked 标志 + history 追溯）+ vpt CLI（stage/queue/sync/report）+ 自动重生 Markdown 看板（进行中/队列日历含冲突标记/归档近况/平台数据），多任务窗口共享 |
 | [post-publish-ops](skills/post-publish-ops/) | 视频发布后运营统一入口：发布后时间线（复查→置顶评论→承接→回看→转化判断）+ 新运营位（抖音主页置顶作品/B站稿件编辑与弹幕/视频号评论弹幕私信三件套/四平台免费活动与话题借势/视频号×公众号联动）；硬定规=不做直播、不投流；只读实查 SOP + 留证 |
 
-**依赖**：Python 3 + patchright/playwright；各平台登录态（cookie 持久化，扫码一次长期复用；B站走 biliup-rs 双轨）。
+**依赖**：Python 3 + patchright/playwright；各平台登录态（cookie 持久化，扫码一次长期复用；B站全链路走 web UI 通道）。
 
 ---
 
@@ -257,12 +264,12 @@ post-publish-ops                                                    ✅
 mstodo-topic 拉待办清单 → 三维分析出报告（合适项附大纲/口播分镜）→ 写回待办
   → blog-writing 写文章（标题走 metadata-optimizer 打分）
   → drawio 配图 + excalidraw 手绘图 + app-screenshot 实拍
-  → de-ai-smell 扫描 + hugo 构建门禁
+  → de-ai-smell 扫描 + article-quality-check 终检 + hugo 构建门禁
   → 用户确认草稿 → deploy 发布 + wechat-publishing 同步公众号
   → video-generation 出视频（口播稿/分镜 → IndexTTS-2 克隆 → 渲染 → 四道门禁）
   → stock-footage 补实拍素材（需要时）→ video-detail-site 本地预览验收
-  → metadata-optimizer 出平台标题变体 → platform-compliance 扫违禁词
-  → 四平台定时发布（每日两窗口 12:00/20:00）→ 归档
+  → metadata-optimizer 出平台标题变体 → platform-compliance 扫违禁词 → media-review 转化评审
+  → 四平台定时发布（每日一条 20:00 黄金档，全平台同日同步）→ 归档
   → comment-auto-reply 置顶评论 + 24h 回评
   → video-pipeline-tracker 全程记录 stage
   → video-analytics / wechat-analytics 48h 数据回看 → 结论反哺下一轮选题

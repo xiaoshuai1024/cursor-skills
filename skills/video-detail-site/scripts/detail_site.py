@@ -134,7 +134,10 @@ def shot_summary(sh: dict) -> tuple[str, str]:
         body = "\n".join(" | ".join(map(str, r)) for r in rows)
         head = data.get("title", "表格")
     elif kind == "flow":
-        nodes = " → ".join(n.get("label", n.get("id", "?")) for n in data.get("nodes", []))
+        nodes = " → ".join(
+            n if isinstance(n, str) else n.get("label", n.get("id", "?"))
+            for n in data.get("nodes", [])
+        )
         body = nodes
         head = "流程"
     elif kind == "tree":

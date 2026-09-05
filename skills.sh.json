@@ -13,19 +13,21 @@
     },
     {
       "title": "写作 / Writing",
-      "description": "内容生产主链：博客写作全流程 9 步工作流（含公众号留存层）、脱口秀式加梗改写（点名制）、去 AI 味词表扫描。",
+      "description": "内容生产主链：博客写作全流程 9 步工作流（含公众号留存层）、定稿前质量终检（机检门禁+六大编辑组）、脱口秀式加梗改写（题材触发/点名制）、去 AI 味词表扫描。",
       "skills": [
         "blog-writing",
+        "article-quality-check",
         "talkshow",
         "de-ai-smell"
       ]
     },
     {
       "title": "合规与元信息 / Compliance & Metadata",
-      "description": "发布前双闸：标题/简介/话题分档打分与平台变体、多平台违禁词与红线机检。",
+      "description": "发布前三闸：标题/简介/话题分档打分与平台变体、多平台违禁词与红线机检、内容转化潜力评审（选题 1 万线门禁+发布前内容关）。",
       "skills": [
         "metadata-optimizer",
-        "platform-compliance"
+        "platform-compliance",
+        "media-review"
       ]
     },
     {

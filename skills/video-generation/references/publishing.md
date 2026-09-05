@@ -203,3 +203,17 @@ vendor 三上传器（douyin/ks/tencent；bilibili 走 API 不涉浏览器）所
 4. **台账合并回写（已落地代码）**：`publish.py::save_to_linkmap` results 按平台合并，禁止整体替换——单平台重试回写不得冲掉其他平台实据（08-30 晚视频号重试覆盖抖音/快手记录实例）。
 5. **单平台单会话**：同一平台同一时段只允许一个会话执行写操作（发布/挂卡/删除）。08-30 晚直发会话与批量挂卡会话并发操作抖音（20:07 直发与 19:59-20:52 挂卡交错）是事故放大器。跨会话交接以 state.json history 为准，接手先 `make next` 对账。
 6. **误删补救口径**：抖音删除不可恢复，唯一补救 = 重挂定时卡（保留原 metadata/封面/声明）；重挂档期属改档，**每日一更破例必须用户拍板**（08-31 补发即同日双条破例实例）。
+
+### B站全 UI 模式迁移 + 抖音直发实战实录（2026-09-05，gpt6-astra-coding 首发沉淀）
+
+**定规（2026-09-05 用户定规）**：B站投稿/审计/查稿/删稿**全链路仅 UI 通道，biliup 模式退役**。用户重登后 cookie 文件已是网页格式，biliup 格式（cookie_info）解析器全数崩坏，当日修复三处兼容（`bilibili_publish_web.py::_bili_header`、`publish_audit.py::audit_bilibili`、`bilibili_delete_video.py::storage_state` 原生已兼容）——新增 B站相关工具一律按双格式写。
+
+**实录坑位（当日逐条实测）**：
+
+1. **B站定时稿撤卡被 isTrusted 加固拦截，无自动化通道**：管理页卡片「更多→删除稿件」菜单，JS dispatchEvent 与 patchright 原生 locator.click 都弹不出菜单（「删除稿件」get_by_text 30s 超时）。处置口径：**保留原定时卡按档出片**（无双发风险），或用户人工删。跨 frame 找 `.article-card` 无效——列表经 `goto_manage_video_list` 三跳导航后才在主文档渲染。
+2. **抖音僵尸定时卡（禁用态）删除法**：定时管理视图无操作按钮、dedup 工具判「不会发布」但占名单且 UI 删不掉。可行解：**「全部」tab 按「标题 + 定时日期全文」双条件定位卡片容器 → hover → 删除作品 → 弹窗「确定要移除作品吗」点确定**，多轮弹窗快照处理（首次删除误点「删除」文本命中错误元素）。同标题新帖共存时**禁止单关键词删**（2026-09-05 双卡同题实录：僵尸卡与直发新帖标题完全一致，唯一区分标记是定时日期行）。
+3. **抖音新视频审核传播期（约 1h+）**：管理页「已发布」tab 在列 ≠ 详情页开放——详情页 404（`web_video_404_link` 重定向精选页）、评论框不渲染、评论管理后台不收录。**置顶评论必须等审核传播完成**，三通道（视频页/评论后台/搜索 fallback）全数失败属正常，勿反复重试（风控纪律）。`douyin_pin_comment.py` 挂后台延迟重试（40min+15min 两轮）即可。
+4. **编辑页 `?mid=` 不等于公开视频 item_id**：`douyin_pin_comment` 每次 hover 编辑作品拿到的 mid 都不同且视频页 404。真 item_id 以发布器回收/搜索页定位为准。
+5. **审计/状态工具按 metadata 主标题搜卡片会假阴性**：平台管理页显示的是**平台变体标题**（快手/抖音均实录：卡片在列但工具 missing）。`douyin_check_status.py` 关键词是位置参数，须传**抖音变体标题短关键词**（如「GPT-6单价贵」），传主标题或 --slug 会全 tab 空手而归。
+6. **vpt stage --schedule 是合并语义不是替换**：撤卡后仅 re-stage 剩余平台**清不掉旧日程**，pub_guard 会按 state.json 残留日程拦「未来定时卡 vs 立即发布」。撤卡后必须手术清理 state.json 的 `schedule` 字段（或补 vpt 清理子命令）。
+7. **douyin_scheduled_dedup.py 曾被改坏**（两处语句合并 SyntaxError：`pairs = [...]    if not COOKIE.exists():` 同行），2026-09-05 修复并通过 py_compile——批量编辑 scripts 后必须 py_compile 门禁。
