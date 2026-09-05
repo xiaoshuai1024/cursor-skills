@@ -143,6 +143,7 @@ def lint_deck(slug: str) -> list[str]:
                     f"[要点] {slug} 卡{i:02d}-{j + 1} {len(str(t))} 字：「{t}」"
                 )
     violations += lint_assertion_titles(slug, cards)
+    violations += lint_opening_structure(slug, cards)
     return violations
 
 
@@ -168,6 +169,22 @@ def lint_assertion_titles(slug: str, cards: list[dict]) -> list[str]:
         print(f"  ▣ 只读标题连读（{slug}）：{' / '.join(titles)}")
     return warns
 
+
+
+def lint_opening_structure(slug: str, cards: list[dict]) -> list[str]:
+    """开头核心内容前置机检（2026-09-05 用户定规）：首屏后第一张卡必须是核心内容卡，
+    section 章节隔页不得放 deck 第 2 张；新 deck 禁写 type:"tutorial"（prism 已代替，
+    WARN 提示——存量 32 支 tutorial deck 不回改，只拦新增）。"""
+    out: list[str] = []
+    if len(cards) >= 2 and str(cards[1].get("type", "")) == "section":
+        out.append(
+            f"[开头] {slug} 第 2 张卡是 section 隔页——首屏后必须直接进核心内容卡"
+            "（开头核心内容前置定规：隔页从第二章起用）"
+        )
+    if any(str(c.get("type", "")) == "tutorial" for c in cards):
+        print(f"  ⚠️ [WARN] {slug} 含 type:\"tutorial\" 卡——prism 已代替 tutorial 成为白色管线，"
+              "新视频请改用 prism 默认卡型 + section/recap")
+    return out
 
 def main() -> None:
     args = sys.argv[1:]

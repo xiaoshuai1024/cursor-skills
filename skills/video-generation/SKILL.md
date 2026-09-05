@@ -8,7 +8,7 @@ description: 把技术博客文章/主题生成为横屏 16:9 视频。三种模
 把一篇技术博客文章 / 一个技术主题生成为**横屏 16:9 视频**。三种程序化模式：
 
 - **remotion（默认）**：数据可视化 + 真实素材——深色科技网格底 + 真实数据图表 + 素材标注，适合发布速报、性能对比、教程步骤（Remotion 管线，`remotion/` 目录）。**默认主题，参照 `after-million-loc-my-skills.mp4`**
-- **courseware**：课件式（Playwright 管线）。**2026-09-05 管线换代（openspec `prism-motion-pipeline`，用户定规）：深色科幻课件退役删除，默认渲染 = prism 白色科技感动效管线**——亮底极光渐变斑 + 细网格 + 玻璃白卡 + 渐变标题条/进度条，代码/终端/flow 保留深色拟物窗；全元素动画 + 主锚联动零配置自动带（口播分句驱动出生帧）；新卡型 `section`（章节隔页：大号数字 stamp + mini-agenda 章节导航）/ `recap`（章末 ≤3 条 takeaway 拍落）；转场升级章节感知三级制（章界 circleopen/radial 重转场、卡间 slideleft 族方向一致，PPT 方法论 R7）；断言式标题第一视觉层级。原深色路径的 16 支存量 deck 重渲时自动切 prism（已发布视频不重渲）
+- **courseware**：课件式（Playwright 管线）。**2026-09-05 管线换代（openspec `prism-motion-pipeline`，用户定规）：深色科幻课件退役删除，默认渲染 = prism 白色科技感动效管线**——亮底极光渐变斑 + 细网格 + 玻璃白卡 + 渐变标题条/进度条，代码/终端/flow 保留深色拟物窗；全元素动画 + 主锚联动零配置自动带（口播分句驱动出生帧）；新卡型 `section`（章节隔页：大号数字 stamp + mini-agenda 章节导航）/ `recap`（章末 ≤3 条 takeaway 拍落）；转场升级章节感知三级制（章界 circleopen/radial 重转场、卡间 slideleft 族方向一致，PPT 方法论 R7）；断言式标题第一视觉层级。原深色路径的 16 支存量 deck 重渲时自动切 prism（已发布视频不重渲）。**2026-09-05 用户再定规：prism 代替 tutorial 成为白色管线唯一版本**——tutorial.py 降级为存量只读兼容（旧 deck 重渲不变），新视频 deck 一律不写 `type:"tutorial"`，直接用 prism 默认卡型 + section/recap
 - **screencast（courseware 子模式）**：屏录感工具界面——**浏览器真实网页截图打底 + 箭头标注是主角**（`realshot`：任何能在浏览器里呈现的步骤都截图，官网 / 市场 / GitHub / 控制台 / 在线编辑器都行），CSS 仿真窗口（VSCode mockup / 终端）只在浏览器截不到时才兜底（本地桌面应用、需登录态的真实界面）。标题栏下方**顶部常显步骤条**（全部步骤：done/active/future 三态），`active_idx` 高亮当前操作 + 光标箭头，对标抖音「录屏+标注」爆款（Ai小白Lab 26.2 万赞）。deck 卡 `type:"tool"` 即触发
 - **graph**：节点图/知识图谱——中心辐射布局，节点逐个高亮 + 连线生长，适合概念关系/体系架构（Playwright 管线）
 
@@ -132,7 +132,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ### 开头：抓住黄金 2 秒（强制）
 
-禁静态标题页开场；痛点前置 / 提问+数据反差 / 结果前置三选一；「问题-答案」结构贯穿全片；第一句 ≤20 字含具体钩子。**首帧三件套（2026-08-25 定规，强制）**：① intro 卡禁纯标题（首帧必须有动态元素）；② 首帧与封面同源；③ 钩子词 2.5s 内出口。句式与数据依据见 `references/content-rules.md`。
+禁静态标题页开场；痛点前置 / 提问+数据反差 / 结果前置三选一；「问题-答案」结构贯穿全片；第一句 ≤20 字含具体钩子。**首帧三件套（2026-08-25 定规，强制）**：① intro 卡禁纯标题（首帧必须有动态元素）；② 首帧与封面同源；③ 钩子词 2.5s 内出口。**开头核心内容前置（2026-09-05 用户定规，强制）**：开头不许长时间停留在标题或无信息内容上——① 首屏口播 ≤2 句（约 ≤10s），画面必带核心要点/预览；② **首屏后第一张卡必须是核心内容卡，section 章节隔页不得放 deck 第 2 张**（章节呼吸感从第二章起做，开场导航由 cover outline 承担）；③ 前 30s 内必须出现第一个核心画面（数据/代码/演示/流程图）。`video-lint --deck` 机检第 2 张卡为 section → FAIL。细则与反例见 `references/content-rules.md`。
 
 ### 抖音审核红线（2026-08-17 事故沉淀，强制）
 
@@ -283,7 +283,7 @@ video-generation/build/<slug>/<slug>_<theme>.mp4（1920×1080）
 ### courseware（prism 白色科技感管线，2026-09-05 起默认）
 1. `video-generation/deck/<slug>/deck.json`（含 points + sub_points + footer；流程类内容用 `flow` 字段替代 sub_points，见「动画与特效强制规范」第 6 条——节点/连线/跑线/逐字标签按口播分句自动逐节点动画）。**prism 卡型**（多章节内容建议按「hook → agenda → 章节(隔页→内容卡→recap) → cta」结构模板组织，断言式标题）：
    - 默认/insight/intro 卡：断言句标题 + points(≤3) + shots/flow/sub_points
-   - 章节隔页：`{"type":"section","title":"钱省在哪","subtitle":"第二章","section_no":2,"sections":["能力盘点","价格结构","决策纪律"]}`——大号数字 stamp + mini-agenda 当前章高亮
+   - 章节隔页：`{"type":"section","title":"钱省在哪","subtitle":"第二章","section_no":2,"sections":["能力盘点","价格结构","决策纪律"]}`——大号数字 stamp + mini-agenda 当前章高亮。**禁放 deck 第 2 张**（开头核心内容前置定规：首屏后第一张必须是核心内容卡，lint FAIL）
    - 章末回顾：`{"type":"recap","title":"本章三个可带走结论","subtitle":"回顾","points":["重活配它","前缀吃缓存","控输出"]}`——≤3 条 takeaway 拍落
    - 转场微调：deck 顶层 `"transitions": ["circleopen","slideleft",...]`（长度 n-1）整体覆盖自动规划
 2. 口播 `video-generation/narrations/<slug>.json`，格式 `{voice, rate, outline:[论点], cards:[文案]}`
