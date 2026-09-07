@@ -6,7 +6,7 @@
 
 > ### ⚠️ 默认口播 = IndexTTS-2 用户声克隆，不是 edge-tts（2026-08-25 定规，违者返工）
 >
-> **每条正式视频的口播必须走克隆链**（用户声音，AGENTS.md「视频声音管线」为权威）：WSL `scripts/video/synth_indextts.py <slug> --attempts 4 --emo dyn`（2026-08-28 定档 D，openspec tts-emotion-dynamics：逐句角色情绪向量值已烙入 `emotion_map.py`，`--emo-scale` 仅作 ±0.1 微调；参考音 `~/refaudio/my_voice_seg.wav`，逐句 best-of-N 门禁选优）→ `tts_pipeline/assemble.py`（发布五步链：120ms 垫 / RMS -18dB / treble g=2 / deesser / alimiter）→ `tts_speed_shrink.py --tempo 1.06` → 产物落 `video-generation/audio/<slug>_t/` → `make video` 换声旁路自动接管（`audio/<slug>_t/audio_*.mp3 + boundaries_*.json` 在则跳过 edge-tts）。本节及「音色选择」的 edge-tts 内容**仅是克隆链不可用时的 fallback**，fallback 必须先向用户说明并获准，不得默认使用。`narrations/<slug>.json` 的 `voice/rate` 字段只在 fallback 生效——渲染前 checklist 必查一项：**口播是否为用户克隆声**。
+> **每条正式视频的口播必须走克隆链**（用户声音，AGENTS.md「视频声音管线」为权威）：Windows 原生 `bash scripts/video/_win_synth.sh <slug> --attempts 2 --emo dyn`（=IndexTTS-2.5 bf16：`synth_indextts25.py` + v4 门禁，2026-09-06 定档 openspec windows-native-tts-research；emo dyn 沿用 2026-08-28 定档 D，向量值烙在 `emotion_map.py`，`--emo-scale` 仅 ±0.1 微调；参考音 `D:/models/IndexTTS25/refaudio/my_voice_seg.wav`）→ `tts_pipeline/assemble.py`（发布五步链：120ms 垫 / RMS -18dB / treble g=2 / deesser / alimiter）→ `tts_speed_shrink.py --tempo 1.06` → 产物落 `video-generation/audio/<slug>_t/` → `make video` 换声旁路自动接管（`audio/<slug>_t/audio_*.mp3 + boundaries_*.json` 在则跳过 edge-tts）。本节及「音色选择」的 edge-tts 内容**仅是克隆链不可用时的 fallback**，fallback 必须先向用户说明并获准，不得默认使用。`narrations/<slug>.json` 的 `voice/rate` 字段只在 fallback 生效——渲染前 checklist 必查一项：**口播是否为用户克隆声**。
 
 - edge-tts 中文语音**不支持 SSML 音素控制**（标签会被当文本读出）
 - **缩写逐字母 vs 单词音的权衡**（核心经验）：
@@ -53,10 +53,12 @@
 ### 断句根源定论（实证存档，防止再走调参弯路）
 
 IndexTTS-2 整句推理时，句内停顿由 **AR 随机采样**决定：tokenizer 实跑证明逗号只是段内普通 token（`interval_silence` 对单段句子不生效）；`infer_v2.py:590` `do_sample=True` 硬编码；同机同配置同句重采，停顿位置每次不同；上游 [issue #572](https://github.com/index-tts/index-tts/issues/572) 同病未修。**参数修不动，只能管线强制（门禁选优 + 手术）。**
+
+> **2026-09-06 IndexTTS-2.5 复测**：随机性原样仍在（5 句×4 次重采停顿签名全不同），#572 依旧 open——门禁不可删。但 2.5 裸出逗号停顿多落 0.28-0.35s 自然档（2.x 原生 0.4-0.6s），门禁换 v4 档（`pause_audit.py::PROFILES`）：逗号 ≤0.5s 保留、非标点 >0.11s 仍清、语速窗上限 6.5、attempts 4→2。长句在 8GB 卡自动按标点分段（low_vram 特性），段间垫 interval_silence=250ms，对停顿控制是利好。速度实证：同稿 41 句 67min（旧 2.x 全链）→ ≈4.5min（Windows 2.5 单采折算，-93%）。
 ### 已知坑
 
 - **`use_cuda_kernel=False` 必须显式传**：默认 True 触发 BigVGAN kernel JIT 编译，8GB 卡 >13min 无产出（2026-08-25 实测）
 - fp16 = webui 8GB 卡默认档（发布系列口径）；fp32 扩散极慢勿轻试
-- GPU 被 Seed-VC 等任务并行占用时只影响速度不影响停顿位置（停顿与算力无关——这本身是根源证据）
+- GPU 被其他重型任务（游戏/模拟器等）并行占用时只影响速度不影响停顿位置（停顿与算力无关——这本身是根源证据）
 - whisper 词级对齐失败自动退化字数比例映射（审计表 `align` 字段可查：whisper/prop）
 - 续跑会用现行门禁复核旧产物，不过自动重合成（改档位后重跑即全量生效）

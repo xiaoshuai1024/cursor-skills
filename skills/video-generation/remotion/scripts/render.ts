@@ -47,11 +47,15 @@ const outputFile = `${videoId}.mp4`;
 const outputPath = path.join(outputDir, outputFile);
 
 /** 声音层素材(BGM + SFX,VideoComposition 原生渲染引用 public/ 即 narration/ 目录)。
- * 缺失时自动重跑 gen-sfx.py(纯 stdlib 确定性合成,重跑结果一致)——
- * 保证新视频零配置即有 BGM/音效,不会因素材被清而静默丢声。 */
+ * 合成轨缺失时自动重跑 gen-sfx.py(纯 stdlib 确定性合成,重跑结果一致)——
+ * 保证新视频零配置即有 BGM/音效,不会因素材被清而静默丢声。
+ * 默认 BGM 是外部曲(gen-sfx 生成不了),从 skill scripts/assets/ 副本离线恢复。 */
 function ensureSfxAssets(root: string): void {
   const narrationDir = path.join(root, "video-generation", "narration");
+  // 默认 BGM(2026-09-06 定规 Mixkit Raising Me Higher,响度已校准)走 assets 副本恢复
+  const DEFAULT_BGM_FILE = "bgm-raising-me-higher.mp3";
   const required = [
+    DEFAULT_BGM_FILE,
     "bgm-bed.wav",
     "bgm-light-calm.wav",
     "bgm-light-walk.wav",
@@ -86,6 +90,18 @@ function ensureSfxAssets(root: string): void {
     // 不阻断渲染:视频若显式 sfx:{enabled:false} 或未引用缺失文件仍可出片,
     // 引用了缺失文件的会在 Remotion 取 staticFile 时大声报错(好过静默无声明)。
     console.error(`\n⚠️ gen-sfx.py 失败(引用缺失文件的音频层会渲染报错):`, error.message);
+  }
+  // 默认 BGM 是外部曲,gen-sfx 不产:从 skill 持久副本恢复(render.ts 位于
+  // remotion/scripts/,assets 在 ../../scripts/video/assets/)
+  const bgmDest = path.join(narrationDir, DEFAULT_BGM_FILE);
+  if (!fs.existsSync(bgmDest)) {
+    const bgmSrc = path.resolve(__dirname, "../../scripts/video/assets", DEFAULT_BGM_FILE);
+    if (fs.existsSync(bgmSrc)) {
+      fs.copyFileSync(bgmSrc, bgmDest);
+      console.log(`✅ 默认 BGM 已从 skill assets 副本恢复: ${bgmDest}`);
+    } else {
+      console.error(`\n⚠️ 默认 BGM ${DEFAULT_BGM_FILE} 缺失且 skill assets 无副本(主仓 data/bgm-library 台账有人工恢复直链)`);
+    }
   }
 }
 

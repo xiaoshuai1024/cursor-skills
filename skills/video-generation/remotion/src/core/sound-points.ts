@@ -15,7 +15,17 @@
  *   }
  */
 
-/** BGM 情绪档(文件名映射到 video-generation/narration/,gen-sfx.py 生成) */
+/** 全部视频的默认 BGM(2026-09-06 用户定规,试听页选定)。
+ *  Mixkit "Raising Me Higher",免费商用免署名(Mixkit Stock Music Free License);
+ *  已做 -12dB 响度校准对齐 gen-sfx 合成轨(mean -23.3dB/峰值 -11.6dB),
+ *  既有 bgmVolume 0.35 标定直接沿用。来源/许可/直链台账:主仓 data/bgm-library/。
+ *  持久副本 skill scripts/assets/(render.ts 离线恢复);要换默认轨改这里+types.ts
+ *  DEFAULT_SFX+config.py+mix_remotion_bgm.py 四处同名常量一起换。 */
+export const DEFAULT_BGM = "bgm-raising-me-higher.mp3";
+
+/** BGM 情绪档(文件名映射到 video-generation/narration/,gen-sfx.py 生成)。
+ *  2026-09-06 起情绪自动选轨退役——全部视频默认 DEFAULT_BGM,
+ *  本表降级为手动覆盖用(config.sfx.bgm 手写情绪轨文件名)。 */
 export type BgmMood =
   | "calm" | "walk" | "focus" | "bright"
   | "tense" | "epic" | "chiptune" | "lofi";
@@ -184,7 +194,8 @@ export interface SfxSet {
   reveal: string;
 }
 
-/** 口播文本 → 整套 SFX/BGM 推荐(先判情绪,再按矩阵选各场景变体)。
+/** 口播文本 → 整套 SFX/BGM 推荐(情绪只驱动 SFX 场景变体;
+ *  BGM 一律 DEFAULT_BGM——2026-09-06 定规,情绪选轨退役为手动覆盖)。
  *  config.ts 用法:
  *    sfx: { ...suggestSfxSet(N.audio, U.map(u => u.text)), volume: 0.4, bgmVolume: 0.35,
  *           questionFrames: autoQuestionFrames(U), emphasisFrames: keywordFrames(U, ["记住", "结论"]) } */
@@ -192,7 +203,7 @@ export function suggestSfxSet(...texts: string[]): SfxSet {
   const mood = suggestBgmMood(...texts);
   return {
     bgmMood: mood,
-    bgm: BGM_MOOD_FILES[mood],
+    bgm: DEFAULT_BGM,
     opening: suggestSfx("opening", mood),
     transition: suggestSfx("transition", mood),
     question: suggestSfx("question", mood),

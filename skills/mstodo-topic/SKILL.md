@@ -132,5 +132,4 @@ py -m writeback resolve --list-id <快照 list.id> --task-id <taskId> --note-fil
 - **写回（writeback）**：① todob2 单任务 GET **不被支持**（返回 JSON error 体）——取任务走清单拉取按 Id 过滤；② `fetch_json` 对 200+JSON error 体不报错，需显式判 `error` 键；③ 整对象 PATCH 遇 `Reminder.LastSnoozedAt` 类 null 字段**两头堵**（null 拒收、省略嵌套对象也报「必填属性缺失」）——`_strip_nulls` 深清洗 + 含 null 的顶层嵌套对象**整键省略**；④ 写回用快照里的精确 taskId，**勿手工拼**（后缀段重复拼错过一轮）。
 - **会话恢复时序**：登录窗（login_gate）刚退出的 profile 有锁，紧接的 headless 会话可能判「未登录」——失败先等几秒重试一次再诊断；headless 下 live.com 直达 + 静默 SSO（落地页 CTA → MSAL 帐户瓦片代点）实测 3-12s 恢复。
 - **fetch_json 顺序铁律**：必须先 `_shared_page()`（建会话顺带偷 Bearer）再组装 headers——反了首次 fetch 必 401（踩过）。
-- **合成/环境瞬断**：WSL 冷启动首跑可能秒退（exit 1 无有效日志）——直接重跑即过，别先怀疑代码。
 - **视频链路配合**：deck 的 shots `from_s` / code `hl_steps` 必须在**合成后**按 `audio/<slug>_t/boundaries_*.json` 的真实句边界重对齐再渲染（预写值只作占位）——这是「口播画面对齐」的既定流程。

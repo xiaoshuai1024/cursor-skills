@@ -331,7 +331,7 @@ def build_courseware(slug: str, voice: str, rate: str) -> None:
     audio_dir = bdir / "audio"
 
     # 换声旁路（openspec tts-prosody-pause-hierarchy）：assemble→shrink 产物在则
-    # 跳过内建 edge-tts，直接用 Seed-VC 换声后的每卡音频与子句级时间轴。
+    # 跳过内建 edge-tts，直接用克隆链（IndexTTS-2.5）产出的每卡音频与子句级时间轴。
     voice_dir = C.OUTPUT_ROOT / "audio" / f"{slug}_t"
     use_override = voice_dir.exists() and any(voice_dir.glob("audio_*.mp3"))
     if use_override:
@@ -387,7 +387,8 @@ def build_courseware(slug: str, voice: str, rate: str) -> None:
     print("[3/3] 拼接 + BGM/音效同图混入（xfade 转场，单 pass 装配）...")
     final = bdir / f"{slug}.mp4"
     # 转场会减少总时长：每个转场重叠 transition_dur 秒
-    bgm = C.bgm_path(mood)
+    # BGM 不随 mood 选轨：2026-09-06 定规全部视频默认 bgm-raising-me-higher（情绪轨手动覆盖才传 mood）
+    bgm = C.bgm_path()
     render.concat_with_transitions(
         segs, final, transition_dur,
         bgm=bgm, sfx=sfx, transition_sfx_every=C.TRANSITION_SFX_EVERY,
@@ -505,7 +506,8 @@ def build_graph(slug: str, voice: str, rate: str, theme: str = "dark") -> None:
     # 转场重叠起点响（音频时间轴段 k 起点 = sum(dur_j, j<k) - k*d，再往前 d）
     # + 内容感知 cue 定点与尾卡收尾和弦（openspec video-sfx-scenario-palette）
     mood = C.suggest_bgm_mood(cards_text)
-    bgm = C.bgm_path(mood)
+    # BGM 不随 mood 选轨：2026-09-06 定规全部视频默认轨（情绪轨手动覆盖才传 mood）
+    bgm = C.bgm_path()
     sfx = C.sfx_paths(mood)
     sfx_points: list[tuple[Path, float]] = []
     cue_descs: list[str] = []

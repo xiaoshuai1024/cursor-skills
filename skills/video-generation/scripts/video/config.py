@@ -69,15 +69,22 @@ BGM_VOLUME = 0.12   # BGM 音量，配音为主（legacy 竖屏模式用）
 SFX_VOLUME_DB = "-10dB"   # courseware/graph 装配时 SFX 音量（低于口播人声）
 TRANSITION_SFX_EVERY = 4  # 转场音稀疏度：每 N 个段响一次（参考片拆解：不逐场堆）
 
+# 全部视频的默认 BGM（2026-09-06 用户定规，试听页选定）：Mixkit "Raising Me Higher"，
+# 免费商用免署名；已 -12dB 响度校准对齐 gen-sfx 合成轨，既有音量常数沿用。
+# 台账（直链/许可）主仓 data/bgm-library/；持久副本 scripts/assets/ 同名文件。
+# 换默认轨时与 remotion core/sound-points.ts::DEFAULT_BGM 等四处同名常量同步。
+DEFAULT_BGM = "bgm-raising-me-higher.mp3"
+
 
 def bgm_path(mood: str | None = None) -> Path | None:
-    """BGM 解析：mood 给了用对应情绪轨（gen-sfx 产物），否则 bgm-bed 兜底，
-    最后 skill assets/bgm.mp3。都不存在返回 None（纯配音）。"""
+    """BGM 解析（2026-09-06 定规）：全部视频默认 DEFAULT_BGM；
+    mood 仅作手动覆盖入口（要情绪轨显式传 mood，自动链路一律不传）。
+    兜底链 bgm-bed.wav → skill assets/bgm.mp3，都不存在返回 None（纯配音）。"""
     if mood:
         cand = NARRATION_ASSETS_DIR / BGM_MOOD_FILES.get(mood, "bgm-bed.wav")
         if cand.exists():
             return cand
-    for cand in (NARRATION_ASSETS_DIR / "bgm-bed.wav", ASSETS_DIR / "bgm.mp3"):
+    for cand in (NARRATION_ASSETS_DIR / DEFAULT_BGM, NARRATION_ASSETS_DIR / "bgm-bed.wav", ASSETS_DIR / "bgm.mp3"):
         if cand.exists():
             return cand
     return None

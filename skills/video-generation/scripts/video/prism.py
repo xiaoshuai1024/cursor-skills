@@ -228,6 +228,20 @@ def _band_state(frame: int, state_sub: str, cue_birth, cue_out,
     return text, "subtitle", _style(op, ty, sc)
 
 
+def _bottom_chrome(state: dict) -> str:
+    """底部字幕带 + 进度条（openspec prism-subtitle-band）：_band_state /
+    _progress_style 的唯一接线点。空字幕 → "subtitle empty"（无 style，
+    HTML 不变 → PNG 复用优化保持）；进度条取 state["progress"]（已量化）。"""
+    frame = int(state.get("frame", 10**6))
+    text, cls, style = _band_state(
+        frame, state.get("subtitle", ""), state.get("cue_birth"),
+        state.get("cue_out"), state.get("out_at"))
+    bar = _progress_style(float(state.get("progress", 0.0)) * 100.0,
+                          frame, state.get("point_births", []))
+    return (f'<div class="subtitle-band"><div class="{cls}"{_attr(style)}>{text}</div></div>'
+            f'<div class="progress-track"><div class="progress-fill"{_attr(bar)}></div></div>')
+
+
 def _shot_layer_style(frame: int, si: int, shot_idx: int, birth, out_at=None) -> str | None:
     """镜头层三态：当前层右滑入场（slideleft 主流向：新镜头从右缘推进来），
     上一层向左滑出；未开场 / 早已替换的层不渲染。"""
@@ -1021,6 +1035,7 @@ def _doc(body: str, state: dict, width: int, height: int) -> str:
     if getattr(state, "get", None) is not None:
         from .courseware import _mascot_html
         mascot = _mascot_html(state)
+    chrome = _bottom_chrome(state)
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -1037,6 +1052,7 @@ def _doc(body: str, state: dict, width: int, height: int) -> str:
 <div class="toplight"></div>
 {mascot}
 {body}
+{chrome}
 </body>
 </html>"""
 

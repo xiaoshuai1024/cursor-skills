@@ -19,7 +19,7 @@
     python beatgrid.py bgm.mp3 --print          # 附带可读摘要
 
 依赖：PATH 上有 ffmpeg/ffprobe + Python 包 librosa、numpy、soundfile
-（纯启发式，无学习模型）。缺包时优先在 WSL indextts env 或专用音频 env 里跑：
+（纯启发式，无学习模型）。缺包时在专用音频 env 里跑：
     pip install librosa numpy soundfile
 
 确定性：同一文件永远同一张图（audiomap）。信任边界（哪些字段永远可信、bpm
@@ -60,7 +60,7 @@ except ImportError as _exc:  # 给出可执行的补救，不裸 traceback
     sys.stderr.write(
         "[beatgrid] 缺依赖: %s\n" % _exc
         + "[beatgrid] 请先安装: pip install librosa numpy soundfile\n"
-        + "[beatgrid] 建议在 WSL indextts env（已有音频栈）中运行；PATH 需有 ffmpeg/ffprobe。\n"
+        + "[beatgrid] 建议在装有音频栈（librosa/numpy/soundfile）的 env 中运行；PATH 需有 ffmpeg/ffprobe。\n"
     )
     sys.exit(2)
 

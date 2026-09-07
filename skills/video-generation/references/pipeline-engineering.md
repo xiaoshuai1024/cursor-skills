@@ -126,13 +126,12 @@
 - `sync_check.py` 是 **Remotion 管线专用**（依赖 remotion-videos/<slug>/narration.ts）；courseware 模式不适用，音画对位由 `_align_shots.py`（真实句边界重排镜头切点）+ 人工抽帧承担，别对课件跑它。
 
 #### 后台/子环境渲染五坑（gpuq/后台任务实录，全部已修）
-1. **gpuq/子进程 PATH 被裁剪**：链脚本内禁裸调 `wsl`/`py`/`make`——一律绝对路径（`/c/Windows/System32/wsl.exe`、`/c/Windows/py.exe`、或直接 `python.exe -m video.build` 内联绕开 make）。模板级修法见 `_run_eng_series_chain.sh` 开头的 Git Bash 重执行守卫（检测 `MSYSTEM`，WSL bash 环境自动 exec 到 Git Bash；守卫变量引用用 `${VAR:-}` 防 set -u 报 unbound）。
+1. **gpuq/子进程 PATH 被裁剪**：链脚本内禁裸调 `py`/`make`——一律绝对路径（`/c/Windows/py.exe`、或直接 `python.exe -m video.build` 内联绕开 make）。模板级修法见 `_run_eng_series_chain.sh` 开头的 Git Bash 重执行守卫（检测 `MSYSTEM` 自动 exec 到 Git Bash；守卫变量引用用 `${VAR:-}` 防 set -u 报 unbound）。
 2. **python 文本模式补丁 .sh 会写出 CRLF** → bash 报 `invalid option`/`$'
 ': command not found` 拒跑。补丁脚本写文件必须 `io.open(p,'w',encoding='utf-8',newline='
 ')`（同 blog-writing「drawio 禁 heredoc」坑族）。
 3. **gpuq 锁内再嵌 gpuq = 自锁死锁**（外层 holder=自己，内层 WAIT 自己，ttl 到期互踢）。正确姿势：后台直接 `bash 链脚本 <slug…>`，外层循环自行逐集 gpuq；给 gpuq 传的 --episode 子命令只含单集步骤。
-4. **pgrep -f 自匹配**：`wsl bash -c "pgrep -f 'synth_indextts.py'"` 会匹配到自身命令行 → 永远「gpu busy」死循环。模式加括号技巧 `'[s]ynth_indextts.py'`。
-5. **SLF 混写路径**：gpuq 子 bash 里 `$SELF` 若为 D:/ 风格路径，WSL bash 打不开（No such file）；统一 MSYS 风格 /d/... 并在重执行前 `cd /mnt/d/codes/blog-src` 锚定 cwd。
+4. **pgrep -f 自匹配**：`pgrep -f 'synth_indextts.py'` 这类探测会匹配到自身命令行 → 永远「gpu busy」死循环。模式加括号技巧 `'[s]ynth_indextts.py'`。
 
 #### 统一服务合并（2026-08-29，看板+详情站同端口）
 - `board.py serve`（默认 8765，被占自动 +1 重试并打印实际 URL）现为**唯一服务入口**：`/board.html`（生产看板，页头有入口链接）+ `/site/*`（video-detail-site 详情站）+ `/build/*`（成片 mp4/封面）。Windows 下 `_Server.allow_reuse_address = False`（NT 的 SO_REUSEADDR 允许同端口双绑定 = 多实例静默叠加、请求随机路由，正是「服务冲突」的根因）；双绑定改为显式报错走端口回退链。

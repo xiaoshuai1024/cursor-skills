@@ -54,4 +54,4 @@
 
 ## 运行环境
 
-依赖 `ffmpeg/ffprobe` + `librosa/numpy/soundfile`。Windows 主 Python 缺包时优先在 WSL indextts env 跑（已有音频栈），或 `pip install librosa numpy soundfile`。缺包时脚本给出可执行提示而非裸 traceback。
+依赖 `ffmpeg/ffprobe` + `librosa/numpy/soundfile`。Windows 主 Python 缺包时 `pip install librosa numpy soundfile`（或建专用音频 env）。缺包时脚本给出可执行提示而非裸 traceback。

@@ -19,7 +19,7 @@
 
 ### 声音管线（三层，全部零配置自动）
 
-- **配音**：缺省 edge-tts（免费，词级时间戳）；正式发布走 **IndexTTS-2 声音克隆链**（WSL 环境，逐句合成 + best-of-N 门禁选优 + 严格标点断句手术 + 发布五步混音链）
+- **配音**：缺省 edge-tts（免费，词级时间戳）；正式发布走 **IndexTTS-2.5 声音克隆链**（Windows 原生 `D:/models/IndexTTS25`，逐句合成 + best-of-N 门禁选优 + 严格标点断句手术 + 发布五步混音链）
 - **BGM/音效/转场**：所有管线自动带——BGM 按口播关键词自动选情绪档（calm/walk/focus/bright/tense/epic/chiptune/lofi），SFX 走 12 语义场景 × 氛围矩阵，转场 15 种；`make video-lint` 机检双端规则漂移
 - **伴随形象**：右下角终端小子 mascot（6 表情/3 姿态），表情按字幕关键词自动推断，默认左下避让平台互动栏
 - **BGM 卡点（可选增强，缺省关）**：`beatgrid.py` 把 BGM 转成确定性节拍图（audiomap.json），画面按信任边界分帧跟拍（beat_cut 逐拍硬切 / phrase_flow 短语流动）。config 加 `beat` 字段才启用，详见 [`references/beat-cut.md`](./references/beat-cut.md)
@@ -67,7 +67,7 @@ video-generation/                    ← 项目根：内容配置 + 渲染产物
 | Python 3.10+ + edge-tts + Playwright(chromium) | 缺省配音与逐帧渲染 |
 | Node.js + Remotion | remotion 模式（`remotion/` 内 npm install） |
 | FFmpeg / ffprobe | 音视频合成与探针 |
-| （可选）WSL + IndexTTS-2 | 正式发布的声音克隆链；缺失自动回退 edge-tts |
+| （可选）IndexTTS-2.5（Windows 原生，`D:/models/IndexTTS25`） | 正式发布的声音克隆链；缺失自动回退 edge-tts |
 | （可选）librosa + numpy + soundfile | beatgrid.py 节拍分析（仅卡点功能需要） |
 
 ## 内置硬规则（agent 侧强制，完整版见 SKILL.md）

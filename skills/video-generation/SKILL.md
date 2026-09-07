@@ -12,7 +12,7 @@ description: 把技术博客文章/主题生成为横屏 16:9 视频。三种模
 - **screencast（courseware 子模式）**：屏录感工具界面——**浏览器真实网页截图打底 + 箭头标注是主角**（`realshot`：任何能在浏览器里呈现的步骤都截图，官网 / 市场 / GitHub / 控制台 / 在线编辑器都行），CSS 仿真窗口（VSCode mockup / 终端）只在浏览器截不到时才兜底（本地桌面应用、需登录态的真实界面）。标题栏下方**顶部常显步骤条**（全部步骤：done/active/future 三态），`active_idx` 高亮当前操作 + 光标箭头，对标抖音「录屏+标注」爆款（Ai小白Lab 26.2 万赞）。deck 卡 `type:"tool"` 即触发
 - **graph**：节点图/知识图谱——中心辐射布局，节点逐个高亮 + 连线生长，适合概念关系/体系架构（Playwright 管线）
 
-三种模式共用 TTS/断句/字幕规则（`narrate.py`）。数据 → 程序化画面渲染 + FFmpeg 合成。零收费、全本地。配音分两档：**发布视频默认 IndexTTS-2 克隆声（严格标点断句管线，见「默认口播配置：IndexTTS-2 克隆 + 严格标点断句」）**；edge-tts 为快速预览与 fallback。
+三种模式共用 TTS/断句/字幕规则（`narrate.py`）。数据 → 程序化画面渲染 + FFmpeg 合成。零收费、全本地。配音分两档：**发布视频默认 Qwen3-TTS-12Hz-0.6B-Base 克隆声（2026-09-07 用户定规，试听验收「效果最好」；链路 `_qwen_synth.sh`，见下「默认口播配置」）**；IndexTTS-2.5（`_win_synth.sh`）降级为 fallback，edge-tts 仅快速预览与非克隆兜底。
 
 ## 规范文件地图（references 索引，2026-08-30 拆分）
 
@@ -202,7 +202,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ### 渲染前用户确认（强制门禁，2026-08-25 定规）
 
-- **门禁时点**：分镜脚本（deck.json / deck-graph.json / config.ts 的场景与动画设计）与口播稿（narrations/<slug>.json / narrate_<slug>.py）**完整成稿后、执行任何合成与渲染命令之前**（`synth_indextts.py` 长耗时克隆合成、`make video` / `make video-remotion` / `pnpm render` 等全部算），必须把两份**完整内容**呈给用户审阅：
+- **门禁时点**：分镜脚本（deck.json / deck-graph.json / config.ts 的场景与动画设计）与口播稿（narrations/<slug>.json / narrate_<slug>.py）**完整成稿后、执行任何合成与渲染命令之前**（`_win_synth.sh` 克隆合成、`make video` / `make video-remotion` / `pnpm render` 等全部算），必须把两份**完整内容**呈给用户审阅：
   - **完整口播稿**：逐句全文（含开头问句、钩子/回收/SFX/BGM/转场内联标记、结尾四段），不是摘要或大纲
   - **完整分镜脚本**：逐卡/逐场景列出（画面内容与要点、动画设计、BGM 情绪档、音效触发点、转场类型三列）
 - **确认后才渲染**：用户明确回复确认后才能开合成/渲染；用户提修改 → 改完**重新呈完整稿复审**，循环直到确认。IndexTTS 克隆合成耗时长且改稿即作废，务必在确认后跑。
@@ -224,7 +224,7 @@ video-generation/                        ← 项目根：所有内容配置 + �
 
 ### 发音（重要决策，多次试听迭代确认）
 
-> ⚠️ **默认口播 = IndexTTS-2 用户声克隆，不是 edge-tts（2026-08-25 定规，违者返工）**：正式视频一律走克隆链（`synth_indextts.py --emo dyn` → assemble → shrink，全节见下「默认口播配置」）；edge-tts **仅是克隆链不可用时的 fallback，必须先向用户说明并获准**。`narrations` 的 voice/rate 只在 fallback 生效——渲染前 checklist 必查：**口播是否为用户克隆声**。
+> ⚠️ **默认口播 = Qwen3-TTS 0.6B-Base 用户声克隆（2026-09-07 用户定规，试听验收通过，违者返工）**：正式视频一律走 `bash scripts/video/_qwen_synth.sh <slug>` → assemble → shrink（全节见下「默认口播配置」）。**排期硬约束：Windows 栈 RTF≈150-300，40 句全片 ≈9.5h，合成必须当天尽早启动、合成期避免用机挤占**。IndexTTS-2.5（`_win_synth.sh`）是 Qwen 链不可用或赶档时的 fallback，回退须先向用户说明并获准；edge-tts 仅预览/非克隆兜底同样须获准。`narrations` 的 voice/rate 只在 edge-tts fallback 生效——渲染前 checklist 必查：**口播是否为 Qwen 克隆声**。
 
 - 缩写读音：`normalize_for_tts` 白名单只留错音词（当前 `{DOM, AI}`，AI 必须逐字母 "A I"）；TUI 大小写通吃、探针必须用口播原文；**量词「行」克隆声误读 xíng——写稿期一律改「条」或删量词**，定稿前 grep `那行|一行|通知行|多少行` 自查；❌ 不靠整体提速补偿、❌ 不用中文谐音替换
 - rate 用 `+8%`；逐条权衡经验见 `references/tts-narration.md`
@@ -255,8 +255,8 @@ narrate 管线：逐意群合成 + ffmpeg **concat filter**（❌ 禁 demuxer `-
 
 ### 工程
 - **全本地零收费**：仅 edge-tts + Playwright + FFmpeg
-- **GPU 渲染排队（2026-08-28 重做，Redisson 式看门狗锁，openspec gpu-queue-lock-watchdog）**：任何视频生产批（`synth_indextts.py` 合成、`make video` 渲染链）开工前必须**整链包裹**进排队器——`PYTHONIOENCODING=utf-8 py -3.11 scripts/video/_gpu_queue.py run <owner> -- <整条命令>`（生产链脚本已内置 exec 自包裹，直接跑脚本即可），**禁止一次性 `acquire` 后裸跑**。机制：锁目录 `video-generation/.chain/gpu.lock`（临时目录写齐 token/lease_ts 后 rename 原子落位）+ 持锁进程内看门狗线程每 60s 续写租约（TTL 180s，自我守护）+ **停摆过期接管**（进程死→看门狗随死→最长约 3 分钟内等待者接管；接管前强制过 WSL 合成探测门槛——死 holder 的孤儿合成仍在占卡时不许抢；rename 独占+证据留痕）+ token 令牌化释放（错令牌 RELEASE-SKIP，误删不了新锁）；续期连续 3 次失败或 token 易主 → LEASE-LOST fail-closed 终止工作链。队列账本 `.chain/queue.jsonl`（WAIT/WAIT-STILL/ACQUIRE/RELEASE/STEAL/RENEW-FAIL/LEASE-LOST/RESTORE 全程留痕）；`gpuq status` 随时查持锁者与租约剩余；`acquire/renew/release` 仅手动调试用（租约=单 TTL，超时未续约会被接管）。对不走锁的外部合成任务 WSL pgrep 探测避让不变（先来先服务；探测连续 3 个周期失败按放行降级）。**事故存档 2026-08-27**：本链 ep3 与另一会话 token-saving-skills 合成同挤一张 8GB 卡，迭代从 6s/it 飙到 22s/it 后 WSL 整体重启双杀两任务——多批次并行前一律进队。**事故存档 2026-08-28（v4 判活失效→重做根因）**：tasklist 判活解析方向反了（有匹配时输出反不含 `: `）+ 一次性 acquire 拿锁即退致 owner.pid 恒死，「45 分钟死锁自救」退化成 45 分钟最大租约（账本实锤：humor-pilot 07:39:40 ACQUIRE → 08:24:50 被 STEAL），render 阶段无探测兜底可复刻 ep3 挤卡——遂重做为看门狗锁；锁语义自测 `py -3.11 scripts/video/test_gpu_queue.py`（隔离临时目录，不碰真实锁）。
-- **批量生产链（2026-08-28 沉淀）**：多支视频串行产出一律走 `bash scripts/video/_run_series_chain.sh`（slug 列表在脚本头，按需改）——每支自动执行 synth(WSL)→assemble→shrink→align→render→cover→covercheck，全程状态落 `video-generation/.chain/status.jsonl`，失败不阻塞后续（标 failed 继续跑完），配合排队器天然与外部任务共存。单支重跑照抄链内 run_step 顺序即可。
+- **GPU 渲染排队（2026-08-28 重做，Redisson 式看门狗锁，openspec gpu-queue-lock-watchdog）**：任何视频生产批（`_win_synth.sh`/`synth_indextts25.py` 合成、`make video` 渲染链）开工前必须**整链包裹**进排队器——`PYTHONIOENCODING=utf-8 py -3.11 scripts/video/_gpu_queue.py run <owner> -- <整条命令>`（生产链脚本已内置 exec 自包裹，直接跑脚本即可），**禁止一次性 `acquire` 后裸跑**。机制：锁目录 `video-generation/.chain/gpu.lock`（临时目录写齐 token/lease_ts 后 rename 原子落位）+ 持锁进程内看门狗线程每 60s 续写租约（TTL 180s，自我守护）+ **停摆过期接管**（进程死→看门狗随死→最长约 3 分钟内等待者接管；接管前强制过外部合成探测门槛——死 holder 的孤儿合成仍在占卡时不许抢；rename 独占+证据留痕）+ token 令牌化释放（错令牌 RELEASE-SKIP，误删不了新锁）；续期连续 3 次失败或 token 易主 → LEASE-LOST fail-closed 终止工作链。队列账本 `.chain/queue.jsonl`（WAIT/WAIT-STILL/ACQUIRE/RELEASE/STEAL/RENEW-FAIL/LEASE-LOST/RESTORE 全程留痕）；`gpuq status` 随时查持锁者与租约剩余；`acquire/renew/release` 仅手动调试用（租约=单 TTL，超时未续约会被接管）。对不走锁的外部合成任务探测避让不变（先来先服务；探测连续 3 个周期失败按放行降级；WSL 旧链退役后该探测恒空放行，保留兼容）。**事故存档 2026-08-27**：本链 ep3 与另一会话 token-saving-skills 合成同挤一张 8GB 卡，迭代从 6s/it 飙到 22s/it 后系统级重启双杀两任务——多批次并行前一律进队。**事故存档 2026-08-28（v4 判活失效→重做根因）**：tasklist 判活解析方向反了（有匹配时输出反不含 `: `）+ 一次性 acquire 拿锁即退致 owner.pid 恒死，「45 分钟死锁自救」退化成 45 分钟最大租约（账本实锤：humor-pilot 07:39:40 ACQUIRE → 08:24:50 被 STEAL），render 阶段无探测兜底可复刻 ep3 挤卡——遂重做为看门狗锁；锁语义自测 `py -3.11 scripts/video/test_gpu_queue.py`（隔离临时目录，不碰真实锁）。
+- **批量生产链（2026-08-28 沉淀）**：多支视频串行产出一律走 `bash scripts/video/_run_series_chain.sh`（slug 列表在脚本头，按需改）——每支自动执行 synth(Windows 2.5)→assemble→shrink→align→render→cover→covercheck，全程状态落 `video-generation/.chain/status.jsonl`，失败不阻塞后续（标 failed 继续跑完），配合排队器天然与外部任务共存。单支重跑照抄链内 run_step 顺序即可。
 - **视频生产看板（2026-08-28 定规，openspec video-board）**：`data/video-pipeline/board.html` 实时看板——GPU 队列横幅（持锁者/租约剩余/等待者/近 24h STEAL·LEASE-LOST 告警）、渲染中卡片（7 步骤链状态点 + synth 句进度/render 段进度 + 步骤耗时）、排队/阻塞、已渲染库存、20:00 排期（同日冲突标记）+ 四平台状态、近两日播放/涨粉/完播数据（timeseries.db）、归档表；机器读同目录 `board.json`。**实时**（2026-08-29 端口合并）：看板页由 8901 全生命周期控制台承载——`make video-preview-serve` 起一个端口，`/board`（看板页，请求前惰性重生成 board.py）+ `/board.json`（数据）+ `/console`（控制台首页含 GPU 队列/渲染进度横幅）+ `/v/<slug>` + `/narration-console/`；原 `make video-board-serve`（8765）退役，调用时提示并自动起 8901。链步骤与 gpuq 锁事件仍各自触发重生成（事件后感知 ≤5s）；直开 file:// 退化为 5s 整页重载兜底，手动一次性出板 `make video-board`。看板是旁路：单源缺失降级不炸板、钩子异常不阻塞生产链，`GPUQ_NO_BOARD_HOOK=1` 可禁重生成钩子（自测用）。
 - **字数→时长系数（2026-08-28 实测标定）**：成片秒数 ≈ 口播中文字数 ÷5.5 × **1.25–1.31**（含 TTS 停顿垫、句间 0.24s、xfade 折算）；预算 120–180s 主力档 ⇒ 口播 **620–950 字**。合成前后偏差实测 ±3%，**门禁以 ffprobe 实测成片时长为准**（metadata-lint 直读 mp4），字数只是预算工具。
 - **Windows 编码**：文件 I/O 显式 `encoding="utf-8"`，子进程 `PYTHONIOENCODING=utf-8`
@@ -367,17 +367,27 @@ Python 调用（`generate_narration_from_sentences`）与 CLI（`python -m video
 
 正式视频一律克隆声（见「发音」顶部定规）；下表仅限**用户批准的 fallback** 查用——解说/深度/悬疑默认 `zh-CN-YunjianNeural`（F0med 132Hz 最接近对标）、轻快教程 `zh-CN-YunxiNeural`、新闻播报 `zh-CN-YunyangNeural`、培训女声 `zh-CN-XiaoxiaoNeural`，rate `+8%`。标定方法与完整对照表见 `references/tts-narration.md`。
 
-## 默认口播配置：IndexTTS-2 克隆 + 严格标点断句（2026-08-25 定稿）
+## 默认口播配置：Qwen3-TTS 0.6B-Base 克隆（2026-09-07 用户定档，openspec windows-native-tts-research §3.5-3.6）
 
-发布视频（codex/claude 系列）的默认声音 = **IndexTTS-2 发布配置克隆**；edge-tts 降级为快速预览与 fallback。断句定规 = **只在逗号和句号停顿**，由管线强制，不依赖模型自觉。
+**默认链（Qwen3-TTS，2026-09-07 用户定规「千问作为默认朗读组件，后续朗读都使用千问」）**：`bash scripts/video/_qwen_synth.sh <slug> [--jobs 3] [--backup]`（skill 固化版 `.skills/skills/video-generation/scripts/qwen/synth_qwen.py`，2026-09-07 下午提效超集：**克隆 prompt 每进程只构建一次并复用**（旧驱动每句重传 ref_audio = 每句重付 ~25s 参考音 VQ 编码）+ **`--jobs N` 多进程有界并行**（0.6B 单实例 ~2GB，空闲显存自动封顶，cap 4）+ RTF 逐句遥测落 `qwen_metrics.json`；加载与逐句调用口径（`device_map="cpu"`+`.to("cuda")`+`language="Chinese"`）逐字复刻已验收链，音色零漂移。Qwen3-TTS-12Hz-0.6B-Base 零样克隆，部署 `D:/models/Qwen3TTS`，py3.12 venv + torch 2.8.0+cu128，显存峰值 ≈1.8GB）→ `tts_pipeline/assemble.py` 发布五步链（120ms 呼吸垫 / RMS -18dB / treble g=2 / deesser / alimiter——原为 IndexTTS 调校，Qwen 首批片若发现音染再另行定档）→ `tts_speed_shrink.py` atempo 1.06 → 产物落 `audio/<slug>_t/`。参考音 `D:/models/IndexTTS25/refaudio/my_voice_seg.wav` + 转写 `D:/models/Qwen3TTS/ref_text.txt`（fw-small 转写逐字核对）；品牌读法替换（1024工程笔记→一零二四）内建；产物契约（`c{i}_s{j}.wav/.txt/.tts.txt/meta.json`）与 IndexTTS 链同构，下游 assemble/shrink/渲染零改动；断点续跑（中断重启自动跳过已出句）。性能数据表与根因档案见 `scripts/qwen/README.md`。
+
+**取舍留痕（首支 Qwen 生产片 gpt6-astra-impact，2026-09-07）**：① 不做 pause_audit 门禁选优/手术——保护用户试听认可的原始停顿，审计可另跑只读版；② 无 `--emo dyn` 数值情绪向量——情绪随参考音自然跟随；③ 首次换声加 `--backup`（旧产物移 `.bak-indextts25`）。
+
+**速度现实（排期硬约束，实测）**：Windows 栈 RTF≈150-300（干净环境同量级，与争抢无关；根因疑 12Hz 双轨解码 CPU 侧 + flash-attn 无 Windows 轮子），**40 句全片 ≈9.5h**——日更节奏合成必须当天尽早启动（过夜保底），合成期 GPU/CPU 挤占会进一步拖慢（晚间用机时段实测近乎停滞）。根治候选：Windows 栈修 flash-attn/sub-talker 或 WSL 侧复测，未解前排期按 10h 预算。
+
+**Windows 栈实证（勿走弯路）**：批量模式无加速（3 句一批 RTF≈153 反更慢）、`attn_implementation="sdpa"` 无效、accelerate `device_map="cuda:0"` 派发段错误（须 `device_map="cpu"` 载入后 `model.model.to('cuda')`——cpu device_map 挂的 accelerate hook 会自动搬输入张量，这是能跑通的机制）、**裸 `.to("cuda")` 无 hook 直接崩**（wrapper `_tokenize_texts` 产物 input_ids 留 CPU → embedding device mismatch，2026-09-07 审计 A 档复现；运行时补丁 `qwen_audit.py::patch_tokenize_device` 可治，不动安装包）、**无 flash-attn 时包内走 manual PyTorch attention**（包自打印警告；Windows 无轮子，WSL 有预编译轮子——`setup_wsl.sh` 复测档）、qwen-tts 依赖解析会把 torch 偷换成 CPU 版（须显式钉 cu128）、pysox 归一化已 numpy 等价替换（Windows 无 sox.exe）。
+
+### Fallback 链细则：IndexTTS-2.5 Windows 原生克隆 + 严格标点断句（2026-09-06 定档档位存档；Qwen 链不可用/赶档时回退，回退须用户获准）
+
+发布视频（codex/claude 系列）的默认声音 = **IndexTTS-2.5 用户声克隆（Windows 原生 `D:/models/IndexTTS25`，bf16）**；edge-tts 降级为快速预览与非克隆 fallback；**旧 2.x WSL 链（synth_indextts.py + conda indextts env）已于 2026-09-06 整体退役删除（env、模型、参考音副本清出 WSL 并压缩 vhdx），克隆链仅 Windows 原生一条**。断句定规 = **只在逗号和句号停顿**，由管线强制，不依赖模型自觉。换档实证：同稿 41 句合成 67min → ≈4.5min（-93%），显存峰值 5.71GB，用户盲听验收通过（2026-09-06）。
 
 ### 声音配置（与发布系列逐项一致，来源 video-pipeline-6-skills 定稿）
 
 | 项 | 值 |
 |---|---|
-| 参考音 | `~/refaudio/my_voice_seg.wav`（WSL） |
+| 参考音 | `D:/models/IndexTTS25/refaudio/my_voice_seg.wav`（唯一副本，2026-09-06 已将 WSL 侧 13 条参考音全量迁齐此目录） |
 | 情绪 | 逐句角色向量 `--emo dyn`（2026-08-28 定档 D，openspec tts-emotion-dynamics）：幅值表烙在 `scripts/video/emotion_map.py`——hook 好奇上扬 / punch 金句小得意 / reveal 揭底兴奋 / body 贴原声 / settle 收尾温和；负向维度（angry/sad/afraid/disgusted/melancholic）恒 0，calm 仅 ≤0.05 微量；**scale 1.0 全值经盲听判「起伏过大」已弃用，发布档不得高于定档 D**，`--emo-scale` 只许 ±0.1 微调；`--emo none`（纯随参考音）为平淡旧口径，仅探针对照用 |
-| interval_silence | 250 |
+| interval_silence | 250（单段句不生效，2.5 的 low_vram 长句自动按标点分段时生效为段间垫） |
 | 后处理 | assemble 发布五步链：120ms 呼吸垫 → RMS -18dB → treble g=2 → deesser → alimiter 0.7 + -1dB |
 | 整体提速 | `tts_speed_shrink.py` atempo 1.06（时间戳等比缩放） |
 
@@ -385,28 +395,29 @@ Python 调用（`generate_narration_from_sentences`）与 CLI（`python -m video
 
 | 档 | 时长 | 机制 |
 |---|---|---|
-| 非标点位置 | >0.11s 一律手术清到 0.05s（听感连续） | pause_audit 手术 |
-| 逗号 `，、；：` | 原生 0.4-0.6s（参考音停顿习惯被克隆）→ 0.18s 档 | pause_audit 手术 |
+| 非标点位置 | >0.11s 一律手术清到 0.05s（听感连续） | pause_audit v4 手术 |
+| 逗号 `，、；：` | **自然停顿 ≤0.5s 一律保留**（2.5 裸出逗号多落 0.28-0.35s，用户盲听验收认可；>0.5s 手术压到 0.32s） | pause_audit v4 手术 |
 | 句号（句间） | 0.24s（120ms 垫×2，atempo 后 ~0.2s） | assemble 垫 |
 
-语速：合成期 best-of-N 按窗口 [4.6, 6.2] 字/s 优选（<12 字短句软窗 ≤7.5），发布链零变速 DSP。
+语速：合成期 best-of-N 按窗口 [4.6, 6.5] 字/s 优选（<12 字短句软窗 ≤7.5，v4 上限从 6.2 放宽——2.5 活跃语速实测 5.3-6.2）。门禁档位参数化在 `pause_audit.py::PROFILES`（v3=旧 2.x 链历史档，链已退役勿动勿用，v4=2.5 现行）。
 
 ### 断句根源定论（实证存档，防止再走调参弯路）
 
-句内停顿由 **AR 随机采样**决定——`interval_silence` 对单段句子不生效、`do_sample=True` 硬编码、同句重采停顿必变、上游 issue #572 未修：**参数修不动，只能管线强制（门禁选优 + 手术）**。实证细节见 `references/tts-narration.md`。
+句内停顿由 **AR 随机采样**决定——`interval_silence` 对单段句子不生效、`do_sample=True` 硬编码、同句重采停顿必变、上游 issue #572 未修：**参数修不动，只能管线强制（门禁选优 + 手术）**。⚠️ **2026-09-06 用 2.5 复测：随机性原样仍在**（5 句×4 重采停顿签名全不同），门禁不可删、已降级抽检档（attempts 4→2，首发合格率显著高于 2.x）。实证细节见 `references/tts-narration.md`。
 
 ### 命令链
 
 ```bash
-# ① 合成 + 门禁选优 + 手术（WSL indextts env，项目根 /mnt/d/codes/blog-src）
+# ① 合成 + v4 门禁选优 + 手术（Windows 原生；生产链一律经 _win_synth.sh，勿直调 python）
 #   产物 sent/<slug>/（c{i}_s{j}.wav/.txt/.tts.txt/meta.json）+ pause_audit.json 审计表
-PYTHONIOENCODING=utf-8 python scripts/video/synth_indextts.py <slug> [--attempts 4] [--limit N]
+bash scripts/video/_win_synth.sh <slug> [--attempts 2] [--limit N] [--emo dyn] [--df 1.0]
+#   （手动跑请自行包裹排队器：py -3.11 scripts/video/_gpu_queue.py run <owner> -- …）
 # ② 发布五步链拼装（Windows，产物 audio/<slug>/audio_XX.mp3 + boundaries_XX.json）
 PYTHONIOENCODING=utf-8 python scripts/video/tts_pipeline/assemble.py \
   video-generation/narrations/<slug>.json video-generation/sent/<slug> video-generation/audio/<slug>
 # ③ 整体提速 1.06（Windows，产物 audio/<slug>_t/，时间戳等比）
 python scripts/video/tts_speed_shrink.py <slug>
-# ④ 独立复审（WSL 或有 faster-whisper 的环境，可单独跑）
+# ④ 独立复审（有 faster-whisper 的环境即可，可单独跑）
 python scripts/video/pause_audit.py video-generation/sent/<slug>
 ```
 
@@ -422,7 +433,7 @@ rm -rf video-generation/sent/<slug> video-generation/audio/<slug> video-generati
 
 ### 已知坑
 
-`use_cuda_kernel=False` 必须显式传（默认 True 触发 BigVGAN JIT，8GB 卡 >13min 无产出）；fp16 = 8GB 卡默认档；GPU 并行只影响速度不影响停顿位置；whisper 对齐失败自动退化字数比例映射；续跑自动复核旧产物。全文见 `references/tts-narration.md`。
+`use_cuda_kernel=False` 仍必须显式传（2.5 的 `use_cuda_kernel=None` 在 CUDA 下默认 True，BigVGAN JIT 坑不变）；2.5 精度档 = **bf16**（`use_bf16=True`）；GPU 被桌面程序抢占会拖慢推理（2026-09-06 实录：和平精英模拟器同卡时 GPT 采样 0.15s/it → 49s/it）但**不影响停顿位置**；whisper 对齐失败自动退化字数比例映射（2.5 主链 align=None 走比例映射，whisper 全量复审仍是可选独立步）；续跑自动复核旧产物。部署坑：py/cmd 拉起 `bash` 时 System32 的 WSL bash 会抢 PATH——`_win_synth.sh` 已改直连 venv python.exe 规避，新脚本勿用 `/d/` 路径与裸 `uv run`；首跑需 `HF_ENDPOINT=https://hf-mirror.com`（_win_synth.sh 已内置）。2.5 裸出语速比 2.x 终稿慢（停顿更慷慨），由 shrink 步 atempo 补偿；**「字数→时长系数」待首支量产片重标**（旧系数 1.25-1.31 偏小）。全文见 `references/tts-narration.md`。
 
 ## Remotion 数据可视化视频（第三种模式）
 

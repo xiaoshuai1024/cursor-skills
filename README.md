@@ -26,7 +26,7 @@ npx skills add xiaoshuai1024/skills
 | + 选题 | tech-topic、douyin-topic、mstodo-topic | mstodo-topic 需 Microsoft 登录态；douyin-topic 深挖需 patchright + 浏览器 |
 | + 标题与合规 | metadata-optimizer、platform-compliance、media-review | 无（词表+脚本自包含） |
 | + 公众号 | wechat-publishing、wechat-analytics | wechat-publishing/analytics 需 mp 后台登录态 + `.env.local`（见下） |
-| + 视频 | video-generation、stock-footage、video-detail-site | 视频发布需四平台登录态（cookies/）；IndexTTS-2 克隆链需 WSL 环境（可降级 edge-tts） |
+| + 视频 | video-generation、stock-footage、video-detail-site | 视频发布需四平台登录态（cookies/）；IndexTTS-2.5 克隆链为 Windows 原生部署（可降级 edge-tts） |
 | + 全平台运营闭环 | comment-auto-reply、video-analytics、video-pipeline-tracker、post-publish-ops | 需各平台创作者登录态；B站全链路走 web UI 通道 |
 | 写口播稿/文章加梗 | talkshow | 无（口播按题材触发或点名，文章点名触发；联网搜热梗需网络） |
 | 爬虫 / 文档 | crawl、code-doc-maker | 无 |
@@ -230,7 +230,7 @@ post-publish-ops                                                    ✅
 | [stock-footage](skills/stock-footage/) | 免费实拍/档案素材检索：16 个免登录或免费注册素材源（NASA/Wikimedia/Archive.org/Mixkit/Pexels 等）统一搜索下载，产出溯源清单；只收免费/自由许可源 |
 | [video-detail-site](skills/video-detail-site/) | 视频详情预览站：扫描全部成片生成本地静态站点（列表页+每支视频独立 URL 详情页：播放器/meta/口播稿全文/分镜脚本），浏览器直接看成片 |
 
-**依赖**：Python 3 + patchright/playwright + FFmpeg（系统安装）；Node + pnpm（remotion 渲染）；IndexTTS-2（WSL 环境，可选，fallback 到 edge-tts 需说明）。
+**依赖**：Python 3 + patchright/playwright + FFmpeg（系统安装）；Node + pnpm（remotion 渲染）；IndexTTS-2.5（Windows 原生 `D:/models/IndexTTS25`，可选，fallback 到 edge-tts 需说明）。
 
 ---
 

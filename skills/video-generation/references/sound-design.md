@@ -24,7 +24,7 @@
 
 ## 二、设计原则
 
-1. **能量靠 BGM，不靠音效**：先配 BGM 垫底（`bgm-bed.wav`，整片循环低音量），再在上面点缀 SFX。SFX 是强调，不是主力。
+1. **能量靠 BGM，不靠音效**：先配 BGM 垫底（**2026-09-06 定规：全部视频默认 `bgm-raising-me-higher.mp3`**——Mixkit "Raising Me Higher"，免费商用免署名，已 -12dB 响度校准对齐合成轨；台账主仓 `data/bgm-library/`，整片循环低音量），再在上面点缀 SFX。SFX 是强调，不是主力。
 2. **音效要稀疏**：参考片零离散音效。我们的三档 SFX（开场/转场/提问）是**增量优化**，用法上要克制——转场音只在动画转场上放，不逐场堆。
 3. **转场用融合系，节奏用原地换内容**：`fade` / `wipe` / `wipeUp` / `iris` 优先；`slide` / `rotate3d` 是炫技项，用于重点强调场景，不做默认。动画转场约每 5 场景一次。
 4. **口播类视频 BGM 更小**：参考片是快剪（大概率无口播或口播稀疏），BGM 可以顶到接近响度主载。我们的技术视频普遍有密集口播——**口播密度越高，BGM 越小**（`bgmVolume` 0.3–0.4），否则压人声。
@@ -33,7 +33,7 @@
 
 | 参考片做法 | 本管线实现 | 参数 |
 |-----------|-----------|------|
-| 全程连续 BGM | `sfx.bgm: "bgm-bed.wav"` + `bgmVolume`（默认 0.35） | 无口播快剪可提到 0.6，口播视频 0.3–0.4 |
+| 全程连续 BGM | 默认 `bgm-raising-me-higher.mp3`（不配 `sfx.bgm` 即生效）+ `bgmVolume`（默认 0.35） | 无口播快剪可提到 0.6，口播视频 0.3–0.4 |
 | 2.5s 快剪节奏 | 场景 `durationInFrames` 收紧到 2.5–4s（60fps 即 150–240 帧）；慢速深度视频仍可用 5s+ | 快剪优先内容原语原地动（KineticText/CountUp/HighlightBand） |
 | 融合式转场 | `TransitionFrame`：`fade` / `wipe` / `wipeUp` / `iris`，时长 12–24 帧 | `transitionType` 场景级覆盖；动画转场约每 5 场景一次 |
 | 原地换内容 | `PrimitiveDemo` + 动画原语（数字滚动/流光/标记带），场景内高帧动 | 快剪每场景给 1 个原语 |
@@ -49,7 +49,7 @@ sfx: {
   question: "sfx-question.wav",      // 提问 3 选 1:双音上行(旧)/ -up(更轻快)/ -down(收束反思)
   questionFrames: [285, 885, 1665],  // 提问绝对帧号,避开转场帧
   volume: 0.4,                       // 声音小一点(2026-08-20: 0.7→0.5→0.4,SFX 只点缀不抢耳)
-  bgm: "bgm-bed.wav",                // BGM 垫底:轻音乐 4 轨循环(calm/walk/focus/bright)
+  // bgm 不写即默认 bgm-raising-me-higher.mp3(2026-09-06 定规);要换情绪轨才手写文件名
   bgmVolume: 0.35,
 }
 ```
@@ -59,7 +59,7 @@ sfx: {
 - **提问音**：只放真·提问句（口播里问句对应的字幕帧），`questionFrames` 手工点帧。**数量克制**：一篇视频 2–4 个提问音足够，多了成电子琴乱弹。反思/收束句用 `-down`。
 - **强调/揭示音**（`sfx-emphasis` / `sfx-emphasis-tick` / `sfx-reveal` / `sfx-reveal-bloom`）：给关键词落地、数字滚动、图表/结论出现配点缀，同样走 `questionFrames` 那套帧定位，音量 0.4 以下。
 - **音量**：SFX `volume` **0.4**（口播片，2026-08-20 降档）；BGM `bgmVolume` 0.3–0.5（口播）或 0.6（无口播快剪）。所有提示音都要低于口播人声，新 10 个变体内置幅度更小（RMS 比旧款低 3~10dB）。
-- **BGM 选曲**（本地 8 轨，30-53s 循环，见 `gen-sfx.py`）：calm=沉稳科普 / walk=轻快带节奏 / focus=极简专注 / bright=明亮进取 + **tense=悬疑脉冲 / epic=史诗推进 / chiptune=8-bit / lofi=Lo-fi 七和弦**（2026-08-24 对齐抖音科技/知识区扩充）；口播片默认 calm 或 focus，快剪默认 bright。情绪档由**内容感知自动选**：courseware/graph 按口播关键词（`config.py::BGM_MOOD_RULES`），Remotion 用 `core/sound-points.ts::suggestBgmMood`——两边规则同源，改一边必须同步另一边。
+- **BGM 选曲**（**2026-09-06 定规：情绪自动选轨退役，全部视频统一默认 `bgm-raising-me-higher.mp3`**——Mixkit 外部曲，免费商用免署名/四平台可发，已 -12dB 校准；不配 `sfx.bgm` 即默认，`suggestSfxSet` 的 `bgm` 也恒返默认曲）。本地合成 8 轨（30-53s 循环，见 `gen-sfx.py`）**降级为手动覆盖**：calm=沉稳科普 / walk=轻快带节奏 / focus=极简专注 / bright=明亮进取 / tense=悬疑脉冲 / epic=史诗推进 / chiptune=8-bit / lofi=Lo-fi 七和弦——要换轨在 config 手写 `sfx.bgm: "bgm-tense.wav"` 之类。mood 判定仍在（`config.py::BGM_MOOD_RULES` / `core/sound-points.ts::suggestBgmMood`）但只驱动 **SFX 场景变体**，不再驱动 BGM。
 - **帧定位铁律**：SFX 全部用 `<Sequence from={帧号}>` 定位，禁用 wall-clock。转场音必须和转场窗口对齐（`sceneStarts` 已自动对齐场景头）。提问帧可 `autoQuestionFrames(U)` 自动算（问句单元起始帧，≤4 个），关键词落点 `keywordFrames(U, [...])`。
 
 ## 四点五、2026-08-24 扩充：抖音风格 SFX（10 个）

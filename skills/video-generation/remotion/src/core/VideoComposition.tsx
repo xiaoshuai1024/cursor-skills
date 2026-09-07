@@ -8,7 +8,7 @@ import { TechBackground } from "../primitives/TechBackground";
 import { MascotCompanion } from "../primitives/MascotCompanion";
 import { sceneRegistry } from "../scenes/registry";
 import TransitionFrame from "../transitions/TransitionFrame";
-import { BGM_MOOD_FILES, type BgmMood } from "./sound-points";
+import { BGM_MOOD_FILES, DEFAULT_BGM, type BgmMood } from "./sound-points";
 
 /**
  * SoundLayer - 声音层(合成内原生渲染,非成片后混音):
@@ -36,8 +36,11 @@ const SoundLayer: React.FC<{
   const questionSfx = sfx.question ?? null;
   const emphasisSfx = sfx.emphasis ?? null;
   const revealSfx = sfx.reveal ?? null;
-  // BGM 文件:显式 bgm 优先,其次 bgmMood 情绪映射(无效 mood 忽略)
-  const bgmFile = sfx.bgm ?? (sfx.bgmMood ? BGM_MOOD_FILES[sfx.bgmMood as BgmMood] : undefined) ?? null;
+  // BGM 文件:显式 bgm 优先,其次 bgmMood 情绪映射(无效 mood 忽略),
+  // 都没有则 DEFAULT_BGM——2026-09-06 定规全部视频默认 Raising Me Higher
+  const bgmFile = sfx.bgm
+    ?? (sfx.bgmMood ? BGM_MOOD_FILES[sfx.bgmMood as BgmMood] : undefined)
+    ?? DEFAULT_BGM;
 
   const transitionAt = transitionSfx
     ? sceneStarts.filter((_, i) => i > 0 && i % every === 0)

@@ -110,9 +110,10 @@ def build_report() -> str:
         if gap == 0:
             eta = "✅ 已达标，去后台开通"
         elif cur is not None and speed is not None and speed > 0:
-            days = math.ceil(gap / speed)
+            daily = speed / 7  # speed 是近7日净增总量，换算日均再外推
+            days = math.ceil(gap / daily)
             eta_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
-            eta = f"约 {days} 天（{eta_date}，按近7日 +{speed} 外推）"
+            eta = f"约 {days} 天（{eta_date}，按近7日 +{speed}→日均 +{daily:.1f} 外推）"
         elif cur is not None:
             eta = "净增 ≤0，暂无法外推"
         rows.append({

@@ -105,7 +105,9 @@ export const DEFAULT_SFX: SfxConfig = {
   transition: "sfx-transition-swoosh.wav",
   transitionEvery: 4,
   volume: 0.4,
-  bgm: "bgm-bed.wav",
+  // 2026-09-06 定规:默认 BGM 换 Mixkit Raising Me Higher(响度已校准),
+  // 常量源头在 sound-points.ts::DEFAULT_BGM,两处同步改
+  bgm: "bgm-raising-me-higher.mp3",
   bgmVolume: 0.35,
 };
 
